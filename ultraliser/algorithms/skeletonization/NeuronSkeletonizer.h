@@ -460,6 +460,8 @@ private:
     void _connectPartition(GraphComponents& partitions, const size_t &partitionIndex,
                            SkeletonEdges &edges);
 
+    void _exportEdges(const std::string prefix, const bool verbose = SILENT);
+
     /**
      * @brief _exportSomaticNodes
      * @param prefix

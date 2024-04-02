@@ -79,12 +79,15 @@ void NeuronSkeletonizer::constructGraph(const bool verbose)
     // Identify the somatic nodes in the skeleton
     _identifySomaticNodes(verbose);
 
+    // Export the inflated nodes file
+    DEBUG_STEP( _exportEdges(_debuggingPrefix, verbose), _debug);
+
     // Verify graph connectivity
     _verifyGraphConnectivityToClosestPartition(_edges);
 
     /// In the old approach, we needed to remove the triangle loops, but thanks to Foni's algorithm
     /// these loops are removed automatically during the path construction phase
-    // _removeTriangleLoops();
+    _removeTriangleLoops();
 
     // Reconstruct the sections "or branches" from the nodes using the edges data
     _buildBranchesFromNodes(_nodes);
@@ -359,8 +362,8 @@ void NeuronSkeletonizer::_verifyGraphConnectivityToClosestPartition(SkeletonEdge
         }
         else
         {
-            LOG_WARNING("The skeleton graph has [ %d ] components! Running the Connectomics Algorithm",
-                        components.size());
+            LOG_WARNING("The skeleton graph has [ %d ] components! "
+                        "Running the Connectomics Algorithm", components.size());
 
             // Add the partition
             _connectPartition(components, 0, edges);
@@ -2182,4 +2185,34 @@ void NeuronSkeletonizer::exportSpineExtents(const std::string& prefix, const boo
     stream.close();
 }
 
+void NeuronSkeletonizer::_exportEdges(const std::string prefix, const bool verbose)
+{
+    // Construct the file path
+    std::string filePath = prefix + EDGES_EXTENSION;
+    VERBOSE_LOG(LOG_STATUS("Exporting Edges : [ %s ]", filePath.c_str()), verbose);
+
+    std::fstream stream;
+    stream.open(filePath, std::ios::out);
+
+    TIMER_SET;
+    VERBOSE_LOG(LOOP_STARTS("Writing Edges"), verbose);
+    for (size_t i = 0; i < _edges.size(); ++i)
+    {
+        const auto& edge = _edges[i];
+        const auto& node1 = edge->node1;
+        const auto& node2 = edge->node2;
+
+        stream << node1->point.x() << " " << node1->point.y() << " " << node1->point.z() << " "
+               << node1->radius << " "
+               << node2->point.x() << " " << node2->point.y() << " " << node2->point.z() << " "
+               << node2->radius << NEW_LINE;
+
+        VERBOSE_LOG(LOOP_PROGRESS(i, _edges.size()), verbose);
+    }
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
+
+    // Close the file
+    stream.close();
+}
 }
