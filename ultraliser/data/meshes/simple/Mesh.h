@@ -169,7 +169,7 @@ public:
      * @param pMin
      * @param pMax
      */
-    void computeBoundingBox(Vector3f& pMin, Vector3f& pMax);
+    void computeBoundingBox(Vector3f& pMin, Vector3f& pMax) const;
 
     /**
      * @brief computeRelaxedBoundingBox

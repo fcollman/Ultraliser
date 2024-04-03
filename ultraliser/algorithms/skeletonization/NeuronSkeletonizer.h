@@ -68,6 +68,20 @@ public:
     void segmentComponents(const bool verbose = VERBOSE) override;
 
     /**
+     * @brief constructSomaProxyMeshFromGraph
+     * @param verbose
+     * @return
+     */
+    Mesh* constructSomaProxyMeshFromGraph(const bool verbose = SILENT);
+
+    /**
+     * @brief constructSomaMeshFromGraph
+     * @param verbose
+     * @return
+     */
+    Mesh* constructSomaMeshFromGraph(const bool verbose = SILENT);
+
+    /**
       * @brief exportIndividualBranches
       * Exports the individual branches of the skeleton, irrespective of their connectivity.
       * This function is used for visual debugging.

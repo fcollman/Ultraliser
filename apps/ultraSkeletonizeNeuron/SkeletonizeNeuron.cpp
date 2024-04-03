@@ -24,6 +24,7 @@
 #include <AppArguments.h>
 #include <algorithms/skeletonization/NeuronSkeletonizer.h>
 #include <algorithms/skeletonization/SpineSkeletonizer.h>
+#include <algorithms/skeletonization/SomaSegmenter.h>
 #include <data/morphologies/Utilities.h>
 
 
@@ -73,6 +74,37 @@ AppOptions* parseArguments(const int& argc , const char** argv)
 
     // Return the executable options
     return options;
+}
+
+void fixSomaSlicing(Mesh* neuronMesh, AppOptions* options)
+{
+    // Segment a coarse soma mesh from the neuron volume
+    std::unique_ptr< SomaSegmenter > somaSegmenter = std::make_unique< SomaSegmenter >(neuronMesh, 5);
+    auto somaMesh = somaSegmenter->segmentSomaMesh(SILENT);
+
+    somaMesh->smoothSurface(10, false);
+
+    // Map the somaMesh to the neuronMesh
+
+    std::vector< Vector3f > neuronMeshCloud;
+    neuronMeshCloud.resize(neuronMesh->getNumberVertices());
+
+    OMP_PARALLEL_FOR
+    for (size_t i = 0; i < neuronMesh->getNumberVertices(); ++i)
+    {
+        auto point = neuronMesh->_vertices[i];
+        neuronMeshCloud[i] = Vector3f(point.x(), point.y(), point.z());
+    }
+
+    // Map the source mesh to the destination mesh
+    somaMesh->kdTreeMapping(neuronMeshCloud);
+
+    somaMesh->exportMesh(options->meshPrefix + "-soma2",
+                          options->exportOBJ, options->exportPLY, options->exportOFF, options->exportSTL);
+
+
+    // Append this soma mesh to the given neuron mesh
+    neuronMesh->append(somaMesh);
 }
 
 Mesh* remeshSpine(Mesh* inputSpineMesh, const float voxelsPerMicron = 50,
@@ -299,13 +331,19 @@ void exportSpineMeshes(NeuronSkeletonizer* skeletonizer,
 
 void run(int argc , const char** argv)
 {
-    std::cout << "Neuron Skeletonization \n";
-
     // Parse the arguments and get the tool options
     auto options = parseArguments(argc, argv);
 
     // Load the input mesh of the neuron
     auto inputMesh = loadInputMesh(options);
+
+    if (true)
+    {
+        fixSomaSlicing(inputMesh, options);
+        inputMesh->exportMesh(options->meshPrefix,
+                              options->exportOBJ, options->exportPLY, options->exportOFF, options->exportSTL);
+    }
+
 
     // Construct the neuron volume
     auto neuronVolume = createNeuronVolume(inputMesh, options, VERBOSE);
@@ -338,7 +376,7 @@ void run(int argc , const char** argv)
                 neuronVolume, options->removeSpinesFromSkeleton, options->useAccelerationStructures,
                 options->debugSkeletonization, options->debuggingPrefix);
 
-    // Initialize the skeltonizer
+    // Initialize the skeletonizer
     skeletonizer->initialize(VERBOSE);
 
     // Skeletonize the volume to obtain the centerlines

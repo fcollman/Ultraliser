@@ -156,7 +156,7 @@ void Mesh::getTriangleBoundingBox(const size_t &triangleIndex,
     }
 }
 
-void Mesh::computeBoundingBox(Vector3f& pMinIn, Vector3f& pMaxIn)
+void Mesh::computeBoundingBox(Vector3f& pMinIn, Vector3f& pMaxIn) const
 {
     // Create new variables to avoid any mess if the inputs are already
     // initialized with some values

@@ -61,8 +61,6 @@ void run(int argc , const char** argv)
     // Parse the arguments and get the values
     auto options = parseArguments(argc, argv);
 
-    std::cout << "11\n";
-
     // Load the source and destination meshes
     auto sourceMesh = new Mesh(options->sourceMesh);
     auto destinationMesh = new Mesh(options->destinationMesh);

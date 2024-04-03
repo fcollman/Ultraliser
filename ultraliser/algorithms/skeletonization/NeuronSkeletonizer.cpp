@@ -68,7 +68,7 @@ void NeuronSkeletonizer::constructGraph(const bool verbose)
     _inflateNodes(verbose);
 
     // Export the inflated nodes file
-    DEBUG_STEP( _exportGraphNodes(_debuggingPrefix + "-inflated", verbose), _debug);
+    DEBUG_STEP(_exportGraphNodes(_debuggingPrefix + "-inflated", verbose), _debug);
 
     // Add a virtual soma node to the graph, until the soma is reconstructed later
     _addSomaNode();
@@ -173,6 +173,55 @@ void NeuronSkeletonizer::segmentComponents(const bool verbose)
 
     // Remove the spines from the skeleton
     if (_removeSpinesFromSkeleton) { _detachSpinesFromSkeleton(verbose); }
+}
+
+Mesh* NeuronSkeletonizer::constructSomaProxyMeshFromGraph(const bool verbose)
+{
+    // Node extraction from the volume
+    // Extract the nodes of the skeleton from the center-line "thinned" voxels and return a
+    // mapper that maps the indices of the voxels in the volume and the nodes in the skeleton
+    auto indicesMapper = _extractNodesFromVoxels(verbose);
+
+    // Verify the count of the skeleton nodes
+    _verifySkeletonNodes();
+
+    // Export skeleton nodes
+    DEBUG_STEP(_exportGraphNodes(_debuggingPrefix, verbose), _debug);
+
+    /// Building edges
+    // Connect the nodes of the skeleton to construct its edges. This operation will not connect
+    // any gaps, it will just connect the nodes extracted from the voxels.
+    _connectNodesToBuildEdges(indicesMapper, verbose);
+
+    // Verify the count of the skeleton edges
+    _verifySkeletonEdges();
+
+    /// Inflate the nodes, i.e. adjust their radii
+    _inflateNodes(verbose);
+
+    // Export the inflated nodes file
+    DEBUG_STEP(_exportGraphNodes(_debuggingPrefix + "-inflated", verbose), _debug);
+
+    // Add a virtual soma node to the graph, until the soma is reconstructed later
+    _addSomaNode();
+
+    // Segmentthe soma mesh from the branches
+    _segmentSomaMesh(verbose);
+
+    // Return the soma mesh
+    return _somaProxyMesh;
+}
+
+Mesh* NeuronSkeletonizer::constructSomaMeshFromGraph(const bool verbose)
+{
+    // Reconstruct the proxy
+    auto proxy = constructSomaProxyMeshFromGraph(verbose);
+
+    // Reconstruct the soma mesh
+    _reconstructSomaMeshFromProxy();
+
+    // Return the soma mesh
+    return _somaMesh;
 }
 
 void NeuronSkeletonizer::_verifySomaticBranches()
@@ -550,7 +599,7 @@ void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
 
         /// TODO: This is a magic value, it works now, but we need to find an optimum value based
         /// on some statistical analysis.
-        if (node->radius >= 3.0)
+        if (node->radius >= 2.0)
         {
             interSomaticNodes.insert({node->index, node->radius});
             interSomaticNodesCount++;
@@ -587,6 +636,8 @@ void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
     }
     VERBOSE_LOG(LOOP_DONE, verbose);
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
+
+    LOG_SUCCESS("[%ld] Somatic Nodes Detected!", numberSamples);
 
     // Normalize
     estimatedSomaCenter /= numberSamples;
@@ -2215,4 +2266,10 @@ void NeuronSkeletonizer::_exportEdges(const std::string prefix, const bool verbo
     // Close the file
     stream.close();
 }
+
+NeuronSkeletonizer::~NeuronSkeletonizer()
+{
+
+}
+
 }
