@@ -76,34 +76,29 @@ AppOptions* parseArguments(const int& argc , const char** argv)
     return options;
 }
 
-void fixSomaSlicing(Mesh* neuronMesh, AppOptions* options)
+void fixSomaSlicingArtifacts(Mesh* neuronMesh, AppOptions* options)
 {
-    // Segment a coarse soma mesh from the neuron volume
-    std::unique_ptr< SomaSegmenter > somaSegmenter = std::make_unique< SomaSegmenter >(neuronMesh, 5);
+    // Use the SomaSegmenter to segment a coarse soma mesh from the neuron mesh if the mesh
+    // has obvious slicing artifacts
+    std::unique_ptr< SomaSegmenter > somaSegmenter =
+            std::make_unique< SomaSegmenter >(neuronMesh, options->somaSegmenterVPM);
     auto somaMesh = somaSegmenter->segmentSomaMesh(SILENT);
 
-    somaMesh->smoothSurface(10, false);
-
-    // Map the somaMesh to the neuronMesh
-
+    // Construct a point cloud for the neuron mesh to map the reconstructed soma to the neuron mesh
     std::vector< Vector3f > neuronMeshCloud;
     neuronMeshCloud.resize(neuronMesh->getNumberVertices());
 
     OMP_PARALLEL_FOR
     for (size_t i = 0; i < neuronMesh->getNumberVertices(); ++i)
     {
-        auto point = neuronMesh->_vertices[i];
+        const auto point = neuronMesh->_vertices[i];
         neuronMeshCloud[i] = Vector3f(point.x(), point.y(), point.z());
     }
 
     // Map the source mesh to the destination mesh
     somaMesh->kdTreeMapping(neuronMeshCloud);
 
-    somaMesh->exportMesh(options->meshPrefix + "-soma2",
-                          options->exportOBJ, options->exportPLY, options->exportOFF, options->exportSTL);
-
-
-    // Append this soma mesh to the given neuron mesh
+    // Append this soma mesh to the given neuron mesh to fill the slices in the soma
     neuronMesh->append(somaMesh);
 }
 
@@ -337,13 +332,8 @@ void run(int argc , const char** argv)
     // Load the input mesh of the neuron
     auto inputMesh = loadInputMesh(options);
 
-    if (true)
-    {
-        fixSomaSlicing(inputMesh, options);
-        inputMesh->exportMesh(options->meshPrefix,
-                              options->exportOBJ, options->exportPLY, options->exportOFF, options->exportSTL);
-    }
-
+    // Fix the soma slicing artifacts, if any
+    if (options->fixSomaSlicingArtifacts) { fixSomaSlicingArtifacts(inputMesh, options); }
 
     // Construct the neuron volume
     auto neuronVolume = createNeuronVolume(inputMesh, options, VERBOSE);

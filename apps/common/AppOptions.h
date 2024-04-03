@@ -686,6 +686,18 @@ public:
     bool exportProxySomaMesh = false;
 
     /**
+     * @brief fixSomaSlicingArtifacts
+     */
+    bool fixSomaSlicingArtifacts = false;
+
+    /**
+     * @brief somaSegmenterVPM
+     * Number of voxels per micron for the SomaSegmenter that is used to reconstruct a valid soma
+     * even if the input neuron mesh has slicing artifacts. Default value is 5.
+     */
+    float somaSegmenterVPM = 5;
+
+    /**
      * @brief debugSkeletonization
      * Debugs the skeletonization process by generating the artifacts at every stage.
      */

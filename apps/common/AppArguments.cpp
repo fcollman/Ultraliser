@@ -663,6 +663,25 @@ void AppArguments::addNeuronalMorphologyExportArguments()
     _args->addArgument(&exportSWCNeuron);
     _options->exportSWCNeuron = _args->getBoolValue(&exportSWCNeuron);
 
+    Argument fixSomaSlicingArtifacts(
+                "--fix-soma-slicing-artifacts",
+                ARGUMENT_TYPE::BOOL,
+                "Fix the slicing artifacts along the soma before the skeletonization of the neuron "
+                "to ensure that the neuron has a valid graph. This option is highly recommended if "
+                "the soma has obvious slicing artifacts.");
+    _args->addArgument(&fixSomaSlicingArtifacts);
+    _options->fixSomaSlicingArtifacts = _args->getBoolValue(&fixSomaSlicingArtifacts);
+
+    Argument somaSegmenterVPM(
+                "--soma-segmenter-vpm",
+                ARGUMENT_TYPE::FLOAT,
+                "Number of voxels per micron for the SomaSegmenter that is used to reconstruct a "
+                "valid soma even if the input neuron mesh has slicing artifacts. Default value is 5.",
+                ARGUMENT_PRESENCE::OPTIONAL,
+                "5.0");
+    _args->addArgument(&somaSegmenterVPM);
+    _options->somaSegmenterVPM = _args->getFloatValue(&somaSegmenterVPM);
+
     Argument exportOptimizedNeuronMesh(
                 "--export-optimized-neuron-mesh",
                 ARGUMENT_TYPE::BOOL,
