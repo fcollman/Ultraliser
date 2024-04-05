@@ -220,6 +220,7 @@ public:
      */
     void exportSpineExtents(const std::string& prefix, const bool verbose = VERBOSE) const;
 
+
 private:
 
     /**
@@ -481,6 +482,16 @@ private:
      * @param prefix
      */
     void _exportSomaticNodes(const std::string prefix);
+
+    /**
+     * @brief _exportSpineTerminals
+     * @param spineProxyMorphologies
+     * @param prefix
+     * @param verbose
+     */
+    void _exportSpineTerminals(const SpineMorphologies& spineProxyMorphologies,
+                               const std::string prefix,
+                               const bool verbose = VERBOSE) const;
 
 private:
 

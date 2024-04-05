@@ -49,7 +49,7 @@ void SomaSegmenter::_verifyVolume(const bool verbose)
 Mesh* SomaSegmenter::segmentSomaProxyMesh(const bool verbose)
 {
     // Verify the presence of the neuron volume before we proceed
-    _verifyVolume();
+    _verifyVolume(verbose);
 
     // Construct a NeuronSkeletonizer
     const bool ignoreSpines = false;
@@ -71,7 +71,7 @@ Mesh* SomaSegmenter::segmentSomaProxyMesh(const bool verbose)
 Mesh* SomaSegmenter::segmentSomaMesh(const bool verbose)
 {
     // Verify the presence of the neuron volume before we proceed
-    _verifyVolume();
+    _verifyVolume(verbose);
 
     // Construct a NeuronSkeletonizer
     const bool ignoreSpines = false;

@@ -2577,7 +2577,8 @@ bool Mesh::coarse(const float& coarseRate,
                   const float& flatnessRate,
                   const float& densenessWeight,
                   const float& maxNormalAngle,
-                  const int64_t &iteration)
+                  const int64_t &iteration,
+                  const bool verbose)
 {
     // If the mesh has less than 1k polygons, then don't coarse it
     if (_numberTriangles < 1024)
@@ -2585,8 +2586,7 @@ bool Mesh::coarse(const float& coarseRate,
 
     // Starting the timer
     TIMER_SET;
-
-    LOG_STATUS("Coarsing Mesh [%d]", iteration + 1);
+    VERBOSE_LOG(LOG_STATUS("Coarsing Mesh [%d]", iteration + 1), verbose);
 
     const size_t initialNumberVertices = _numberVertices;
     const size_t initialNumberTriangles = _numberTriangles;
@@ -2594,7 +2594,7 @@ bool Mesh::coarse(const float& coarseRate,
     // Check if neighborlist is created, otherwise create it
     if (_neighborList == nullptr)
     {
-        _createNeighbourList();
+        _createNeighbourList(verbose);
     }
 
     // Allocate the vertex and triangle index arrays
@@ -2608,12 +2608,10 @@ bool Mesh::coarse(const float& coarseRate,
         // Average edge length of the triangle
         float averageLength = 0.0;
 
-        LOOP_STARTS("Computing Edges");
         TIMER_RESET;
+        VERBOSE_LOG(LOOP_STARTS("Computing Edges"), verbose);
         for (size_t i = 0; i < _numberTriangles; ++i)
         {
-            LOOP_PROGRESS(i, _numberTriangles);
-
             // Indices
             Triangle& t = _triangles[i];
             const float nx = sqrt((_vertices[t[0]].x()- _vertices[t[1]].x()) *
@@ -2636,11 +2634,10 @@ bool Mesh::coarse(const float& coarseRate,
                                   (_vertices[t[2]].z()- _vertices[t[1]].z()));
 
             averageLength += ((nx + ny + nz) * 0.33333333334);
+            VERBOSE_LOG(LOOP_PROGRESS(i, _numberTriangles), verbose);
         }
-        LOOP_DONE;
-
-        // Statistics
-        LOG_STATS(GET_TIME_SECONDS);
+        VERBOSE_LOG(LOOP_DONE, verbose);
+        VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
         if (_numberTriangles == 0)
         {
@@ -2660,11 +2657,11 @@ bool Mesh::coarse(const float& coarseRate,
     // Start the algorithm with the current number of vertices in the mesh
     // This number will be reduced later if any coarsening happens
     TIMER_RESET;
-    LOOP_STARTS("Removing Vertices");
+    VERBOSE_LOG(LOOP_STARTS("Removing Vertices"), verbose);
     size_t vertexNumber = _numberVertices;
     for (int64_t n = 0; n < UI2I64(_numberVertices); ++n)
     {
-        LOOP_PROGRESS(n, _numberVertices);
+        VERBOSE_LOG(LOOP_PROGRESS(n, _numberVertices), verbose);
 
         // If the vertex is labeled in the vertex markers, then ignore it
         if (_vertexMarkers.size() > 0)
@@ -3007,10 +3004,8 @@ bool Mesh::coarse(const float& coarseRate,
             }
         }
     }
-    LOOP_DONE;
-
-    // Statistics
-    LOG_STATS(GET_TIME_SECONDS);
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
     // Clean the lists of nodes and faces
     int64_t startIndex = 0;
@@ -3089,9 +3084,9 @@ bool Mesh::coarse(const float& coarseRate,
 
     size_t numberRemovedVertices = initialNumberVertices - _numberVertices;
     size_t numberRemovedTriangles = initialNumberTriangles - _numberTriangles;
-    LOG_DETAIL("Removed Vertices: [ %s ], Removed Triangles: [ %s ]",
-               FORMAT(numberRemovedVertices),
-               FORMAT(numberRemovedTriangles));
+    VERBOSE_LOG(LOG_DETAIL("Removed Vertices: [ %s ], Removed Triangles: [ %s ]",
+                           FORMAT(numberRemovedVertices),
+                           FORMAT(numberRemovedTriangles)), verbose);
 
     delete[] vertexIndex;
     delete[] triangleIndex;
@@ -3123,7 +3118,7 @@ void Mesh::coarseFlat(const float& flatnessRate,
     VERBOSE_LOG(LOG_STATUS("Coarsing (Flat)"), verbose);
 
     for (int64_t i = 0; i < iterations; ++i)
-        if (!coarse(flatnessRate, 1, 0, -1, i)) break;
+        if (!coarse(flatnessRate, 1, 0, -1, i, verbose)) break;
 
     // Statistics
     VERBOSE_LOG(LOG_STATUS("Flat Coarsing (Decimation) Stats."), verbose);

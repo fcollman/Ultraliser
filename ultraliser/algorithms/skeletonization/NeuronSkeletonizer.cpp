@@ -183,7 +183,7 @@ Mesh* NeuronSkeletonizer::constructSomaProxyMeshFromGraph(const bool verbose)
     auto indicesMapper = _extractNodesFromVoxels(verbose);
 
     // Verify the count of the skeleton nodes
-    _verifySkeletonNodes();
+    _verifySkeletonNodes(verbose);
 
     // Export skeleton nodes
     DEBUG_STEP(_exportGraphNodes(_debuggingPrefix, verbose), _debug);
@@ -194,7 +194,7 @@ Mesh* NeuronSkeletonizer::constructSomaProxyMeshFromGraph(const bool verbose)
     _connectNodesToBuildEdges(indicesMapper, verbose);
 
     // Verify the count of the skeleton edges
-    _verifySkeletonEdges();
+    _verifySkeletonEdges(verbose);
 
     /// Inflate the nodes, i.e. adjust their radii
     _inflateNodes(verbose);
@@ -218,7 +218,7 @@ Mesh* NeuronSkeletonizer::constructSomaMeshFromGraph(const bool verbose)
     auto proxy = constructSomaProxyMeshFromGraph(verbose);
 
     // Reconstruct the soma mesh
-    _reconstructSomaMeshFromProxy();
+    _reconstructSomaMeshFromProxy(verbose);
 
     // Return the soma mesh
     return _somaMesh;
@@ -637,7 +637,15 @@ void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
     VERBOSE_LOG(LOOP_DONE, verbose);
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
-    LOG_SUCCESS("[%ld] Somatic Nodes Detected!", numberSamples);
+    if (numberSamples == 0)
+    {
+        LOG_WARNING("Zero Somatic Nodes Detected!");
+    }
+    else
+    {
+        VERBOSE_LOG(LOG_SUCCESS("[%ld] Somatic Nodes Detected. OK.", numberSamples), verbose);
+
+    }
 
     // Normalize
     estimatedSomaCenter /= numberSamples;
@@ -1641,6 +1649,9 @@ SpineMorphologies NeuronSkeletonizer::reconstructSpineProxyMorphologies()
     LOOP_DONE;
     LOG_STATS(GET_TIME_SECONDS);
 
+
+    DEBUG_STEP(_exportSpineTerminals(spineProxyMorphologies, _debuggingPrefix, VERBOSE), _debug);
+
     // Return a spine proxy morphologies
     return spineProxyMorphologies;
 }
@@ -1882,7 +1893,7 @@ void NeuronSkeletonizer::exportSomaMesh(const std::string& prefix,
                                         const bool& formatSTL = false)
 {
     // Reconstruct the soma mesh from the proxy one, only if we are going to export it
-    _reconstructSomaMeshFromProxy();
+    _reconstructSomaMeshFromProxy(SILENT);
 
     // Export the soma mesh
     _somaMesh->exportMesh(prefix + SOMA_MESH_SUFFIX, formatOBJ, formatPLY, formatOFF, formatSTL);
@@ -2194,6 +2205,43 @@ void NeuronSkeletonizer::exportSpineLocations(const std::string& prefix, const b
         stream << node->point.x() << " " << node->point.y() << " " << node->point.z() << NEW_LINE;
 
         VERBOSE_LOG(LOOP_PROGRESS(i, _spineRoots.size()), verbose);
+    }
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
+
+    // Close the file
+    stream.close();
+}
+
+void NeuronSkeletonizer::_exportSpineTerminals(const SpineMorphologies &spineProxyMorphologies,
+                                               const std::string prefix,
+                                               const bool verbose) const
+{
+    if (spineProxyMorphologies.size() == 0)
+    {
+        LOG_WARNING("No Spines have been Identified! Aborting Export!");
+        return;
+    }
+
+    // Construct the file path
+    std::string filePath = prefix + "-spine-terminals" + NODES_EXTENSION;
+    VERBOSE_LOG(LOG_STATUS("Exporting Spines Terminals: [ %s ]", filePath.c_str()), verbose);
+
+    std::fstream stream;
+    stream.open(filePath, std::ios::out);
+
+    TIMER_SET;
+    VERBOSE_LOG(LOOP_STARTS("Writing Extents (per Spine)"), verbose);
+    for (size_t i = 0; i < spineProxyMorphologies.size(); ++i)
+    {
+        const auto& terminals = spineProxyMorphologies[i]->getTerminals();
+
+        for (const auto& terminal : terminals)
+        {
+            stream << terminal.x() << " " << terminal.y() << " " << terminal.z() << NEW_LINE;
+        }
+
+        VERBOSE_LOG(LOOP_PROGRESS(i, spineProxyMorphologies.size()), verbose);
     }
     VERBOSE_LOG(LOOP_DONE, verbose);
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);

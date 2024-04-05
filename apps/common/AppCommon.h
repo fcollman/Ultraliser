@@ -35,10 +35,12 @@ namespace Ultraliser
  * Input mesh.
  * @param options
  * System options.
+ * @param verbose
+ * Verbosity
  * @return
  * Volume base resolution (along the largest dimension).
  */
-Volume* createVolumeGrid(Mesh *mesh, const AppOptions* options);
+Volume* createVolumeGrid(Mesh *mesh, const AppOptions* options, const bool verbose = VERBOSE);
 
 /**
  * @brief computeBoundingBoxForMeshes

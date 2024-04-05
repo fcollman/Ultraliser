@@ -78,28 +78,39 @@ AppOptions* parseArguments(const int& argc , const char** argv)
 
 void fixSomaSlicingArtifacts(Mesh* neuronMesh, AppOptions* options)
 {
+    LOG_TITLE("Fixing Soma Slicing Artifacts");
+    TIMER_SET;
+
     // Use the SomaSegmenter to segment a coarse soma mesh from the neuron mesh if the mesh
     // has obvious slicing artifacts
+    LOG_STATUS("Coarse Skeletonization to Segment Initial Soma Profile");
     std::unique_ptr< SomaSegmenter > somaSegmenter =
             std::make_unique< SomaSegmenter >(neuronMesh, options->somaSegmenterVPM);
     auto somaMesh = somaSegmenter->segmentSomaMesh(SILENT);
+    LOG_STATS(GET_TIME_SECONDS);
 
     // Construct a point cloud for the neuron mesh to map the reconstructed soma to the neuron mesh
+    LOG_STATUS("Mapping Initial Soma Profile to Neuron Mesh");
     std::vector< Vector3f > neuronMeshCloud;
     neuronMeshCloud.resize(neuronMesh->getNumberVertices());
 
     OMP_PARALLEL_FOR
     for (size_t i = 0; i < neuronMesh->getNumberVertices(); ++i)
     {
-        const auto point = neuronMesh->_vertices[i];
-        neuronMeshCloud[i] = Vector3f(point.x(), point.y(), point.z());
+        neuronMeshCloud[i] = neuronMesh->_vertices[i];
     }
 
     // Map the source mesh to the destination mesh
-    somaMesh->kdTreeMapping(neuronMeshCloud);
+    somaMesh->kdTreeMapping(neuronMeshCloud, SILENT);
+    LOG_STATS(GET_TIME_SECONDS);
 
     // Append this soma mesh to the given neuron mesh to fill the slices in the soma
+    LOG_STATUS("Updating Neuron Mesh with Corrected Soma");
     neuronMesh->append(somaMesh);
+    LOG_STATS(GET_TIME_SECONDS);
+
+    LOG_STATUS_IMPORTANT("Fixing Soma Slicing Artifacts Stats.");
+    LOG_STATS(GET_TIME_SECONDS);
 }
 
 Mesh* remeshSpine(Mesh* inputSpineMesh, const float voxelsPerMicron = 50,
@@ -224,10 +235,10 @@ Mesh* createMeshFromSections(Sections& sections, AppOptions* options)
 Volume* createNeuronVolume(Mesh* neuronMesh, AppOptions* options, const bool verbose = VERBOSE)
 {
     // Create the volume from the mesh
-    auto neuronVolume = createVolumeGrid(neuronMesh, options);
+    auto neuronVolume = createVolumeGrid(neuronMesh, options, verbose);
 
     // Adaptive and conservative Voxelization
-    neuronVolume->surfaceVoxelization(neuronMesh, SILENT, false, 1.0);
+    neuronVolume->surfaceVoxelization(neuronMesh, verbose, false, 1.0);
     neuronVolume->solidVoxelization(options->voxelizationAxis, SILENT);
 
     // Remove the border voxels that span less than half the voxel
@@ -336,7 +347,7 @@ void run(int argc , const char** argv)
     if (options->fixSomaSlicingArtifacts) { fixSomaSlicingArtifacts(inputMesh, options); }
 
     // Construct the neuron volume
-    auto neuronVolume = createNeuronVolume(inputMesh, options, VERBOSE);
+    auto neuronVolume = createNeuronVolume(inputMesh, options, SILENT);
 
     // Extract the mesh from the volume again
     auto exampleMesh = reconstructMeshFromVolume(neuronVolume, options);

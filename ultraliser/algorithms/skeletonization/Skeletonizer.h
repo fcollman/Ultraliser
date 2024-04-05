@@ -279,13 +279,15 @@ protected:
 
     /**
      * @brief _verifySkeletonNodes
+     * @param verbose
      */
-    void _verifySkeletonNodes();
+    void _verifySkeletonNodes(const bool verbose = VERBOSE);
 
     /**
      * @brief _verifySkeletonEdges
+     * @param verbose
      */
-    void _verifySkeletonEdges();
+    void _verifySkeletonEdges(const bool verbose = VERBOSE);
 
 
 protected:

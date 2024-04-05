@@ -970,16 +970,32 @@ void Skeletonizer::skeletonizeVolumeBlockByBlock(const size_t& blockSize,
     segmentComponents();
 }
 
-void Skeletonizer::_verifySkeletonNodes()
+void Skeletonizer::_verifySkeletonNodes(const bool verbose)
 {
     _totalNumberNodes = _nodes.size();
-    LOG_SUCCESS("The skeleton has [ %ld ] centerline connected nodes. OK.", _totalNumberNodes);
+    if (_totalNumberNodes == 0)
+    {
+        LOG_WARNING("The skeleton has [ %ld ] centerline connected nodes!");
+    }
+    else
+    {
+        VERBOSE_LOG(LOG_SUCCESS("The skeleton has [ %ld ] centerline connected nodes. OK.",
+                                _totalNumberNodes), verbose);
+    }
 }
 
-void Skeletonizer::_verifySkeletonEdges()
+void Skeletonizer::_verifySkeletonEdges(const bool verbose)
 {
     _totalNumberEdges = _edges.size();
-    LOG_SUCCESS("The skeleton has [ %ld ] centerline edges. OK.", _totalNumberEdges);
+    if (_totalNumberEdges == 0)
+    {
+        LOG_WARNING("The skeleton has [ %ld ] centerline edges!");
+    }
+    else
+    {
+        VERBOSE_LOG(LOG_SUCCESS("The skeleton has [ %ld ] centerline edges. OK.",
+                                _totalNumberEdges), verbose);
+    }
 }
 
 std::vector< Vector3f > Skeletonizer::getShellPoints()

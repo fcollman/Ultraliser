@@ -32,6 +32,12 @@ namespace Ultraliser
 void SpineMorphology::_constructTreeFromLogicalBranches(SkeletonBranch* root,
                                                         size_t& sectionIndex)
 {
+    // Adding the terminal nodes to visualize the terminals of the branches
+    if (root->logicalChildren.size() == 0)
+    {
+        _terminals.push_back(root->nodes.back()->point);
+    }
+
     for (size_t i = 0; i < root->logicalChildren.size(); ++i)
     {
         Section* section = new Section(sectionIndex++);

@@ -66,16 +66,26 @@ void run(int argc , const char** argv)
     auto destinationMesh = new Mesh(options->destinationMesh);
 
     std::vector< Vector3f > destinationMeshCloud;
-    auto destinationMeshVertices = destinationMesh->_vertices;
-    auto destinationMeshNumberVertices = destinationMesh->getNumberVertices();
-    for (size_t i = 0; i < destinationMeshNumberVertices; ++i)
+    destinationMeshCloud.resize(destinationMesh->getNumberVertices());
+
+    TIMER_SET;
+    LOOP_STARTS("Point Cloud Generation");
+    PROGRESS_SET;
+    OMP_PARALLEL_FOR
+    for (size_t i = 0; i < destinationMesh->getNumberVertices(); ++i)
     {
-        auto point = destinationMeshVertices[i];
-        destinationMeshCloud.push_back(Vector3f(point.x(), point.y(), point.z()));
+        destinationMeshCloud[i] = Vector3f(destinationMesh->_vertices[i].x(),
+                                           destinationMesh->_vertices[i].y(),
+                                           destinationMesh->_vertices[i].z());
+
+        LOOP_PROGRESS(PROGRESS, destinationMesh->getNumberVertices());
+        PROGRESS_UPDATE;
     }
+    LOOP_DONE;
+    LOG_STATS(GET_TIME_SECONDS);
 
     // Map the source mesh to the destination mesh
-    sourceMesh->kdTreeMapping(destinationMeshCloud);
+    sourceMesh->kdTreeMapping(destinationMeshCloud, VERBOSE);
 
     // Export the source mesh
     sourceMesh->exportMesh(options->meshPrefix + MAPPED_SUFFIX,

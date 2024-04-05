@@ -107,6 +107,12 @@ public:
      */
     void exportExtents(const std::string& prefix) const;
 
+    /**
+     * @brief getTerminals
+     * @return
+     */
+    std::vector< Vector3f > getTerminals() const { return _terminals; }
+
 private:
 
     /**
@@ -142,6 +148,11 @@ private:
      * @brief _basePoint
      */
     Vector3f _basePoint;
+
+    /**
+     * @brief _terminals
+     */
+    std::vector< Vector3f > _terminals;
 };
 
 /**

@@ -410,13 +410,15 @@ public:
      * @param densenessWeight
      * @param maxNormalAngle
      * @param iteration
+     * @param verbose
      * @return
      */
     bool coarse(const float& coarseRate,
                 const float& flatnessRate,
                 const float& densenessWeight,
                 const float& maxNormalAngle,
-                const int64_t &iteration = 1);
+                const int64_t &iteration = 1,
+                const bool verbose = VERBOSE);
 
     /**
      * @brief coarseDense

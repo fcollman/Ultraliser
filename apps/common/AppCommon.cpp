@@ -25,7 +25,7 @@
 namespace Ultraliser
 {
 
-Volume* createVolumeGrid(Mesh *mesh, const AppOptions* options)
+Volume* createVolumeGrid(Mesh *mesh, const AppOptions* options, const bool verbose)
 {
     // Get relaxed bounding box to build the volume
     Vector3f pMinInput, pMaxInput;
@@ -45,7 +45,7 @@ Volume* createVolumeGrid(Mesh *mesh, const AppOptions* options)
 
     // Construct the volume
     return new Volume(pMinInput, pMaxInput, resolution, options->edgeGap,
-                      VolumeGrid::getType(options->volumeType));
+                      VolumeGrid::getType(options->volumeType), verbose);
 }
 
 void computeBoundingBoxForMeshes(const std::string& boundsFile,
@@ -386,7 +386,7 @@ Volume* reconstructVolumeFromMesh(Mesh* inputMesh, const AppOptions* options,
                                   const bool& releaseInputMesh)
 {
     // Create the volume from the mesh
-    auto volume = createVolumeGrid(inputMesh, options);
+    auto volume = createVolumeGrid(inputMesh, options, VERBOSE);
 
     // Surface voxelization
     // volume->surfaceVoxelization(inputMesh, true, true);
