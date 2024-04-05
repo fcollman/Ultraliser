@@ -130,6 +130,8 @@ public:
                                                const size_t& numberZeroVoxels = 5,
                                                const bool verbose = VERBOSE);
 
+    Volume* getVolume() const { return _volume; }
+
 
 
     std::vector< Vector3f > getShellPoints();
