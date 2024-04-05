@@ -129,22 +129,37 @@ NeuronSkeletonizer* createNeuronSkeletonizer(const AppOptions* options, Volume* 
                                   options->debuggingPrefix);
 }
 
-void runNeuronSkeletonizationOperations(const AppOptions* options,
-                                        NeuronSkeletonizer* skeletonizer)
+void projectSkeletonVolume(const AppOptions* options, const NeuronSkeletonizer* skeletonizer)
 {
-    // Initialize the skeletonizer
-    skeletonizer->initialize(VERBOSE);
-
-    // Skeletonize the volume to obtain the centerlines
-    skeletonizer->skeletonizeVolumeToCenterLines(VERBOSE);
-
-    // Project the center lines of the skeleton
     if (options->projectXY || options->projectXZ || options->projectZY)
     {
         const std::string prefix = options->projectionPrefix + SKELETON_SUFFIX;
         skeletonizer->getVolume()->project(
                     prefix, options->projectXY, options->projectXZ, options->projectZY);
     }
+}
+
+void exportNeuronMorphology(const AppOptions* options,
+                            NeuronSkeletonizer* skeletonizer)
+{
+    // Export the SWC file of the neuron
+    if (options->exportSWCNeuron)
+    {
+        skeletonizer->exportSWCFile(options->morphologyPrefix, options->resampleSkeleton, VERBOSE);
+    }
+}
+
+void runNeuronSkeletonizationOperations(const AppOptions* options,
+                                        NeuronSkeletonizer* skeletonizer)
+{
+    // Initialize the skeletonizer
+    skeletonizer->initialize(VERBOSE);
+
+    // Skeletonize the volume to obtain the center-lines
+    skeletonizer->skeletonizeVolumeToCenterLines(VERBOSE);
+
+    // Project the center-lines of the skeleton before constructing the graph
+    projectSkeletonVolume(options, skeletonizer);
 
     // Construct the neuron graph from the volume
     skeletonizer->constructGraph(VERBOSE);
@@ -152,11 +167,8 @@ void runNeuronSkeletonizationOperations(const AppOptions* options,
     // Segment the different components of the graph
     skeletonizer->segmentComponents(VERBOSE);
 
-    // Export the SWC file of the neuron
-    if (options->exportSWCNeuron)
-    {
-        skeletonizer->exportSWCFile(options->morphologyPrefix, options->resampleSkeleton, VERBOSE);
-    }
+    // Export the morphology of the neuron
+    exportNeuronMorphology(options, skeletonizer);
 }
 
 }
