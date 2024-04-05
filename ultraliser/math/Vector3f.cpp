@@ -362,6 +362,32 @@ Vector3f Vector3f::cubicInterpolate(const Vector3f& p0,
     return Vector3f::lerp(p0p1_p1p2, p1p2_p2p3, t);
 }
 
+Quat4f Vector3f::rotationDifference(const Vector3f& v1, const Vector3f& v2)
+{
+    // Normalize the input vectors
+    auto v1Normalized = v1.normalized();
+    auto v2Normalized = v2.normalized();
+
+    // Calculate the angle between the vectors using dot product
+    float dotProduct = Vector3f::dot(v1Normalized, v2Normalized);
+
+    // If the vectors are almost parallel or antiparallel, return an identity quaternion
+    if (std::abs(dotProduct) >= 1.0 - 1e-6)
+    {
+        return Quat4f::IDENTITY;
+    }
+
+    // Calculate the axis of rotation using cross product
+    Vector3f axis = Vector3f::cross(v1Normalized, v2Normalized).normalized();
+
+    // Calculate the angle of rotation
+    const float angle = std::acos(dotProduct);
+
+    // Create a quaternion representing the rotation
+    Quat4f q(axis, angle);
+    return q;
+}
+
 Vector3f operator + (const Vector3f& v0, const Vector3f& v1)
 {
     return Vector3f(v0[0] + v1[0], v0[1] + v1[1], v0[2] + v1[2]);

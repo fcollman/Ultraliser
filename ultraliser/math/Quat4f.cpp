@@ -55,6 +55,19 @@ Quat4f::Quat4f(const Quat4f& rq)
     _elements[3] = rq._elements[3];
 }
 
+Quat4f::Quat4f(const Vector3f& axis, const float& angle)
+{
+    _elements[0] = cos(angle / 2);
+
+    float sinHalfTheta = sin(angle / 2);
+    float vectorNorm = axis.abs();
+    float reciprocalVectorNorm = 1.f / vectorNorm;
+
+    _elements[1] = axis.x() * sinHalfTheta * reciprocalVectorNorm;
+    _elements[2] = axis.y() * sinHalfTheta * reciprocalVectorNorm;
+    _elements[3] = axis.z() * sinHalfTheta * reciprocalVectorNorm;
+}
+
 Quat4f& Quat4f::operator = (const Quat4f& rq)
 {
     if (this != (&rq))

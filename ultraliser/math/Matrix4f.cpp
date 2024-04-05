@@ -589,6 +589,30 @@ Matrix4f Matrix4f::lookAt(const Vector3f& eye, const Vector3f& center, const Vec
     return view;
 }
 
+Matrix4f Matrix4f::computeRotationMatrixTowardsTargetUsinglookAt(const Vector3f& location,
+                                                                 const Vector3f& target,
+                                                                 const Vector3f& up)
+{
+    // Compute the forward direction
+    auto forward = (target - location).normalized();
+
+    // Compute the right direction
+    auto right = Vector3f::cross(up, forward).normalized();
+
+    // Recalculate the up direction
+    auto upVector = Vector3f::cross(forward, right).normalized();
+
+    // Create the rotation matrix
+    auto rotationMatrix = Matrix4f(
+                right.x(), right.y(), right.z(), 0,
+                upVector.x(), upVector.y(), upVector.z(), 0,
+                -forward.x(), -forward.y(), -forward.z(), 0,
+                0, 0, 0, 1);
+
+    // Return the rotation matrix
+    return rotationMatrix;
+}
+
 Matrix4f Matrix4f::orthographicProjection(float width, float height,
                                           float zNear, float zFar, bool directX)
 {

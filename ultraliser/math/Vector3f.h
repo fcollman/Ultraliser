@@ -25,6 +25,7 @@ namespace Ultraliser
 {
 
 class Vector2f;
+class Quat4f;
 
 /**
  * @brief The Vector3f class
@@ -344,6 +345,8 @@ public:
                                       const Vector3f& p2,
                                       const Vector3f& p3,
                                       float t);
+
+    static Quat4f rotationDifference(const Vector3f& v1, const Vector3f& v2);
 
 public:
 

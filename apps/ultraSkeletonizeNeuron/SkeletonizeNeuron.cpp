@@ -317,7 +317,17 @@ void exportSpineMeshes(NeuronSkeletonizer* skeletonizer,
         auto& remeshedSpine = remeshedSpines[i];
         if (remeshedSpine == nullptr) continue;
 
-        stream << REFINED_SPINE_MESH_SUFFIX;
+//        stream << REFINED_SPINE_MESH_SUFFIX;
+//        remeshedSpine->exportMesh(stream.str(),
+//                                  options->exportOBJ, options->exportPLY,
+//                                  options->exportOFF, options->exportSTL, SILENT);
+
+        remeshedSpine->translate(-proxySpineMorphologies[i]->getBasePoint());
+
+        remeshedSpine->rotateTowardsTargetPoint(proxySpineMorphologies[i]->getBasePoint(),
+                    proxySpineMorphologies[i]->getDirection().normalized(),
+                                                proxySpineMorphologies[i]->getBasePoint() + 5 * Vector3f(0, 1, 0));
+        stream << REFINED_SPINE_MESH_SUFFIX << "_rotatedy";
         remeshedSpine->exportMesh(stream.str(),
                                   options->exportOBJ, options->exportPLY,
                                   options->exportOFF, options->exportSTL, SILENT);

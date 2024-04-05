@@ -275,6 +275,63 @@ void Mesh::scale(const float x, const float y, const float z)
     }
 }
 
+void Mesh::orientTowardsYAxis()
+{
+    // Calculate the centroid of the mesh
+    Vector3f centroid(0.0f);
+    for (size_t i = 0; i < _numberVertices; ++i)
+    {
+        centroid += _vertices[i];
+    }
+    centroid /= static_cast<float>(_numberVertices);
+
+    // Calculate the direction from centroid to Y-axis
+    Vector3f directionToYAxis = Vector3f(0.0f, 1.0f, 0.0f) - centroid;
+    directionToYAxis.normalize();
+
+    // Calculate rotation matrix to align the centroid to the Y-axis
+    Matrix4f rotationMatrix = Matrix4f::lookAt(
+                centroid, Vector3f(centroid.x(), centroid.y() + 1.0f, centroid.z()),
+                Vector3f(0.0f, 1.0f, 0.0f));
+
+    // Apply rotation to all vertices
+    for (size_t i = 0; i < _numberVertices; ++i)
+    {
+        auto& vertex = _vertices[i];
+        Vector4f transformedVertex = rotationMatrix * Vector4f(vertex.x(), vertex.y(), vertex.z(), 1.0f);
+        vertex.x() = transformedVertex.x();
+        vertex.y() = transformedVertex.y();
+        vertex.z() = transformedVertex.z();
+    }
+}
+
+void Mesh::rotateTowardsYAxis(const Vector3f& upVector)
+{
+    // Calculate the rotation angle
+    float angle = std::acos(Vector3f::dot(Vector3f(0.0f, 1.0f, 0.0f), upVector));
+
+    // Calculate the rotation axis
+    Vector3f axis = Vector3f::cross(Vector3f(0.0f, 1.0f, 0.0f), upVector);
+    axis = axis.normalized();
+
+    // Create the rotation matrix
+    Matrix4f rotationMatrix = Matrix4f::rotation(axis, angle);
+
+    rotate(rotationMatrix);
+}
+
+void Mesh::rotateTowardsTargetPoint(const Vector3f& location,
+                                    const Vector3f& upVector,
+                                    const Vector3f& targetPoint)
+{
+    const auto direction = (targetPoint - location).normalized();
+    auto q = Vector3f::rotationDifference(upVector, direction);
+    auto rotationMatrix = Matrix4f::rotation(q.normalized());
+
+    // Rotate using the computed rotation matrix
+    rotate(rotationMatrix);
+}
+
 void Mesh::append(const Mesh* inputMesh)
 {
     // Vertex offset is the number of vertices in the current mesh

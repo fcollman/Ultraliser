@@ -66,6 +66,13 @@ public:
 
     /**
      * @brief Quat4f
+     * @param axis
+     * @param angle
+     */
+    Quat4f(const Vector3f& axis, const float& angle);
+
+    /**
+     * @brief Quat4f
      * Returns a quaternion with 0 real part.
      * @param v
      */

@@ -321,6 +321,17 @@ public:
                            const Vector3f& up);
 
     /**
+     * @brief computeRotationMatrixTowardsTargetUsinglookAt
+     * @param location
+     * @param target
+     * @param up
+     * @return
+     */
+    static Matrix4f computeRotationMatrixTowardsTargetUsinglookAt(const Vector3f& location,
+                                                                  const Vector3f& target,
+                                                                  const Vector3f& up);
+
+    /**
      * @brief orthographicProjection
      * @param width
      * @param height

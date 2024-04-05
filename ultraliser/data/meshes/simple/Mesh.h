@@ -165,6 +165,26 @@ public:
     void scale(const float x = 1.0, const float y = 1.0, const float z = 1.0);
 
     /**
+     * @brief orientTowardsYAxis
+     */
+    void orientTowardsYAxis();
+
+    /**
+     * @brief rotateTowardsYAxis
+     * @param upVector
+     */
+    void rotateTowardsYAxis(const Vector3f& upVector);
+
+    /**
+     * @brief rotateTowardsTargetPoint
+     * @param location
+     * @param upVector
+     * @param targetPoint
+     */
+    void rotateTowardsTargetPoint(const Vector3f& location,
+                                  const Vector3f& upVector,
+                                  const Vector3f& targetPoint);
+    /**
      * @brief computeBoundingBox
      * @param pMin
      * @param pMax

@@ -204,7 +204,6 @@ void SpineMorphology::_computeOrientationVector()
 
             const auto segmentOrientation = p1.directionTo(p2);
             orientation += segmentOrientation;
-            orientation.print();
 
             // One more valid segment
             numberValidSegments++;
