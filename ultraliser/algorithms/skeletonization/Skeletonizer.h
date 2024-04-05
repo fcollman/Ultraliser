@@ -322,10 +322,10 @@ protected:
     const bool _debugSkeleton;
 
     /**
-     * @brief _debuggingPrefix
+     * @brief _debugPrefix
      * The preix, or path, where the debugging files will be writte.
      */
-    const std::string _debuggingPrefix;
+    const std::string _debugPrefix;
 
     /**
      * @brief _debug

@@ -43,10 +43,15 @@ public:
 
     /**
      * @brief SpineMorphology
+     * Construct the spine morphology from a tree of branches, where the input branch is the root
+     * of the tree.
      * @param root
-     * @param includeDendriticSample
+     * The root of the tree.
+     * @param spineIndex
+     * The index of the spine.
      */
-    SpineMorphology(SkeletonBranch* root, const bool includeDendriticSample = false);
+    SpineMorphology(SkeletonBranch* root,
+                    const size_t& spineIndex);
 
     /**
      * @brief SpineMorphology
@@ -54,51 +59,79 @@ public:
      * @note It's recommended to avoid using this constructor and use the other one to construct
      * the tree.
      */
-    SpineMorphology(SkeletonBranches branches, const size_t& index);
+    SpineMorphology(SkeletonBranches branches,
+                    const size_t& index);
 
 public:
 
     /**
-     * @brief reconstructVolume
-     * @param voxelsPerMicron
-     * @param verbose
-     * @return
-     */
-    Volume* reconstructVolume(const float& voxelsPerMicron,
-                              const float &edgeGap = 0.1,
-                              const bool &verbose = false);
-
-    Volume* reconstructNonDendriticVolume(const float& voxelsPerMicron,
-                                          const float& edgeGap,
-                                          const bool & verbose);
-
-    /**
      * @brief getBasePoint
+     * Returns the base point of the spine.
      * @return
      */
     Vector3f getBasePoint() const { return _basePoint; }
 
     /**
-     * @brief reconstructMesh
+     * @brief getDirection
+     * @return
+     */
+    Vector3f getDirection() const {return _direction; }
+
+    /**
+     * @brief getSpineIndex
+     * @return
+     */
+    size_t getSpineIndex() const { return _spineIndex; }
+
+    /**
+     * @brief generateMesh
      * @param voxelsPerMicron
      * @param edgeGap
      * @param verbose
      * @return
      */
-    Mesh* reconstructMesh(const float& voxelsPerMicron,
-                          const float& edgeGap = 0.1,
-                          const bool &verbose = false);
+    Mesh* generateMesh(const float& voxelsPerMicron,
+                       const float& edgeGap = 0.1,
+                       const bool& verbose = SILENT);
+    /**
+     * @brief generateVolume
+     * @param voxelsPerMicron
+     * @param verbose
+     * @return
+     */
+    Volume* generateVolume(const float& voxelsPerMicron,
+                           const float& edgeGap = 0.1,
+                           const bool& verbose = SILENT);
 
-    Mesh* reconstructNonDendriticMesh(const float &voxelsPerMicron,
-                                                       const float& edgeGap,
-                                                       const bool &verbose);
+    /**
+     * @brief generateMeshWithoutDenderiticExtent
+     * @param voxelsPerMicron
+     * @param edgeGap
+     * @param verbose
+     * @return
+     */
+    Mesh* generateMeshWithoutDenderiticExtent(const float& voxelsPerMicron,
+                                              const float& edgeGap,
+                                              const bool & verbose = SILENT);
+
+    /**
+     * @brief generateVolumeWithoutDenderiticExtent
+     * @param voxelsPerMicron
+     * @param edgeGap
+     * @param verbose
+     * @return
+     */
+    Volume* generateVolumeWithoutDenderiticExtent(const float& voxelsPerMicron,
+                                                  const float& edgeGap,
+                                                  const bool & verbose);
 
     /**
      * @brief exportBranches
      * @param prefix
      * @param verbose
      */
-    void exportBranches(const std::string &prefix, const bool &verbose = false);
+    void exportBranches(const std::string &prefix,
+                        const bool &verbose = SILENT);
 
     /**
      * @brief exportExtents
@@ -116,18 +149,9 @@ public:
 private:
 
     /**
-     * @brief spineIndex
+     * @brief _getNonDendrticSections
+     * @return
      */
-    size_t _spineIndex;
-
-    float _radfiusScaleFactor = 1.0;
-
-    Sample* _rootSample;
-
-
-
-private:
-
     Sections _getNonDendrticSections() const;
 
     /**
@@ -135,19 +159,45 @@ private:
      * @param root
      * @param sectionIndex
      */
-    void _constructTreeFromLogicalBranches(SkeletonBranch* root, size_t &sectionIndex);
+    void _constructTreeFromLogicalBranches(SkeletonBranch* root,
+                                           size_t& sectionIndex);
 
     /**
      * @brief _computeBoundingBox
      */
     void _computeBoundingBox();
 
+    /**
+     * @brief _computeOrientationVector
+     */
+    void _computeOrientationVector();
+
 private:
+
+    /**
+     * @brief spineIndex
+     */
+    size_t _spineIndex;
+
+    /**
+     * @brief _radfiusScaleFactor
+     */
+    float _radfiusScaleFactor = 1.0;
+
+    /**
+     * @brief _rootSample
+     */
+    Sample* _rootSample;
 
     /**
      * @brief _basePoint
      */
     Vector3f _basePoint;
+
+    /**
+     * @brief _direction
+     */
+    Vector3f _direction;
 
     /**
      * @brief _terminals

@@ -197,6 +197,16 @@ float Vector3f::distance(Vector3f rhs) const
     return sqrt(sqr(x() - rhs.x()) + sqr(y() - rhs.y()) + sqr(z() - rhs.z()));
 }
 
+Vector3f Vector3f::directionFrom(const Vector3f& p) const
+{
+    return Vector3f(this->x() - p.x(), this->y() - p.y(), this->z() - p.z()).normalized();
+}
+
+Vector3f Vector3f::directionTo(const Vector3f& p) const
+{
+    return Vector3f(p.x() - this->x(), p.y() - this->y() , p.z() - this->z()).normalized();
+}
+
 float Vector3f::getLargestDimension() const
 {
     // Initially, start with X

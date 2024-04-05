@@ -54,7 +54,7 @@ void NeuronSkeletonizer::constructGraph(const bool verbose)
     _verifySkeletonNodes();
 
     // Export skeleton nodes
-    DEBUG_STEP(_exportGraphNodes(_debuggingPrefix, verbose), _debug);
+    DEBUG_STEP(_exportGraphNodes(_debugPrefix, verbose), _debug);
 
     /// Building edges
     // Connect the nodes of the skeleton to construct its edges. This operation will not connect
@@ -68,7 +68,7 @@ void NeuronSkeletonizer::constructGraph(const bool verbose)
     _inflateNodes(verbose);
 
     // Export the inflated nodes file
-    DEBUG_STEP(_exportGraphNodes(_debuggingPrefix + "-inflated", verbose), _debug);
+    DEBUG_STEP(_exportGraphNodes(_debugPrefix + "-inflated", verbose), _debug);
 
     // Add a virtual soma node to the graph, until the soma is reconstructed later
     _addSomaNode();
@@ -80,7 +80,7 @@ void NeuronSkeletonizer::constructGraph(const bool verbose)
     _identifySomaticNodes(verbose);
 
     // Export the inflated nodes file
-    DEBUG_STEP( _exportEdges(_debuggingPrefix, verbose), _debug);
+    DEBUG_STEP( _exportEdges(_debugPrefix, verbose), _debug);
 
     // Verify graph connectivity
     _verifyGraphConnectivityToClosestPartition(_edges);
@@ -93,7 +93,7 @@ void NeuronSkeletonizer::constructGraph(const bool verbose)
     _buildBranchesFromNodes(_nodes);
 
     // Export all the branches
-    DEBUG_STEP(exportBranches(_debuggingPrefix, SkeletonBranch::ALL, verbose), _debug);
+    DEBUG_STEP(exportBranches(_debugPrefix, SkeletonBranch::ALL, verbose), _debug);
 
     /// Validate the branches, and remove the branches inside the soma, i.e. consider them to
     /// be invalid
@@ -103,10 +103,10 @@ void NeuronSkeletonizer::constructGraph(const bool verbose)
     _verifySomaticBranches();
 
     // Export the somatic branches
-    DEBUG_STEP(exportBranches(_debuggingPrefix, SkeletonBranch::SOMATIC, verbose), _debug);
+    DEBUG_STEP(exportBranches(_debugPrefix, SkeletonBranch::SOMATIC, verbose), _debug);
 
     // Export the valid branches
-    DEBUG_STEP(exportBranches(_debuggingPrefix, SkeletonBranch::VALID, verbose), _debug);
+    DEBUG_STEP(exportBranches(_debugPrefix, SkeletonBranch::VALID, verbose), _debug);
 
     /// Connect all the skeleton branches since the roots have been identified after the
     /// soma segmentation
@@ -186,7 +186,7 @@ Mesh* NeuronSkeletonizer::constructSomaProxyMeshFromGraph(const bool verbose)
     _verifySkeletonNodes(verbose);
 
     // Export skeleton nodes
-    DEBUG_STEP(_exportGraphNodes(_debuggingPrefix, verbose), _debug);
+    DEBUG_STEP(_exportGraphNodes(_debugPrefix, verbose), _debug);
 
     /// Building edges
     // Connect the nodes of the skeleton to construct its edges. This operation will not connect
@@ -200,7 +200,7 @@ Mesh* NeuronSkeletonizer::constructSomaProxyMeshFromGraph(const bool verbose)
     _inflateNodes(verbose);
 
     // Export the inflated nodes file
-    DEBUG_STEP(_exportGraphNodes(_debuggingPrefix + "-inflated", verbose), _debug);
+    DEBUG_STEP(_exportGraphNodes(_debugPrefix + "-inflated", verbose), _debug);
 
     // Add a virtual soma node to the graph, until the soma is reconstructed later
     _addSomaNode();
@@ -256,7 +256,7 @@ void NeuronSkeletonizer::_detachSpinesFromSkeleton(const bool verbose)
     }
 
     // Export two samples valid branches
-    DEBUG_STEP(exportBranches(_debuggingPrefix, SkeletonBranch::TWO_SAMPLE_AND_VALID, verbose), _debug);
+    DEBUG_STEP(exportBranches(_debugPrefix, SkeletonBranch::TWO_SAMPLE_AND_VALID, verbose), _debug);
 
     // Update the traversal counts of the branches to be able to detect, lable and split the spines
     _updateBranchesTraversalCounts();
@@ -280,13 +280,13 @@ void NeuronSkeletonizer::_detachSpinesFromSkeleton(const bool verbose)
     _segmentSpinesSkeletons(verbose);
 
     // Export the spine branches
-    DEBUG_STEP(exportBranches(_debuggingPrefix, SkeletonBranch::SPINE, verbose), _debug);
+    DEBUG_STEP(exportBranches(_debugPrefix, SkeletonBranch::SPINE, verbose), _debug);
 
     // Export the spine locations
-    DEBUG_STEP(exportSpineLocations(_debuggingPrefix, verbose), _debug);
+    DEBUG_STEP(exportSpineLocations(_debugPrefix, verbose), _debug);
 
     // Export the spine extents
-    DEBUG_STEP(exportSpineExtents(_debuggingPrefix, verbose), _debug);
+    DEBUG_STEP(exportSpineExtents(_debugPrefix, verbose), _debug);
 }
 
 void NeuronSkeletonizer::_updateBranchesTraversalCounts()
@@ -1634,7 +1634,6 @@ SpineMorphologies NeuronSkeletonizer::reconstructSpineProxyMorphologies()
         return spineProxyMorphologies;
     }
 
-    // Resize the
     spineProxyMorphologies.resize(_spineRoots.size());
 
     LOOP_STARTS("Building Spine Proxy Morphologies");
@@ -1642,15 +1641,18 @@ SpineMorphologies NeuronSkeletonizer::reconstructSpineProxyMorphologies()
     OMP_PARALLEL_FOR
     for (size_t i = 0; i < _spineRoots.size(); ++i)
     {
-        spineProxyMorphologies[i] = new SpineMorphology(_spineRoots[i]);
+        spineProxyMorphologies[i] = new SpineMorphology(_spineRoots[i], i);
         LOOP_PROGRESS(PROGRESS, _spineRoots.size());
         PROGRESS_UPDATE;
     }
     LOOP_DONE;
     LOG_STATS(GET_TIME_SECONDS);
 
+    // Export the spine terminals for visual analytics
+    DEBUG_STEP(_exportSpineTerminals(spineProxyMorphologies, _debugPrefix, VERBOSE), _debug);
 
-    DEBUG_STEP(_exportSpineTerminals(spineProxyMorphologies, _debuggingPrefix, VERBOSE), _debug);
+    // TODO: Spine orientations make standard, not debugging
+    DEBUG_STEP(_exportSpineOrientations(spineProxyMorphologies, _debugPrefix, VERBOSE), _debug);
 
     // Return a spine proxy morphologies
     return spineProxyMorphologies;
@@ -1708,7 +1710,7 @@ Meshes NeuronSkeletonizer::reconstructSpineMeshes(const Mesh* neuronMesh,
 
         // Get the mesh of the spine model
         // auto spineModelMesh = spineProxyMorphology->reconstructMesh(voxelsPerMicron, edgeGap, SILENT);
-        auto spineModelMesh = spineProxyMorphology->reconstructNonDendriticMesh(
+        auto spineModelMesh = spineProxyMorphology->generateMeshWithoutDenderiticExtent(
                     voxelsPerMicron, edgeGap, SILENT);
 
         if (spineModelMesh != nullptr)
@@ -2205,6 +2207,42 @@ void NeuronSkeletonizer::exportSpineLocations(const std::string& prefix, const b
         stream << node->point.x() << " " << node->point.y() << " " << node->point.z() << NEW_LINE;
 
         VERBOSE_LOG(LOOP_PROGRESS(i, _spineRoots.size()), verbose);
+    }
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
+
+    // Close the file
+    stream.close();
+}
+
+void NeuronSkeletonizer::_exportSpineOrientations(const SpineMorphologies &spineProxyMorphologies,
+                                                  const std::string prefix,
+                                                  const bool verbose) const
+{
+    if (spineProxyMorphologies.size() == 0)
+    {
+        LOG_WARNING("No Spines have been Identified! Aborting Export!");
+        return;
+    }
+
+    // Construct the file path
+    std::string filePath = prefix + "-spine-orientations" + NODES_EXTENSION;
+    VERBOSE_LOG(LOG_STATUS("Exporting Spines Orientations: [ %s ]", filePath.c_str()), verbose);
+
+    std::fstream stream;
+    stream.open(filePath, std::ios::out);
+
+    TIMER_SET;
+    VERBOSE_LOG(LOOP_STARTS("Writing Orientations (per Spine)"), verbose);
+    for (size_t i = 0; i < spineProxyMorphologies.size(); ++i)
+    {
+        const auto& basePoint = spineProxyMorphologies[i]->getBasePoint();
+        const auto& direction = spineProxyMorphologies[i]->getDirection();
+
+        stream << basePoint.x() << " " << basePoint.y() << " " << basePoint.z() << " "
+               << direction.x() << " " << direction.y() << " " << direction.z() << NEW_LINE;
+
+        VERBOSE_LOG(LOOP_PROGRESS(i, spineProxyMorphologies.size()), verbose);
     }
     VERBOSE_LOG(LOOP_DONE, verbose);
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);

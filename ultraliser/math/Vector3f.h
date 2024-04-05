@@ -283,6 +283,22 @@ public:
         return _elements;
     }
 
+    /**
+     * @brief directionFrom
+     * Computes the direction from another point p to this point.
+     * @param p
+     * @return
+     */
+    Vector3f directionFrom(const Vector3f& p) const;
+
+    /**
+     * @brief directionTo
+     * Computes the direction to this point from another point p.
+     * @param p
+     * @return
+     */
+    Vector3f directionTo(const Vector3f& p) const;
+
 public:
 
     /**

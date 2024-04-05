@@ -493,6 +493,15 @@ private:
                                const std::string prefix,
                                const bool verbose = VERBOSE) const;
 
+    /**
+     * @brief _exportSpineOrientations
+     * @param spineProxyMorphologies
+     * @param prefix
+     * @param verbose
+     */
+    void _exportSpineOrientations(const SpineMorphologies &spineProxyMorphologies,
+                                  const std::string prefix,
+                                  const bool verbose) const;
 private:
 
     /**

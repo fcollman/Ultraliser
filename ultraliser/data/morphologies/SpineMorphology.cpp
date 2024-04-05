@@ -48,19 +48,21 @@ void SpineMorphology::_constructTreeFromLogicalBranches(SkeletonBranch* root,
         }
         _sections.push_back(section);
 
+        // Traverse the children tree
         _constructTreeFromLogicalBranches(root->logicalChildren[i], sectionIndex);
     }
 }
 
-SpineMorphology::SpineMorphology(SkeletonBranch* root, const bool includeDendriticSample)
+SpineMorphology::SpineMorphology(SkeletonBranch* root, const size_t &spineIndex)
 {
     // Update the base point
     _basePoint = root->nodes[0]->point;
 
+    // Update the root sampe
     _rootSample = new Sample(root->nodes[0]->point, root->nodes[0]->radius, 0);
 
-    // Set the spine index
-    _spineIndex = root->index;
+    // Set the spine index to be the same index of the spineRoot in the array
+    _spineIndex = spineIndex;
 
     // The section index should be the same as the index of the section in the list
     size_t sectionIndex = 0;
@@ -71,14 +73,17 @@ SpineMorphology::SpineMorphology(SkeletonBranch* root, const bool includeDendrit
     {
         auto node = root->nodes[i];
         section->addSample(new Sample(node->point, node->radius * _radfiusScaleFactor, i));
-
     }
     _sections.push_back(section);
 
+    // Traverse the children tree
     _constructTreeFromLogicalBranches(root, sectionIndex);
 
     // Compute the bounding box of the entire morphology
     _computeBoundingBox();
+
+    // Compute the orientation vector
+    _computeOrientationVector();
 }
 
 Sections SpineMorphology::_getNonDendrticSections() const
@@ -130,6 +135,7 @@ Sections SpineMorphology::_getNonDendrticSections() const
 
 SpineMorphology::SpineMorphology(SkeletonBranches branches, const size_t &index)
 {
+    // Update the spine index
     _spineIndex = index;
 
     for (size_t i = 0; i < branches.size(); ++i)
@@ -147,10 +153,11 @@ SpineMorphology::SpineMorphology(SkeletonBranches branches, const size_t &index)
     // Compute the bounding box of the entire morphology
     _computeBoundingBox();
 
-    /// TODO: Find an algorithm to compute the base.
-    /// For the moment, use the center of the bounding box.
-    auto bounds = _pMax - _pMin;
-    _basePoint = _pMin + 0.5 * bounds;
+    // Since we do not know where the root branch is, use the center of the bounds as the base point
+    _basePoint = _pMin + 0.5 * (_pMax - _pMin);
+
+    // Compute the orientation vector
+    _computeOrientationVector();
 }
 
 void SpineMorphology::_computeBoundingBox()
@@ -180,9 +187,38 @@ void SpineMorphology::_computeBoundingBox()
     }
 }
 
-Volume* SpineMorphology::reconstructNonDendriticVolume(const float& voxelsPerMicron,
-                                                       const float& edgeGap,
-                                                       const bool & verbose)
+void SpineMorphology::_computeOrientationVector()
+{
+    Vector3f orientation(0.);
+    size_t numberValidSegments = 0;
+    for (const auto& section : _sections)
+    {
+        // If the section has under any conditions less than two samples, continue
+        if (section->getSamples().size() < 2) continue;
+
+        // Compute the orientation of each edge (or segment) in the section
+        for (size_t i = 0; i < section->getSamples().size() - 1; ++i)
+        {
+            const auto& p1 = section->getSamples()[i]->getPosition();
+            const auto& p2 = section->getSamples()[i + 1]->getPosition();
+
+            const auto segmentOrientation = p1.directionTo(p2);
+            orientation += segmentOrientation;
+            orientation.print();
+
+            // One more valid segment
+            numberValidSegments++;
+        }
+    }
+
+    // Normalize
+    orientation /= numberValidSegments;
+    _direction = orientation;
+}
+
+Volume* SpineMorphology::generateVolumeWithoutDenderiticExtent(const float& voxelsPerMicron,
+                                                               const float& edgeGap,
+                                                               const bool & verbose)
 {
     auto nonDendriticSections = _getNonDendrticSections();
 
@@ -235,9 +271,9 @@ Volume* SpineMorphology::reconstructNonDendriticVolume(const float& voxelsPerMic
     // Return the volume
     return volume;
 }
-Volume* SpineMorphology::reconstructVolume(const float& voxelsPerMicron,
-                                           const float& edgeGap,
-                                           const bool & verbose)
+Volume* SpineMorphology::generateVolume(const float& voxelsPerMicron,
+                                        const float& edgeGap,
+                                        const bool & verbose)
 {
     // Get the bounding box of the morphology
     Vector3f pMinInput, pMaxInput, inputBB, inputCenter;
@@ -263,12 +299,12 @@ Volume* SpineMorphology::reconstructVolume(const float& voxelsPerMicron,
     return volume;
 }
 
-Mesh* SpineMorphology::reconstructMesh(const float &voxelsPerMicron,
+Mesh* SpineMorphology::generateMesh(const float &voxelsPerMicron,
                                        const float& edgeGap,
                                        const bool &verbose)
 {
     // Reconstruct the volume
-    auto volume = reconstructVolume(voxelsPerMicron, edgeGap, verbose);
+    auto volume = generateVolume(voxelsPerMicron, edgeGap, verbose);
 
     // Use the DMC algorithm to reconstruct a mesh
     auto mesh = DualMarchingCubes::generateMeshFromVolume(volume, verbose);
@@ -280,23 +316,21 @@ Mesh* SpineMorphology::reconstructMesh(const float &voxelsPerMicron,
     return mesh;
 }
 
-Mesh* SpineMorphology::reconstructNonDendriticMesh(const float &voxelsPerMicron,
-                                                   const float& edgeGap,
-                                                   const bool &verbose)
+Mesh* SpineMorphology::generateMeshWithoutDenderiticExtent(const float& voxelsPerMicron,
+                                                           const float& edgeGap,
+                                                           const bool& verbose)
 {
     // Reconstruct the volume
-    auto volume = reconstructNonDendriticVolume(voxelsPerMicron, edgeGap, verbose);
+    auto volume = generateVolumeWithoutDenderiticExtent(voxelsPerMicron, edgeGap, verbose);
 
-    if (volume == nullptr)
-    {
-        return nullptr;
-    }
+    // Instead of returning a nullptr, generate a spine with the dendritic extent included
+    if (volume == nullptr) { volume = generateVolume(voxelsPerMicron, edgeGap, verbose); }
 
     // Use the DMC algorithm to reconstruct a mesh
     auto mesh = DualMarchingCubes::generateMeshFromVolume(volume, verbose);
 
     // Smooth the mesh to be able to have correct mapping
-    mesh->smoothSurface(10, verbose);
+    mesh->smoothSurface(DEFAULT_SMOOTHING_ITERATIONS, verbose);
 
     // Return the mesh
     return mesh;
@@ -306,62 +340,58 @@ void SpineMorphology::exportExtents(const std::string& prefix) const
 {
     // Construct the file path
     std::stringstream sstream;
-    sstream << prefix << "_spine_" <<_spineIndex << ".extents";
+    sstream << prefix << SPINE_SUFFIX << "-" <<_spineIndex << EXTENTS_EXTENSION;
     std::fstream stream;
     stream.open(sstream.str(), std::ios::out);
 
     // Compute the BB
-    auto bounds = _pMax - _pMin;
-    auto center = _pMin + bounds * 0.5f;
+    const auto bounds = _pMax - _pMin;
+    const auto center = _pMin + bounds * 0.5f;
 
     // Export the data
-    stream << center.x() << " "
-           << center.y() << " "
-           << center.z() << " "
-           << bounds.x() << " "
-           << bounds.y() << " "
-           << bounds.z() << "\n";
+    stream << center.x() << " " << center.y() << " " << center.z() << " "
+           << bounds.x() << " " << bounds.y() << " " << bounds.z() << NEW_LINE;
 
     // Close the file
     stream.close();
 }
 
-void SpineMorphology::exportBranches(const std::string &prefix,
+void SpineMorphology::exportBranches(const std::string& prefix,
                                      const bool& verbose)
 {
     // Start the timer
     TIMER_SET;
 
+    // Prefix
     std::stringstream sstream;
-    sstream << prefix << _spineIndex << ".branches";
-    std::string filePath = sstream.str(); // prefix + Utilities::number2string(_spineIndex);
-    if (verbose) LOG_STATUS("Exporting Spine Branches: [ %s ]", filePath.c_str());
+    sstream << prefix << _spineIndex << BRANCHES_EXTENSION;
+    std::string filePath = sstream.str();
+    VERBOSE_LOG(LOG_STATUS("Exporting Spine Branches: [ %s ]", filePath.c_str()), verbose);
 
     std::fstream stream;
     stream.open(filePath, std::ios::out);
 
-    if (verbose) LOOP_STARTS("Writing Spine Branches");
+    VERBOSE_LOG(LOOP_STARTS("Writing Spine Branches"), verbose);
     for (size_t i = 0; i < _sections.size(); ++i)
     {
-        auto section = _sections[i];
+        const auto& section = _sections[i];
 
         // The @start marks a new branch in the file
-        stream << "start " << section->getIndex() << "\n";
-
+        stream << START_BRANCH_KEYWORD << section->getIndex() << NEW_LINE;
         for (auto& sample: section->getSamples())
         {
             stream << sample->getPosition().x() << " "
                    << sample->getPosition().y() << " "
                    << sample->getPosition().z() << " "
-                   << sample->getRadius() << "\n";
+                   << sample->getRadius() << NEW_LINE;
         }
         // The @end marks the terminal sample of a branch
-        stream << "end\n";
+        stream << END_BRANCH_KEYWORD << NEW_LINE;
 
-        if (verbose) LOOP_PROGRESS(i, _sections.size());
+        VERBOSE_LOG(LOOP_PROGRESS(i, _sections.size()), verbose);
     }
-    if (verbose) LOOP_DONE;
-    if (verbose) LOG_STATS(GET_TIME_SECONDS);
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
     // Close the file
     stream.close();

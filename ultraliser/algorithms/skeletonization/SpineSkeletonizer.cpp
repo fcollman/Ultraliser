@@ -118,7 +118,7 @@ void SpineSkeletonizer::run(const bool verbose)
 
     skeletonizeVolumeToCenterLines(verbose);
 
-    const std::string prefix = _debuggingPrefix + SKELETON_SUFFIX;
+    const std::string prefix = _debugPrefix + SKELETON_SUFFIX;
     _volume->project(prefix, true);
 
     /// Extract the nodes of the skeleton from the center-line "thinned" voxels and return a
@@ -136,7 +136,7 @@ void SpineSkeletonizer::run(const bool verbose)
     _buildBranchesFromNodes(_nodes);
 
 
-    // exportBranches(_debuggingPrefix , verbose);
+    // exportBranches(_debugPrefix , verbose);
 
 
     // Identify the connections at the terminals of each branch
@@ -172,7 +172,7 @@ void SpineSkeletonizer::run(const bool verbose)
 
     // Compute the orientation of the spine
 
-    // exportSWCFile(_debuggingPrefix, false, SILENT);
+    // exportSWCFile(_debugPrefix, false, SILENT);
 
 
 

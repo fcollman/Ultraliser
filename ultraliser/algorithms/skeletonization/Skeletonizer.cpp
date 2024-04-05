@@ -41,8 +41,8 @@ Skeletonizer::Skeletonizer(Volume* volume,
     , _mesh(nullptr)
     , _useAcceleration(useAcceleration)
     , _debugSkeleton(debugSkeleton)
-    , _debuggingPrefix(debuggingPrefix)
-    , _debug(_debugSkeleton && _debuggingPrefix != NONE)
+    , _debugPrefix(debuggingPrefix)
+    , _debug(_debugSkeleton && _debugPrefix != NONE)
 {
     /// NOTE: The mesh is assigned a nullptr, until further notice
 
@@ -75,8 +75,8 @@ Skeletonizer::Skeletonizer(Mesh* mesh,
     , _voxelizationOptions(options)
     , _useAcceleration(useAcceleration)
     , _debugSkeleton(debugSkeleton)
-    , _debuggingPrefix(debuggingPrefix)
-    , _debug(_debugSkeleton && _debuggingPrefix != NONE)
+    , _debugPrefix(debuggingPrefix)
+    , _debug(_debugSkeleton && _debugPrefix != NONE)
 {
     /// NOTE: The volume is assigned a nullptr, until further notice
 

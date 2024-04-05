@@ -90,6 +90,9 @@
 #define NODES_EXTENSION                         STRING(".nodes")
 #define EDGES_EXTENSION                         STRING(".edges")
 #define BRANCHES_EXTENSION                      STRING(".branches")
+#define EXTENTS_EXTENSION                       STRING(".extents")
+#define POINT_EXTENSION                         STRING(".point")
+#define ANGLE_EXTENSION                         STRING(".angle")
 
 // Volume formats
 #define FORMAT_BIT                              STRING("bit")
@@ -149,6 +152,7 @@
 #define SOMATIC_BRANCH                          STRING("-somatic")
 #define SPINE_BRANCH                            STRING("-spine")
 #define SPINE_MESH_SUFFIX                       STRING("-spine")
+#define SPINE_SUFFIX                            STRING("-spine")
 #define REFINED_SPINE_MESH_SUFFIX               STRING("-refined")
 
 // Directories where the artifacts will be generated
@@ -268,12 +272,17 @@
 #define BASAL_DENDRITE_INDEX                    3
 #define SOMA_INDEX                              4
 
+// Skeletonization strings
+#define START_BRANCH_KEYWORD                    STRING("SB")
+#define END_BRANCH_KEYWORD                      STRING("EB")
+
 // Logging
 #define TIME_STAMP_CHAR_LENGTH                  128
 #define PROGRESS_BAR_LENGTH                     50
 #define TITLE_LENGTH                            80
 
 #define DEFAULT_SPINES_VOXELS_PER_MICRON        25
+#define DEFAULT_SMOOTHING_ITERATIONS            10
 
 // Application done
 #define ULTRALISER_DONE                         printf("\n"); return EXIT_SUCCESS;
