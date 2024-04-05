@@ -100,6 +100,7 @@ void run(int argc , const char** argv)
     // Run the soma export operations
     runSomaExportOperations(options, skeletonizer);
 }
+
 }
 
 int main(int argc , const char** argv)

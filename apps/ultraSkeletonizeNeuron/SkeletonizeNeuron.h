@@ -34,19 +34,39 @@ namespace Ultraliser
  * @param verbose
  * @return
  */
-Volume* createNeuronVolume(Mesh* neuronMesh, const AppOptions *options, const bool verbose = VERBOSE);
+Volume* createNeuronVolume(Mesh* neuronMesh,
+                           const AppOptions* options,
+                           const bool verbose = VERBOSE);
 
+/**
+ * @brief reconstructNeuronMeshFromVolume
+ * @param neuronVolume
+ * @param options
+ * @param verbose
+ * @return
+ */
 Mesh* reconstructNeuronMeshFromVolume(Volume* neuronVolume,
-                                      AppOptions* options, const bool verbose = VERBOSE);
+                                      AppOptions* options,
+                                      const bool verbose = VERBOSE);
 
-Mesh* remeshNeuron(Mesh* inputNeuronMesh, AppOptions* options, const bool verbose = VERBOSE);
+/**
+ * @brief remeshNeuron
+ * @param inputNeuronMesh
+ * @param options
+ * @param verbose
+ * @return
+ */
+Mesh* remeshNeuron(Mesh* inputNeuronMesh,
+                   AppOptions* options,
+                   const bool verbose = VERBOSE);
 
 /**
  * @brief projectInputNeuronVolume
  * @param options
  * @param neuronVolume
  */
-void projectInputNeuronVolume(const AppOptions* options, const Volume* neuronVolume);
+void projectInputNeuronVolume(const AppOptions* options,
+                              const Volume* neuronVolume);
 
 /**
  * @brief createNeuronSkeletonizer
@@ -54,14 +74,16 @@ void projectInputNeuronVolume(const AppOptions* options, const Volume* neuronVol
  * @param neuronVolume
  * @return
  */
-NeuronSkeletonizer* createNeuronSkeletonizer(const AppOptions* options, Volume* neuronVolume);
+NeuronSkeletonizer* createNeuronSkeletonizer(const AppOptions* options,
+                                             Volume* neuronVolume);
 
 /**
  * @brief runNeuronSkeletonizationOperations
  * @param options
  * @param skeletonizer
  */
-void runNeuronSkeletonizationOperations(const AppOptions* options, NeuronSkeletonizer* skeletonizer);
+void runNeuronSkeletonizationOperations(const AppOptions* options,
+                                        NeuronSkeletonizer* skeletonizer);
 
 
 /**
@@ -69,14 +91,16 @@ void runNeuronSkeletonizationOperations(const AppOptions* options, NeuronSkeleto
  * @param options
  * @param neuronMesh
  */
-void runFixSomaSlicingArtifactsOperations(const AppOptions* options, Mesh* neuronMesh);
+void runFixSomaSlicingArtifactsOperations(const AppOptions* options,
+                                          Mesh* neuronMesh);
 
 /**
  * @brief runSomaExportOperations
  * @param options
  * @param skeletonizer
  */
-void runSomaExportOperations(const AppOptions* options, NeuronSkeletonizer* skeletonizer);
+void runSomaExportOperations(const AppOptions* options,
+                             NeuronSkeletonizer* skeletonizer);
 
 /**
  * @brief runSpineSegmentationOperations

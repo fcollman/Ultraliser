@@ -30,15 +30,17 @@ namespace Ultraliser
 
 Volume* createNeuronVolume(Mesh* neuronMesh, const AppOptions* options, const bool verbose)
 {
+    LOG_TITLE("Creating Neuron Volume from the Input Mesh");
+    TIMER_SET;
+
     // Create the volume from the mesh
     auto neuronVolume = createVolumeGrid(neuronMesh, options, verbose);
 
     // Adaptive and conservative Voxelization
-    neuronVolume->surfaceVoxelization(neuronMesh, verbose, false, 1.0);
-    neuronVolume->solidVoxelization(options->voxelizationAxis, SILENT);
+    neuronVolume->surfaceVoxelization(neuronMesh, VERBOSE, false, 1.0);
+    neuronVolume->solidVoxelization(options->voxelizationAxis, VERBOSE);
 
     // Remove the border voxels that span less than half the voxel
-    // TODO: VERIFY neuronVolume->surfaceVoxelization(neuronMesh, false, false, 0.5);
     auto bordeVoxels = neuronVolume->searchForBorderVoxels(verbose);
     for (size_t i = 0; i < bordeVoxels.size(); ++i)
     {
@@ -50,7 +52,10 @@ Volume* createNeuronVolume(Mesh* neuronMesh, const AppOptions* options, const bo
         bordeVoxels[i].clear();
     }
     bordeVoxels.clear();
-    neuronVolume->surfaceVoxelization(neuronMesh, false, false, 0.5);
+    neuronVolume->surfaceVoxelization(neuronMesh, VERBOSE, false, 0.5);
+
+    LOG_STATUS_IMPORTANT("Volume Generation Stats.");
+    LOG_STATS(GET_TIME_SECONDS);
 
     // Return the volume
     return neuronVolume;

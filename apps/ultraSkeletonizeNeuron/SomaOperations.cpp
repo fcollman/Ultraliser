@@ -65,10 +65,10 @@ void runFixSomaSlicingArtifactsOperations(const AppOptions* options, Mesh* neuro
     }
     else
     {
-        LOG_WARNING("The soma is assumed to have NO missing slices. If you wish to "
-                    "fix any slicing artifacts in the soma, or in case the application fails to "
-                    "continue due to gaps or missing slices within the soma extent, please use the "
-                    "--fix-soma-slicing-artifacts command to fix the soma!");
+        LOG_WARNING("The soma is assumed to have NO missing slices.\n"
+                    "\tIf you wish to fix any slicing artifacts in the soma, or in case the\n"
+                    "\tapplication fails to continue due to gaps or missing slices within the soma\n"
+                    "\textent, please use the --fix-soma-slicing-artifacts command to fix the soma!");
     }
 }
 
