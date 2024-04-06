@@ -46,13 +46,13 @@ public:
      * @param removeSpinesFromSkeleton
      * @param useAcceleration
      * @param debugSkeleton
-     * @param debuggingPrefix
+     * @param debugPrefix
      */
     NeuronSkeletonizer(Volume *volume,
                        const bool &removeSpinesFromSkeleton = true,
                        const bool &useAcceleration = true,
                        const bool &debugSkeleton = false,
-                       const std::string debuggingPrefix = NONE);
+                       const std::string debugPrefix = NONE);
     ~NeuronSkeletonizer();
 
     /**

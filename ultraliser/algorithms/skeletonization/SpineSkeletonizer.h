@@ -41,12 +41,12 @@ public:
      * @param spineVolume
      * @param useAcceleration
      * @param debugSkeleton
-     * @param debuggingPrefix
+     * @param debugPrefix
      */
     SpineSkeletonizer(Volume* spineVolume,
                       const bool useAcceleration,
                       const bool debugSkeleton,
-                      const std::string debuggingPrefix = NONE);
+                      const std::string debugPrefix = NONE);
 
     /**
      * @brief SpineSkeletonizer
@@ -55,14 +55,14 @@ public:
      * @param options
      * @param useAcceleration
      * @param debugSkeleton
-     * @param debuggingPrefix
+     * @param debugPrefix
      */
     SpineSkeletonizer(Mesh* spineMesh,
                       const Vector3f basePoint,
                       const VoxelizationOptions& options,
                       const bool useAcceleration,
                       const bool debugSkeleton,
-                      const std::string debuggingPrefix = NONE);
+                      const std::string debugPrefix = NONE);
     ~SpineSkeletonizer() { }
 
 public:

@@ -131,7 +131,7 @@ NeuronSkeletonizer* createNeuronSkeletonizer(const AppOptions* options, Volume* 
                                   options->removeSpinesFromSkeleton,
                                   options->useAccelerationStructures,
                                   options->debugSkeletonization,
-                                  options->debuggingPrefix);
+                                  options->debugPrefix);
 }
 
 void projectSkeletonVolume(const AppOptions* options, const NeuronSkeletonizer* skeletonizer)

@@ -87,7 +87,7 @@ void run(int argc , const char** argv)
     projectInputNeuronVolume(options, neuronVolume);
 
     // Create a NeuronSkeletonizer process
-    auto* skeletonizer = createNeuronSkeletonizer(options, neuronVolume);
+    auto skeletonizer = createNeuronSkeletonizer(options, neuronVolume);
 
     // Run the skeletonization operations
     runNeuronSkeletonizationOperations(options, skeletonizer);

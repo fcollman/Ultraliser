@@ -738,19 +738,36 @@ void AppArguments::addNeuronalMorphologyExportArguments()
     _args->addArgument(&spinesVPM);
     _options->spinesVoxelsPerMicron = _args->getFloatValue(&spinesVPM);
 
+    Argument exportDenditicSpinesProxyMeshes(
+                "--export-dendritic-spines-proxy-meshes",
+                ARGUMENT_TYPE::BOOL,
+                "Exports the proxy meshes of the segmented dendritic spines."
+                "The locations of these spine meshes will be on the dendrites.");
+    _args->addArgument(&exportDenditicSpinesProxyMeshes);
+    _options->exportDenditicSpinesProxyMeshes= _args->getBoolValue(&exportDenditicSpinesProxyMeshes);
+
+    Argument exportDendrtictSpinesMeshes(
+                "--export-dendritic-spines-meshes",
+                ARGUMENT_TYPE::BOOL,
+                "Exports the meshes of the segmented dendritic spines."
+                "The locations of these spine meshes will be on the dendrites.");
+    _args->addArgument(&exportDendrtictSpinesMeshes);
+    _options->exportDendriticSpinesMeshes= _args->getBoolValue(&exportDendrtictSpinesMeshes);
+
+    Argument exportSpinesMeshes(
+                "--export-spines-meshes",
+                ARGUMENT_TYPE::BOOL,
+                "Exports the meshes of the segmented spines."
+                "The locations of these spine meshes will be at the origin.");
+    _args->addArgument(&exportSpinesMeshes);
+    _options->exportSpinesMeshes= _args->getBoolValue(&exportSpinesMeshes);
+
     Argument exportSpineMorphologies(
                 "--export-spine-morphologies",
                 ARGUMENT_TYPE::BOOL,
                 "Exports the morphologies of the spines to .SWC files.");
     _args->addArgument(&exportSpineMorphologies);
-    _options->exportSpineMorphologies= _args->getBoolValue(&exportSpineMorphologies);
-
-    Argument exportSpineMeshes(
-                "--export-spine-meshes",
-                ARGUMENT_TYPE::BOOL,
-                "Exports the meshes of the segmented spines.");
-    _args->addArgument(&exportSpineMeshes);
-    _options->exportSpineMeshes= _args->getBoolValue(&exportSpineMeshes);
+    _options->exportSpinesSWCMorphologies= _args->getBoolValue(&exportSpineMorphologies);
 }
 
 void AppArguments::addMeshExportArguments()

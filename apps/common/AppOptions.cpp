@@ -324,7 +324,9 @@ void AppOptions::verifyNeuronalMorphologyExportArguments()
     }
 
     // If the soma will be exported, make sure that at least one mesh format must be exported.
-    if (exportSomaMesh || exportProxySomaMesh || exportOptimizedNeuronMesh || exportSpineMeshes)
+    if (exportSomaMesh || exportProxySomaMesh ||
+        exportDenditicSpinesProxyMeshes || exportDendriticSpinesMeshes || exportSpinesMeshes ||
+        exportOptimizedNeuronMesh)
     {
         if (!(exportOBJ || exportPLY || exportOFF || exportSTL))
         {
@@ -401,30 +403,48 @@ void AppOptions::createRespectiveDirectories()
         mkdir(path.str().c_str(), 0777);
     }
 
-    // Spine meshes
-    if (exportSpineMeshes)
+    if (removeSpinesFromSkeleton)
     {
-        // Spine meshes directory
+        // Spines directory (where all the spine srtifacts will be generated)
         std::stringstream path;
-        path << outputDirectory << "/" << SPINE_MESHES_DIRECTORY;
+        path << outputDirectory << "/" << SPINES_DIRECTORY;
         mkdir(path.str().c_str(), 0777);
 
-        // Case-specific spine meshes directory
+        // Case-specific spine directory
         path << "/" << prefix;
         mkdir(path.str().c_str(), 0777);
-    }
 
-    // Spine morphologies
-    if (exportSWCSpines)
-    {
-        // Spine morphologies directory
-        std::stringstream path;
-        path << outputDirectory << "/" << SPINE_MORPHOLOGIES_DIRECTORY;
-        mkdir(path.str().c_str(), 0777);
+        // Directory where the dendritic spines proxy meshes will be generatd
+        if (exportDenditicSpinesProxyMeshes)
+        {
+            std::stringstream subPath;
+            subPath << path.str() << "/" << DENDRITIC_SPINES_PROXY_MESHES_DIRECTORY;
+            mkdir(subPath.str().c_str(), 0777);
+        }
 
-        // Case-specific spine morphologies directory
-        path << "/" << prefix;
-        mkdir(path.str().c_str(), 0777);
+        // Directory where the dendritic spines meshes will be generatd
+        if (exportDendriticSpinesMeshes)
+        {
+            std::stringstream subPath;
+            subPath << path.str() << "/" << DENDRITIC_SPINES_MESHES_DIRECTORY;
+            mkdir(subPath.str().c_str(), 0777);
+        }
+
+        // Directory where the spines meshes will be genrated
+        if (exportSpinesMeshes)
+        {
+            std::stringstream subPath;
+            subPath << path.str() << "/" << SPINES_MESHES_DIRECTORY;
+            mkdir(subPath.str().c_str(), 0777);
+        }
+
+        // Directory where the spines morphologies will be genrated
+        if (exportSpinesSWCMorphologies)
+        {
+            std::stringstream subPath;
+            subPath << path.str() << "/" << SPINES_MORPHOLOGIES_DIRECTORY;
+            mkdir(subPath.str().c_str(), 0777);
+        }
     }
 
     // Skeletonization debugging
@@ -458,12 +478,23 @@ void AppOptions::initializeContext()
             outputDirectory + "/" + STATISTICS_DIRECTORY +  "/" + prefix;
     distributionsPrefix =
             outputDirectory + "/" + DISTRIBUTIONS_DIRECTORY +  "/" + prefix;
-    spinesMeshPrefix =
-            outputDirectory + "/" +  SPINE_MESHES_DIRECTORY +  "/" + prefix + "/" + prefix;
-    spinesMorphologyPrefix =
-            outputDirectory + "/" +  SPINE_MORPHOLOGIES_DIRECTORY +  "/" + prefix + "/" + prefix;
-    debuggingPrefix =
+
+    // Skeletonization debugging directory
+    debugPrefix =
             outputDirectory + "/" +  SKELETONIZATION_DIRECTORY +  "/" + prefix + "/" + prefix;
+
+    // Spines directories
+    std::string spinesDirectory =
+            outputDirectory + "/" + SPINES_DIRECTORY + "/" + prefix;
+    dendriticSpinesProxyMeshesPrefix =
+            spinesDirectory + "/" +  DENDRITIC_SPINES_PROXY_MESHES_DIRECTORY + "/" + prefix;
+    dendriticSpinesMeshesPrefix =
+            spinesDirectory + "/" +  DENDRITIC_SPINES_MESHES_DIRECTORY + "/" + prefix;
+    spinesMeshesPrefix =
+            spinesDirectory + "/" +  SPINES_MESHES_DIRECTORY + "/" + prefix;
+    spinesMorphologiesPrefix =
+            spinesDirectory + "/" +  SPINES_MORPHOLOGIES_DIRECTORY + "/" + prefix;
+
 
     // Create the respective directories
     createRespectiveDirectories();

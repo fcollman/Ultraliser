@@ -84,12 +84,12 @@ public:
      * @param volume
      * @param useAcceleration
      * @param debugSkeleton
-     * @param debuggingPrefix
+     * @param debugPrefix
      */
     Skeletonizer(Volume *volume,
                  const bool &useAcceleration = true,
                  const bool &debugSkeleton = false,
-                 const std::string debuggingPrefix = NONE);
+                 const std::string debugPrefix = NONE);
 
     /**
      * @brief Skeletonizer
@@ -97,13 +97,13 @@ public:
      * @param options
      * @param useAcceleration
      * @param debugSkeleton
-     * @param debuggingPrefix
+     * @param debugPrefix
      */
     Skeletonizer(Mesh *mesh,
                  const VoxelizationOptions& options,
                  const bool &useAcceleration = true,
                  const bool &debugSkeleton = false,
-                 const std::string debuggingPrefix = NONE);
+                 const std::string debugPrefix = NONE);
 
     ~Skeletonizer() { }
 

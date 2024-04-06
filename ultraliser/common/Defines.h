@@ -151,9 +151,9 @@
 #define TWO_SAMPLE_INVALID_BRANCH               STRING("-two-sample-invalid")
 #define SOMATIC_BRANCH                          STRING("-somatic")
 #define SPINE_BRANCH                            STRING("-spine")
-#define SPINE_MESH_SUFFIX                       STRING("-spine")
+#define DENDRITIC_SPINE_PROXY_SUFFIX            STRING("-dendritic-proxy-spine")
+#define DENDRITIC_SPINE_SUFFIX                  STRING("-dendritic-spine")
 #define SPINE_SUFFIX                            STRING("-spine")
-#define REFINED_SPINE_MESH_SUFFIX               STRING("-refined")
 
 // Directories where the artifacts will be generated
 #define MORPHOLOGIES_DIRECTORY                  STRING("morphologies")
@@ -163,9 +163,12 @@
 #define STACKS_SIRECTORY                        STRING("stacks")
 #define STATISTICS_DIRECTORY                    STRING("statistics")
 #define DISTRIBUTIONS_DIRECTORY                 STRING("distributions")
-#define SPINE_MORPHOLOGIES_DIRECTORY            STRING("spine-morphologies")
-#define SPINE_MESHES_DIRECTORY                  STRING("spine-meshes")
-#define SKELETONIZATION_DIRECTORY               STRING("skeletonization-debugging")
+#define SPINES_DIRECTORY                        STRING("spines")
+#define DENDRITIC_SPINES_PROXY_MESHES_DIRECTORY STRING("dendritic-spines-proxy-meshes")
+#define DENDRITIC_SPINES_MESHES_DIRECTORY       STRING("dendritic-spines-meshes")
+#define SPINES_MESHES_DIRECTORY                 STRING("spine-meshes")
+#define SPINES_MORPHOLOGIES_DIRECTORY           STRING("spine-morphologies")
+#define SKELETONIZATION_DIRECTORY               STRING("skeletonization-artifacts")
 #define NEURON_MORPHOLOGY_DIRECTORY             STRING("neuron-morphology")
 
 // Distributions stats

@@ -31,8 +31,8 @@ namespace Ultraliser
 SpineSkeletonizer::SpineSkeletonizer(Volume* spineVolume,
                                      const bool useAcceleration,
                                      const bool debugSkeleton,
-                                     const std::string debuggingPrefix)
-    : Skeletonizer(spineVolume, useAcceleration, debugSkeleton, debuggingPrefix)
+                                     const std::string debugPrefix)
+    : Skeletonizer(spineVolume, useAcceleration, debugSkeleton, debugPrefix)
 {
     /// EMPTY CONSTRUCTOR
 }
@@ -42,8 +42,8 @@ SpineSkeletonizer::SpineSkeletonizer(Mesh* spineMesh,
                                      const VoxelizationOptions& options,
                                      const bool useAcceleration,
                                      const bool debugSkeleton,
-                                     const std::string debuggingPrefix)
-    : Skeletonizer(spineMesh, options, useAcceleration, debugSkeleton, debuggingPrefix)
+                                     const std::string debugPrefix)
+    : Skeletonizer(spineMesh, options, useAcceleration, debugSkeleton, debugPrefix)
 {
     _basePoint = basePoint;
     _computeVolumeFromMesh();

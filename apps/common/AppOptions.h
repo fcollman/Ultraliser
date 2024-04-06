@@ -265,20 +265,36 @@ public:
     std::string distributionsPrefix;
 
     /**
+     * @brief dendriticSpinesProxyMeshesPrefix
+     * The prefix of the proxy meshes of the dendritic spines (that are located on the dendrites).
+     */
+    std::string dendriticSpinesProxyMeshesPrefix;
+
+    /**
+     * @brief dendriticSpinesMeshesPrefix
+     * The prefix of the (final) meshes of the dendritic spines (that are located on the dendrites).
+     */
+    std::string dendriticSpinesMeshesPrefix;
+
+    /**
+     * @brief spinesMeshesPrefix
+     * The prefix of the final spine meshes that are transformed to be located at the origin.
+     * These spines are the ones that will be used for analysis.
+     */
+    std::string spinesMeshesPrefix;
+
+    /**
      * @brief spineMorphologyPrefix
+     * The prefix of the final spine morphologies that are transformed to be located at the origin.
+     * These spines are the ones that will be used for analysis.
      */
-    std::string spinesMorphologyPrefix;
+    std::string spinesMorphologiesPrefix;
 
     /**
-     * @brief spinesMeshPrefix
-     */
-    std::string spinesMeshPrefix;
-
-    /**
-     * @brief debuggingPrefix
+     * @brief debugPrefix
      * This directory will be used to debug the skeletonization results.
      */
-    std::string debuggingPrefix;
+    std::string debugPrefix;
 
     /**
      * @brief maskWidth
@@ -644,15 +660,35 @@ public:
      */
     bool exportSWCNeuron = false;
 
+    /// Spines /////////////////////////////////////////////////////////////////////////////////////
+
     /**
-     * @brief exportSWCSpines
-     * Exports the reconstructed spines into SWC skeletons.
+     * @brief exportDenditicSpinesProxyMeshes
+     * Export the proxy (intermediate) spines meshes that are located at their sites on the
+     * dendrites. These spines are used to demonstrate the segmentation results only.
      */
-    bool exportSWCSpines = false;
+    bool exportDenditicSpinesProxyMeshes;
 
-    bool exportSpineMeshes = false;
+    /**
+     * @brief exportDendriticSpinesMeshes
+     * Export the high quality (or remeshed) spines meshes that are located at their sites on
+     * the dendrites. These spines are used to demonstrate the segmentation results.
+     */
+    bool exportDendriticSpinesMeshes;
 
-    bool exportSpineMorphologies = false;
+    /**
+     * @brief exportSpinesMeshes
+     * Export the final spine meshes that are located at the origin.
+     * These spine meshes will be used for analysis.
+     */
+    bool exportSpinesMeshes;
+
+    /**
+     * @brief exportSpinesSWCMorphologies
+     * Export the skeletonization of the spine meshes (that are located at the origin) to SWC files.
+     * These morphologies will be used for analysis.
+     */
+    bool exportSpinesSWCMorphologies;
 
     /**
      * @brief reomveSpinesFromSkeleton

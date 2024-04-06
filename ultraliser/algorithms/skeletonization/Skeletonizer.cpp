@@ -36,12 +36,12 @@ namespace Ultraliser
 Skeletonizer::Skeletonizer(Volume* volume,
                            const bool &useAcceleration,
                            const bool &debugSkeleton,
-                           const std::string debuggingPrefix)
+                           const std::string debugPrefix)
     : _volume(volume)
     , _mesh(nullptr)
     , _useAcceleration(useAcceleration)
     , _debugSkeleton(debugSkeleton)
-    , _debugPrefix(debuggingPrefix)
+    , _debugPrefix(debugPrefix)
     , _debug(_debugSkeleton && _debugPrefix != NONE)
 {
     /// NOTE: The mesh is assigned a nullptr, until further notice
@@ -69,13 +69,13 @@ Skeletonizer::Skeletonizer(Mesh* mesh,
                            const VoxelizationOptions& options,
                            const bool &useAcceleration,
                            const bool &debugSkeleton,
-                           const std::string debuggingPrefix)
+                           const std::string debugPrefix)
     : _volume(nullptr)
     , _mesh(mesh)
     , _voxelizationOptions(options)
     , _useAcceleration(useAcceleration)
     , _debugSkeleton(debugSkeleton)
-    , _debugPrefix(debuggingPrefix)
+    , _debugPrefix(debugPrefix)
     , _debug(_debugSkeleton && _debugPrefix != NONE)
 {
     /// NOTE: The volume is assigned a nullptr, until further notice
