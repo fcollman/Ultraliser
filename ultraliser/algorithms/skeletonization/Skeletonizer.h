@@ -184,9 +184,12 @@ public:
     /**
      * @brief exportBranches
      * @param prefix
+     * @param state
      * @param verbose
      */
-    void exportBranches(const std::string& prefix, const bool verbose = VERBOSE);
+    void exportBranches(const std::string &prefix,
+                        const SkeletonBranch::BRANCH_STATE state,
+                        const bool verbose = VERBOSE);
 
 protected:
 
@@ -274,9 +277,59 @@ protected:
      */
     std::map< size_t, size_t > _extractNodesFromVoxelsUsingAcceleration(const bool verbose = VERBOSE);
 
+    /**
+     * @brief _buildBranch
+     * @param firstNode
+     * @param edgeNode
+     * @return
+     */
     SkeletonBranch* _buildBranch(SkeletonNode* firstNode, SkeletonNode* edgeNode);
 
+    /**
+     * @brief _buildAcyclicTree
+     * @param branch
+     * @param branches
+     */
     void _buildAcyclicTree(SkeletonBranch* branch, SkeletonBranches &branches);
+
+    /**
+     * @brief _verifyGraphConnectivity
+     */
+    void _verifyGraphConnectivity(SkeletonEdges &edges);
+
+    /**
+     * @brief _verifyGraphConnectivityToMainPartition
+     * @param components
+     */
+    void _verifyGraphConnectivityToMainPartition(GraphComponents &components, SkeletonEdges& edges);
+
+    /**
+     * @brief _verifyGraphConnectivityToClosestPartition
+     * @param edges
+     * @param verbose
+     */
+    void _verifyGraphConnectivityToClosestPartition(SkeletonEdges& edges,
+                                                    const bool verbose = VERBOSE);
+
+    /**
+     * @brief _findClosestNodesInTwoPartitions
+     * @param partition1
+     * @param partition2
+     * @param partition1NodeIndex
+     * @param partition2NodeIndex
+     * @param distance
+     */
+    void _findClosestNodesInTwoPartitions(GraphComponent& partition1, GraphComponent& partition2,
+                                          size_t* partition1NodeIndex, size_t* partition2NodeIndex,
+                                          float* distance);
+    /**
+     * @brief _connectPartition
+     * @param partitions
+     * @param partitionIndex
+     * @param edges
+     */
+    void _connectPartition(GraphComponents& partitions, const size_t &partitionIndex,
+                           SkeletonEdges &edges);
 
     /**
      * @brief _updateParent

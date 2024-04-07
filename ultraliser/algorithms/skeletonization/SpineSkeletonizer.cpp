@@ -113,7 +113,6 @@ void adjustChildrenBranchOrientation(SkeletonBranch* rootBranch, SkeletonBranche
     }
 }
 
-
 void SpineSkeletonizer::_buildSpineBranchesFromNodes()
 {
     // Used to index the branch
@@ -461,34 +460,17 @@ void SpineSkeletonizer::_identifySpineBranchConnections()
             auto& jBranchT1 = jBranch->nodes.front();
             auto& jBranchT2 = jBranch->nodes.back();
 
-            if (iBranchT1->index == jBranchT1->index)
-            {
-                iBranch->t1Connections.push_back(jBranch);
-            }
+            if (iBranchT1->index == jBranchT1->index) { iBranch->t1Connections.push_back(jBranch); }
+            if (iBranchT1->index == jBranchT2->index) { iBranch->t1Connections.push_back(jBranch); }
 
-            if (iBranchT1->index == jBranchT2->index)
-            {
-                iBranch->t1Connections.push_back(jBranch);
-            }
-
-            if (iBranchT2->index == jBranchT1->index)
-            {
-                iBranch->t2Connections.push_back(jBranch);
-            }
-
-            if (iBranchT2->index == jBranchT2->index)
-            {
-                iBranch->t2Connections.push_back(jBranch);
-            }
+            if (iBranchT2->index == jBranchT1->index) { iBranch->t2Connections.push_back(jBranch); }
+            if (iBranchT2->index == jBranchT2->index) { iBranch->t2Connections.push_back(jBranch); }
         }
     }
 }
 
 void SpineSkeletonizer::_identifyRootBranch()
 {
-    /// The base point is noe the origin, because the input neuron has been transformed to the origin
-    _basePoint = Vector3f(0.f);
-
     // The shortest distance between the base point and the branches
     float shortestDistanceToBranch = std::numeric_limits< float >::max();
 
@@ -673,15 +655,8 @@ bool SpineSkeletonizer::runSkeletonization(const bool verbose)
     // Initialize the skeletonizer data
     initialize(verbose);
 
-    //std::stringstream prefix;
-    //prefix << "/ssd2/skeletonization-project/spine-extraction/output/refacotr-1/spines/864691134832191490_" << _index << "_volume_";
-    // _volume->project(prefix.str(), true);
-
     // Skeletonize the volume to center-lines
     skeletonizeVolumeToCenterLines(verbose);
-
-    //prefix << SKELETON_SUFFIX;
-    //_volume->project(prefix.str(), true);
 
     // Extract the nodes of the skeleton from the center-line "thinned" voxels and return a
     // mapper that maps the indices of the voxels in the volume and the nodes in the skeleton
@@ -690,6 +665,9 @@ bool SpineSkeletonizer::runSkeletonization(const bool verbose)
     // Connect the nodes of the skeleton to construct its edges. This operation will not connect
     // any gaps, it will just connect the nodes extracted from the voxels.
     _connectNodesToBuildEdges(indicesMapper, verbose);
+
+    // Verify graph connectivity
+    _verifyGraphConnectivityToClosestPartition(_edges, false);
 
     // Remove any triangle loops from the graph
     _removeTriangleLoops(false);
@@ -722,34 +700,6 @@ bool SpineSkeletonizer::runSkeletonization(const bool verbose)
     // Successful skeletonization
     return true;
 }
-
-
-//void SpineSkeletonizer::exportBranches(const std::string& prefix, const bool)
-//{
-
-//    // Construct the file path
-//    std::string filePath = prefix + BRANCHES_EXTENSION;
-
-//    std::fstream stream;
-//    stream.open(filePath, std::ios::out);
-
-//    for (size_t i = 0; i < _branches.size(); ++i)
-//    {
-//        // The @start marks a new branch in the file
-//        stream << "SB " << _branches[i]->index << "\n";
-
-//        for (auto& node: _branches[i]->nodes)
-//        {
-//            stream << node->point.x() << " " << node->point.y() << " " << node->point.z() << " "
-//                   << node->radius << NEW_LINE;
-//        }
-//        // The @end marks the terminal sample of a branch
-//        stream << "EB\n";
-//    }
-
-//    // Close the file
-//    stream.close();
-//}
 
 SkeletonNodes SpineSkeletonizer::_constructSWCTable(const bool& resampleSkeleton,
                                                     const bool verbose)

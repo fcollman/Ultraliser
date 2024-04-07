@@ -99,16 +99,31 @@ public:
 
 private:
 
+    /**
+     * @brief _constructSkeletonTree
+     * @param verbose
+     */
     void _constructSkeletonTree(const bool verbose = VERBOSE);
 
-
+    /**
+     * @brief _constructGraphHierarchy
+     * @param graphBranches
+     * @param verbose
+     */
     void _constructGraphHierarchy(GraphBranches& graphBranches, const bool verbose);
 
+    /**
+     * @brief _constructSkeletonHierarchy
+     * @param graphBranches
+     * @param verbose
+     */
     void _constructSkeletonHierarchy(GraphBranches& graphBranches,
-                                                         const bool verbose);
-
-
-
+                                     const bool verbose);
+    /**
+     * @brief _getRootNodeIndexFromGraphNodes
+     * @param nodes
+     * @return
+     */
     int64_t _getRootNodeIndexFromGraphNodes(const SkeletonNodes& nodes) const;
 
     /**
@@ -130,8 +145,6 @@ private:
      * @brief _identifySpineBranchConnections
      */
     void _identifySpineBranchConnections();
-
-
 
     /**
      * @brief _findShortestPathsFromTerminalNodesToRoot

@@ -227,18 +227,18 @@ void reconstructSpineMorphologies(const Meshes& spineMeshes,
         auto spineMesh = spineMeshes[i];
         if (spineMesh == nullptr) continue;
 
-        // Get the base point of the spine
-        const auto basePoint = spineProxyMorphologies[i]->getBasePoint();
+        // The base point at this stage should be the origin
+        // const auto basePoint = spineProxyMorphologies[i]->getBasePoint();
+        const Vector3f basePoint = Vector3f(0.f);
 
         // Reconstruct the spine morphology
-        reconstructAndExportSpineMorphology(spineMesh, i, basePoint, options);
+        reconstructAndExportSpineMorphology(spineMesh, i, Vector3f(0.), options);
 
         LOOP_PROGRESS(i, spineMeshes.size());
     }
     LOOP_DONE;
     LOG_STATS(GET_TIME_SECONDS);
 }
-
 
 void reconstructSpines(NeuronSkeletonizer* skeletonizer,
                        const Mesh* inputNeuronMesh,

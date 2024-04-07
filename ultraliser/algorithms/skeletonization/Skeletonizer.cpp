@@ -988,6 +988,258 @@ void Skeletonizer::skeletonizeVolumeBlockByBlock(const size_t& blockSize,
     segmentComponents();
 }
 
+void Skeletonizer::_findClosestNodesInTwoPartitions(GraphComponent& partition1,
+                                                    GraphComponent& partition2,
+                                                    size_t* partition1NodeIndex,
+                                                    size_t* partition2NodeIndex,
+                                                    float* distance)
+{
+    // A parameter to store the shotrest distances between the nodes
+    float shortestDistance = std::numeric_limits<float>::max();
+    size_t indexNode1, indexNode2;
+
+    // Iterate over the nodes of the first partition
+    for (size_t i = 0; i < partition1.size(); ++i)
+    {
+        // Reference to the first node
+        auto _node1 = _nodes[partition1[i]];
+
+        // Iterate over the nodes of the second partition
+        for (size_t j = 0; j < partition2.size(); ++j)
+        {
+            // Reference to the second node
+            auto _node2 = _nodes[partition2[j]];
+
+            // Calculate the distance
+            const auto distance = _node1->point.distance(_node2->point);
+
+            // If the calculated distance is less than the shortest distance, update
+            if (distance < shortestDistance)
+            {
+                shortestDistance = distance;
+                indexNode1 = i;
+                indexNode2 = j;
+            }
+        }
+    }
+
+    *distance = shortestDistance;
+    *partition1NodeIndex = indexNode1;
+    *partition2NodeIndex = indexNode2;
+}
+
+void Skeletonizer::_connectPartition(GraphComponents& partitions,
+                                     const size_t& partitionIndex,
+                                     SkeletonEdges &edges)
+{
+    // A reference to the primary partition
+    auto primaryPartition = partitions[partitionIndex];
+
+    size_t partition1NodeIndex;
+    size_t partition2NodeIndex;
+    float shortestDistance = std::numeric_limits<float>::max();
+    size_t secondaryPartitionIndex;
+
+    for (size_t i = 0; i < partitions.size(); ++i)
+    {
+        // Skip the same partition
+        if (i == partitionIndex) continue;
+
+        // A reference to the secondary partition
+        auto secondaryPartition = partitions[i];
+
+        size_t _node1Index, _node2Index;
+        float distance;
+
+        _findClosestNodesInTwoPartitions(primaryPartition, secondaryPartition,
+                                         &_node1Index, &_node2Index, &distance);
+
+        if (distance < shortestDistance)
+        {
+            shortestDistance = distance;
+            partition1NodeIndex = _node1Index;
+            partition2NodeIndex = _node2Index;
+            secondaryPartitionIndex = i;
+        }
+    }
+
+    // Add the missing connectivity information
+    auto primaryNode = _nodes[primaryPartition[partition1NodeIndex]];
+    auto secondaryNode = _nodes[partitions[secondaryPartitionIndex][partition2NodeIndex]];
+
+    primaryNode->edgeNodes.push_back(secondaryNode);
+    secondaryNode->edgeNodes.push_back(primaryNode);
+
+    SkeletonEdge* edge = new SkeletonEdge(edges.size(), primaryNode, secondaryNode);
+    edges.push_back(edge);
+}
+
+void Skeletonizer::_verifyGraphConnectivityToClosestPartition(SkeletonEdges &edges, const bool verbose)
+{
+    while (true)
+    {
+        // Construct the graph
+        auto graph = new Graph(edges, _nodes);
+
+        // Get the number of partitions
+        auto components = graph->getComponents();
+
+        if (components.size() == 1)
+        {
+            VERBOSE_LOG(LOG_SUCCESS("The skeleton graph has 1 component! OK."), verbose);
+            return;
+        }
+        else
+        {
+            VERBOSE_LOG(LOG_WARNING("The skeleton graph has [ %d ] components! "
+                        "Running the Connectomics Algorithm", components.size()), verbose);
+
+            // Add the partition
+            _connectPartition(components, 0, edges);
+
+            // Updating the branching and terminal nodes
+            for (size_t i = 0; i < _nodes.size(); ++i)
+            {
+                // Check if the node has been visited before
+                SkeletonNode* node = _nodes[i];
+
+                if (node->edgeNodes.size() == 1)
+                    node->terminal = true;
+                else
+                    node->terminal = false;
+
+                if (node->edgeNodes.size() > 2)
+                    node->branching = true;
+                else
+                    node->branching = false;
+            }
+        }
+    }
+}
+
+void Skeletonizer::_verifyGraphConnectivityToMainPartition(GraphComponents &components,
+                                                           SkeletonEdges &edges)
+{
+    // Each component in the GraphComponents is simply a list of nodes
+    // Find the largest partition
+    size_t primaryPartitionIndex = 0;
+    size_t numberNodesPrimaryPartition = 0;
+    for (size_t i = 0; i < components.size(); ++i)
+    {
+        if (components[i].size() > numberNodesPrimaryPartition)
+        {
+            primaryPartitionIndex = i;
+            numberNodesPrimaryPartition = components[i].size();
+        }
+    }
+
+    // Get a reference to the primary partition
+    GraphComponent primaryPartition = components[primaryPartitionIndex];
+
+    // Construct a list of the secondary partitions
+    GraphComponents secondaryPartitions;
+    for (size_t i = 0; i < components.size(); ++i)
+    {
+        if (i == primaryPartitionIndex) continue;
+
+        secondaryPartitions.push_back(components[i]);
+    }
+
+
+    // Find the connections between each secondary partition and the parimary partition
+    for (size_t i = 0; i < secondaryPartitions.size(); ++i)
+    {
+        auto secondaryPartition = secondaryPartitions[i];
+
+        // Find the indices of the connecting nodes
+        size_t closestPrimaryNodeIndex;
+        size_t closesetSecondaryNodeIndex;
+        float shortestDistance = 1e32;
+
+        for (size_t j = 0; j < secondaryPartition.size(); ++j)
+        {
+            auto secondaryNodeIndex = secondaryPartition[j];
+            auto secondaryNode = _nodes[secondaryNodeIndex];
+
+            for (size_t k = 0; k < primaryPartition.size(); ++k)
+            {
+                auto primaryNodeIndex = primaryPartition[k];
+                auto primaryNode = _nodes[primaryNodeIndex];
+
+                const auto distance = primaryNode->point.distance(secondaryNode->point);
+                if (distance < shortestDistance)
+                {
+                    shortestDistance = distance;
+                    closestPrimaryNodeIndex = primaryNodeIndex;
+                    closesetSecondaryNodeIndex = secondaryNodeIndex;
+                }
+            }
+        }
+
+        // The primary and secondary nodes are connected
+        auto primaryNode = _nodes[closestPrimaryNodeIndex];
+        auto secondaryNode = _nodes[closesetSecondaryNodeIndex];
+
+        primaryNode->edgeNodes.push_back(secondaryNode);
+        secondaryNode->edgeNodes.push_back(primaryNode);
+
+        SkeletonEdge* edge = new SkeletonEdge(edges.size(), primaryNode, secondaryNode);
+        edges.push_back(edge);
+    }
+
+    // Updating the branching and terminal nodes
+    PROGRESS_SET;
+    OMP_PARALLEL_FOR
+    for (size_t i = 0; i < _nodes.size(); ++i)
+    {
+        // Check if the node has been visited before
+        SkeletonNode* node = _nodes[i];
+
+        if (node->edgeNodes.size() == 1)
+            node->terminal = true;
+        else
+            node->terminal = false;
+
+        if (node->edgeNodes.size() > 2)
+            node->branching = true;
+        else
+            node->branching = false;
+    }
+}
+
+void Skeletonizer::_verifyGraphConnectivity(SkeletonEdges& edges)
+{
+    // Since we have all the nodes and the edges, we can verify if the graph is conected or not
+    auto graph = new Graph(edges, _nodes);
+
+    auto components = graph->getComponents();
+
+    if (components.size() == 1)
+    {
+        LOG_SUCCESS("The skeleton graph has 1 component! OK.");
+    }
+    else
+    {
+        LOG_WARNING("The skeleton graph has [ %d ] components!", components.size());
+
+        // Verify the graph connectivity to the main partition
+        _verifyGraphConnectivityToMainPartition(components, edges);
+
+        auto newGraph = new Graph(edges, _nodes);
+
+        auto newComponents = newGraph->getComponents();
+
+        if (newComponents.size() == 1)
+        {
+            LOG_SUCCESS("The skeleton graph has now 1 component! OK.");
+        }
+        else
+        {
+            LOG_WARNING("The skeleton graph has still [ %d ] components!", newComponents.size());
+        }
+    }
+}
+
 void Skeletonizer::_updateParent(SkeletonBranch* branch)
 {
     for(size_t j = 0; j < branch->children.size(); j++)
@@ -1306,6 +1558,148 @@ void Skeletonizer::_exportGraphNodes(const std::string prefix, const bool verbos
 
         VERBOSE_LOG(LOOP_PROGRESS(progress, _nodes.size()), verbose);
         ++progress;
+    }
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
+
+    // Close the file
+    stream.close();
+}
+
+void Skeletonizer::exportBranches(const std::string& prefix,
+                                  const SkeletonBranch::BRANCH_STATE state,
+                                  const bool verbose)
+{
+    // Construct the file path
+    std::string filePath = prefix;
+    std::string branchType;
+
+    if (state == SkeletonBranch::INVALID)
+    {
+        filePath += INVALID_BRANCH;
+        branchType = "Invalid";
+    }
+    else if (state == SkeletonBranch::VALID)
+    {
+        filePath += VALID_BRANCH;
+        branchType = "Valid";
+    }
+    else if (state == SkeletonBranch::TWO_SAMPLE)
+    {
+        filePath += TWO_SAMPLE_BRANCH;
+        branchType = "Two-sample";
+    }
+    else if (state == SkeletonBranch::TWO_SAMPLE_AND_VALID)
+    {
+        filePath += TWO_SAMPLE_VALID_BRANCH;
+        branchType = "Two-sample and Valid";
+    }
+    else if (state == SkeletonBranch::TWO_SAMPLE_AND_INVALID)
+    {
+        filePath += TWO_SAMPLE_INVALID_BRANCH;
+        branchType = "Two-sample and Invalid";
+    }
+    else if (state == SkeletonBranch::SOMATIC)
+    {
+        filePath += SOMATIC_BRANCH;
+        branchType = "Somatic";
+    }
+    else if (state == SkeletonBranch::SPINE)
+    {
+        filePath += SPINE_BRANCH;
+        branchType = "Spine";
+    }
+    else
+    {
+        /// NOTHING
+    }
+
+    filePath += BRANCHES_EXTENSION;
+
+    VERBOSE_LOG(LOG_STATUS("Exporting %s Branches: [ %s ]",
+                           branchType.c_str(), filePath.c_str()), verbose);
+
+    std::fstream stream;
+    stream.open(filePath, std::ios::out);
+
+    // A set of selected branches to write for debugging
+    SkeletonBranches toWrite;
+    if (state == SkeletonBranch::INVALID)
+    {
+        for (const auto& branch : _branches)
+        {
+            if (branch->isValid()) { toWrite.push_back(branch); }
+        }
+    }
+    else if (state == SkeletonBranch::TWO_SAMPLE)
+    {
+        for (const auto& branch : _branches)
+        {
+            if (branch->nodes.size() == 2) { toWrite.push_back(branch); }
+        }
+    }
+    else if (state == SkeletonBranch::TWO_SAMPLE_AND_VALID)
+    {
+        for (const auto& branch : _branches)
+        {
+            if (branch->nodes.size() == 2 && branch->isValid()) { toWrite.push_back(branch); }
+        }
+    }
+    else if (state == SkeletonBranch::TWO_SAMPLE_AND_INVALID)
+    {
+        for (const auto& branch : _branches)
+        {
+             if (branch->nodes.size() == 2 && !branch->isValid()) { toWrite.push_back(branch); }
+        }
+    }
+    else if (state == SkeletonBranch::SOMATIC)
+    {
+        for (const auto& branch : _branches)
+        {
+            if (branch->isInsideSoma()) { toWrite.push_back(branch); }
+        }
+    }
+    else if (state == SkeletonBranch::SPINE)
+    {
+        for (const auto& branch : _branches)
+        {
+            if (branch->isSpine()) { toWrite.push_back(branch); }
+        }
+    }
+    else if (state == SkeletonBranch::VALID)
+    {
+        for (const auto& branch : _branches)
+        {
+            if (branch->isValid()) { toWrite.push_back(branch); }
+        }
+    }
+    else
+    {
+        for (const auto& branch : _branches)
+        {
+            toWrite.push_back(branch);
+        }
+    }
+
+    if (toWrite.size() == 0)
+    {
+        LOG_WARNING("No Branches have been Collected! Aborting Export!");
+        return;
+    }
+
+    TIMER_SET;
+    VERBOSE_LOG(LOOP_STARTS("Writing Branches"), verbose);
+    for (size_t i = 0; i < toWrite.size(); ++i)
+    {
+        stream << START_BRANCH_KEYWORD << toWrite[i]->index << "\n";
+        for (auto& node: toWrite[i]->nodes)
+        {
+            stream << node->point.x() << " " << node->point.y() << " " << node->point.z() << " "
+                   << node->radius << NEW_LINE;
+        }
+        stream << END_BRANCH_KEYWORD << NEW_LINE;
+
+        VERBOSE_LOG(LOOP_PROGRESS(i, toWrite.size()), verbose);
     }
     VERBOSE_LOG(LOOP_DONE, verbose);
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);

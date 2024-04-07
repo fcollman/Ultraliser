@@ -1,5 +1,5 @@
 /***************************************************************************************************
- * Copyright (c) 2016 - 2023
+ * Copyright (c) 2016 - 2024
  * Blue Brain Project (BBP) / Ecole Polytechnique Federale de Lausanne (EPFL)
  *
  * Author(s)
@@ -105,10 +105,6 @@ public:
                        const bool &resampleSkeleton = false,
                        const bool verbose = VERBOSE) override;
 
-
-
-
-
     /**
      * @brief exportSomaMesh
      * Exports the mesh of the segmented soma.
@@ -174,16 +170,6 @@ public:
     Meshes reconstructSpineMeshes(const Mesh* neuronMesh,
                                   const float& voxelsPerMicron,
                                   const float& edgeGap = 0.1);
-
-    /**
-     * @brief exportBranches
-     * @param prefix
-     * @param state
-     * @param verbose
-     */
-    void exportBranches(const std::string &prefix, const SkeletonBranch::BRANCH_STATE state,
-                        const bool verbose = VERBOSE);
-
     /**
      * @brief exportSpineLocations
      * @param prefix
@@ -197,7 +183,6 @@ public:
      * @param verbose
      */
     void exportSpineExtents(const std::string& prefix, const bool verbose = VERBOSE) const;
-
 
 private:
 
@@ -253,8 +238,6 @@ private:
      * cannot be detected as single objects.
      */
     void _filterLoopsAtSingleBranchingPoint();
-
-
 
     /**
      * @brief _getSomaIndexFromGraphNodes
@@ -377,42 +360,10 @@ private:
     void _reconstructSomaMeshFromProxy(const bool verbose = VERBOSE);
 
     /**
-     * @brief _verifyGraphConnectivity
+     * @brief _exportEdges
+     * @param prefix
+     * @param verbose
      */
-    void _verifyGraphConnectivity(SkeletonEdges &edges);
-
-    /**
-     * @brief _verifyGraphConnectivityToMainPartition
-     * @param components
-     */
-    void _verifyGraphConnectivityToMainPartition(GraphComponents &components, SkeletonEdges& edges);
-
-    /**
-     * @brief _verifyGraphConnectivityToClosestPartition
-     * @param edges
-     */
-    void _verifyGraphConnectivityToClosestPartition(SkeletonEdges& edges);
-
-    /**
-     * @brief _findClosestNodesInTwoPartitions
-     * @param partition1
-     * @param partition2
-     * @param partition1NodeIndex
-     * @param partition2NodeIndex
-     * @param distance
-     */
-    void _findClosestNodesInTwoPartitions(GraphComponent& partition1, GraphComponent& partition2,
-                                          size_t* partition1NodeIndex, size_t* partition2NodeIndex,
-                                          float* distance);
-    /**
-     * @brief _connectPartition
-     * @param partitions
-     * @param partitionIndex
-     * @param edges
-     */
-    void _connectPartition(GraphComponents& partitions, const size_t &partitionIndex,
-                           SkeletonEdges &edges);
-
     void _exportEdges(const std::string prefix, const bool verbose = SILENT);
 
     /**
