@@ -303,12 +303,6 @@ void SpineSkeletonizer::_buildSpineBranchesFromNodes()
     for (auto node : _nodes) { node->visited = false; }
 }
 
-void SpineSkeletonizer::_connectSpineBranches()
-{
-
-}
-
-
 EdgesIndices SpineSkeletonizer::_findShortestPathsFromTerminalNodesToRoot(
         SkeletonWeightedEdges& edges,
         SkeletonNodes &skeletonBranchingNodes, GraphNodes &graphNodes,
@@ -316,7 +310,6 @@ EdgesIndices SpineSkeletonizer::_findShortestPathsFromTerminalNodesToRoot(
 {
     VERBOSE_LOG(LOG_STATUS("Identifying Short Paths from Terminals To Root"), verbose);
 
-    std::cout << "cx 1\n";
     // Identify the terminal nodes to process the paths in parallel
     SkeletonNodes terminalNodes;
     for (size_t i = 0; i < skeletonBranchingNodes.size(); i++)
@@ -324,22 +317,18 @@ EdgesIndices SpineSkeletonizer::_findShortestPathsFromTerminalNodesToRoot(
         if (skeletonBranchingNodes[i]->terminal)
             terminalNodes.push_back(skeletonBranchingNodes[i]);
     }
-    std::cout << "cx 2\n";
 
     std::vector< EdgesIndices > edgesIndicesList;
     edgesIndicesList.resize(skeletonBranchingNodes.size());
 
-    std::cout << "cx 3\n";
     // Generate the ShortestPathFinder only once for all the path retrival functions
     const ShortestPathFinder pathFinder(edges, skeletonBranchingNodes.size());
 
-    std::cout << "cx 4\n";
     // Search for all the terminal nodes
     size_t numberTerminalNodes = terminalNodes.size();
     std::vector< PathIndices > terminalsToSomaPaths;
     terminalsToSomaPaths.resize(numberTerminalNodes);
 
-    std::cout << "cx 5\n";
     TIMER_SET;
     PROGRESS_SET;
     VERBOSE_LOG(LOOP_STARTS("Searching Terminals-to-soma Paths *"), verbose);
@@ -364,7 +353,6 @@ EdgesIndices SpineSkeletonizer::_findShortestPathsFromTerminalNodesToRoot(
     VERBOSE_LOG(LOOP_DONE, verbose);
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
-    std::cout << "cx 6\n";
     PROGRESS_RESET;
     VERBOSE_LOG(LOOP_STARTS("Updating Graph"), verbose);
     for (size_t iNode = 0; iNode < numberTerminalNodes; ++iNode)
@@ -403,7 +391,6 @@ EdgesIndices SpineSkeletonizer::_findShortestPathsFromTerminalNodesToRoot(
         VERBOSE_LOG(PROGRESS_UPDATE, verbose);
     }
 
-    std::cout << "cx 7\n";
     VERBOSE_LOG(LOOP_DONE, verbose);
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
@@ -415,7 +402,6 @@ EdgesIndices SpineSkeletonizer::_findShortestPathsFromTerminalNodesToRoot(
     terminalsToSomaPaths.clear();
     terminalsToSomaPaths.shrink_to_fit();
 
-    std::cout << "cx 8\n";
     // The indices of all the edges that have been traversed
     EdgesIndices edgesIndices;
     PROGRESS_RESET;
@@ -437,7 +423,7 @@ EdgesIndices SpineSkeletonizer::_findShortestPathsFromTerminalNodesToRoot(
     }
     VERBOSE_LOG(LOOP_DONE, verbose);
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
-    std::cout << "cx 9\n";
+
     // Clean the list used to collect the edges in parallel
     edgesIndicesList.clear();
     edgesIndicesList.shrink_to_fit();
@@ -500,17 +486,18 @@ void SpineSkeletonizer::_identifySpineBranchConnections()
 
 void SpineSkeletonizer::_identifyRootBranch()
 {
-    // _basePoint = Vector3f(0.f);
+    /// The base point is noe the origin, because the input neuron has been transformed to the origin
+    _basePoint = Vector3f(0.f);
 
     // The shortest distance between the base point and the branches
     float shortestDistanceToBranch = std::numeric_limits< float >::max();
 
     // The closest branch to the base point
-    _root = nullptr;
+    _rootBranch = nullptr;
 
     // If a single branch is reconstructed, then make it the root
     if (_branches.size() == 0) { return; }
-    if (_branches.size() == 1) { _root = _branches[0]; }
+    if (_branches.size() == 1) { _rootBranch = _branches[0]; }
     else
     {
         // Identify the root branch based on the given base point.
@@ -524,7 +511,7 @@ void SpineSkeletonizer::_identifyRootBranch()
                 if (distance < shortestDistanceToBranch)
                 {
                     shortestDistanceToBranch = distance;
-                    _root = branch;
+                    _rootBranch = branch;
                 }
             }
         }
@@ -532,159 +519,36 @@ void SpineSkeletonizer::_identifyRootBranch()
 
     // Identify the direction of the root branch based on the given base point
     // Compute the distance from the front and back nodes to the base point
-    const auto distanceToFrontNode = _root->nodes.front()->point.distance(_basePoint);
-    const auto distanceToBackNode = _root->nodes.back()->point.distance(_basePoint);
+    const auto distanceToFrontNode = _rootBranch->nodes.front()->point.distance(_basePoint);
+    const auto distanceToBackNode = _rootBranch->nodes.back()->point.distance(_basePoint);
 
     // Reverse the orientation of the root branch only if back node is closer to the base point
     if (distanceToBackNode < distanceToFrontNode)
     {
-         std::reverse(_root->nodes.begin(), _root->nodes.end());
+         std::reverse(_rootBranch->nodes.begin(), _rootBranch->nodes.end());
     }
 
-    _root->setRoot();
+    // Once the root is identified, set the root and update the details
+    _rootBranch->setRoot();
 
+    // The root node is the front node of the root branch
+    _rootNode = _rootBranch->nodes.front();
 
-    _rootNode = _root->nodes.front(); // new SkeletonNode();
-    // _rootNode->index = _nodes.back()->index + 1;
-
-    // By default, the soma node is actually the soma
+    // Set the somata flags to be used for the generic path computation algorithm
     _rootNode->isSoma = true;
-
-    // The somatic node is considered inside the soma in the processing
     _rootNode->insideSoma = true;
-
-    // Initially, we set the soma node to some value that does not make any conflict
-    // _rootNode->radius = 0.1;
-    // _nodes.push_back(_rootNode);
-
-    // Update the root node
-    //_rootNode->point = _root->nodes.front()->point;
-    //_rootNode->radius = _root->nodes.front()->radius;
 }
-
-void constructTreeS(SkeletonBranch* branch)
-{
-    if (branch == nullptr)
-        return;
-
-    // std::cout << "Index " << branch->index << "\n";
-
-    // The given branch to this function is assumed to be oriented in the right direction
-    if (branch->t1Connections.size() > 0)
-    {
-        for (auto t1 : branch->t1Connections)
-        {
-            //std::cout << t1->index << " \n";
-            // Ensure the correct order of the nodes in the branch
-
-//                if (t1->nodes.front()->index != branch->nodes.back()->index)
-//                {
-//                    reverse(t1->nodes.begin(), t1->nodes.end());
-//                }
-
-//                 // Append the t1 to the children of the branch
-//                  branch->children.push_back(t1);
-
-//                 // Append the branch to be the parent of t1
-//                  t1->parents.push_back(branch);
-
-                // Traverse the rest of the tree
-                constructTreeS(t1);
-
-        }
-    }
-    else if (branch->t2Connections.size() > 0)
-    {
-        for (auto t2 : branch->t2Connections)
-        {
-            // std::cout << t2->index << " \n";
-            // Ensure the correct order of the nodes in the branch
-
-//                if (t2->nodes.front()->index != branch->nodes.back()->index)
-//                {
-//                     reverse(t2->nodes.begin(), t2->nodes.end());
-//                }
-
-//                // Append the t2 to the children of the branch
-//                 branch->children.push_back(t2);
-
-//                // Append the branch to be the parent of t2
-//                 t2->parents.push_back(branch);
-
-                // Traverse the rest of the tree
-                constructTreeS(t2);
-
-        }
-    }
-    else
-    {
-        /// NOTHING TO BE DONE
-    }
-}
-
-void SpineSkeletonizer::_constructGraphHierarchy()
-{
-    if (_root == nullptr)
-    {
-        LOG_WARNING("Invalid Spine! No Root Branch!");
-        _validSpine = false;
-        return;
-    }
-
-    /// NOTE: The _root branch must be identified to
-    if (_root != nullptr)
-    {
-        const auto t1Connections = _root->t1Connections;
-        const auto t2Connections = _root->t2Connections;
-
-        // If the root node has connecting branches along both terminals, then that's an issue
-        if (t1Connections.size() > 0 && t2Connections.size() > 0)
-        {
-            // Report and Issue
-            LOG_WARNING("Spine root connected from both terminals!");
-            _validSpine = false;
-        }
-        else
-        {
-
-            constructTreeS(_root);
-        }
-    }
-}
-
 
 int64_t SpineSkeletonizer::_getRootNodeIndexFromGraphNodes(const SkeletonNodes& nodes) const
 {
     int64_t rootNodeIndex = -1;
-    for (size_t i = 0; i < nodes.size(); ++i)
+    for (auto node : _nodes)
     {
-        const auto& node = nodes[i];
-        if (node->isSoma)
-        {
-            rootNodeIndex = node->graphIndex;
-            break;
-        }
+        if (node->isSoma) { rootNodeIndex = node->graphIndex; break; }
     }
 
     // Return the soma node index
     return rootNodeIndex;
-}
-
-
-void SpineSkeletonizer::_addRootNode()
-{
-    _rootNode = new SkeletonNode();
-    _rootNode->index = _nodes.back()->index + 1;
-
-    // By default, the soma node is actually the soma
-    _rootNode->isSoma = true;
-
-    // The somatic node is considered inside the soma in the processing
-    _rootNode->insideSoma = true;
-
-    // Initially, we set the soma node to some value that does not make any conflict
-    _rootNode->radius = 0.1;
-    _nodes.push_back(_rootNode);
 }
 
 void SpineSkeletonizer::_constructSkeletonHierarchy(GraphBranches& graphBranches,
@@ -755,111 +619,8 @@ void SpineSkeletonizer::_constructGraphHierarchy(GraphBranches& graphBranches, c
 }
 
 
-void SpineSkeletonizer::_updateParent(SkeletonBranch* branch)
+void SpineSkeletonizer::_constructSkeletonTree(const bool verbose)
 {
-    for(size_t j = 0; j < branch->children.size(); j++)
-    {
-        auto& child = branch->children[j];
-
-        // Clear old parents if any
-        child->parents.clear();
-        child->parents.shrink_to_fit();
-
-        // Add the new parent
-        child->parents.push_back(branch);
-        child->logicalParents.push_back(branch);
-
-        _updateParent(child);
-    }
-}
-
-void SpineSkeletonizer::_updateParents(const bool verbose)
-{
-    TIMER_SET;
-    VERBOSE_LOG(LOG_STATUS("Updating Parents"), verbose);
-    for (size_t i = 0; i < _branches.size(); ++i)
-    {
-        auto& branch = _branches[i];
-
-        if (branch->isValid() && branch->isRoot())
-        {
-            for(size_t j = 0; j < branch->children.size(); j++)
-            {
-                auto& child = branch->children[j];
-
-                // Clear old parents if any
-                child->parents.clear();
-                child->parents.shrink_to_fit();
-
-                // Add the new parent
-                child->parents.push_back(branch);
-                child->logicalParents.push_back(branch);
-
-                _updateParent(child);
-            }
-        }
-        VERBOSE_LOG(LOOP_PROGRESS(i, _branches.size()), verbose);
-    }
-    VERBOSE_LOG(LOOP_DONE, verbose);
-    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
-}
-
-
-void SpineSkeletonizer::run(const bool verbose)
-{
-
-    if (_index == 0) return;
-    // Initialize
-    initialize(verbose);
-
-    std::stringstream prefix;
-    prefix << "/ssd2/skeletonization-project/spine-extraction/output/refacotr-1/spines/864691134832191490_" << _index << "_volume_";
-    // _volume->project(prefix.str(), true);
-
-    // Skeletonize the volume to center-lines
-    skeletonizeVolumeToCenterLines(verbose);
-
-    prefix << SKELETON_SUFFIX;
-    //_volume->project(prefix.str(), true);
-
-    /// Extract the nodes of the skeleton from the center-line "thinned" voxels and return a
-    /// mapper that maps the indices of the voxels in the volume and the nodes in the skeleton
-    auto indicesMapper = _extractNodesFromVoxels(verbose);
-
-    /// Connect the nodes of the skeleton to construct its edges. This operation will not connect
-    /// any gaps, it will just connect the nodes extracted from the voxels.
-    _connectNodesToBuildEdges(indicesMapper, verbose);
-
-    _removeTriangleLoops(false);
-
-    // export nodes
-    _exportGraphNodes(prefix.str(), false);
-
-
-
-    /// Inflate the nodes, i.e. adjust their radii
-    _inflateNodes(verbose);
-
-    // _addRootNode();
-
-
-
-
-    /// Reconstruct the sections "or branches" from the nodes using the edges data
-    _buildSpineBranchesFromNodes();
-
-
-    // Connect the spine branches
-    _identifySpineBranchConnections();
-
-    identifyTerminalBranchesForSpine(_branches);
-
-
-    // Identify the root node
-    _identifyRootBranch();
-
-    if (_root == nullptr || !_validSpine) return;
-
     if (_branches.size() > 1)
     {
         /// Reduce the skeleton into a list of SkeletonWeightedEdge's
@@ -867,8 +628,8 @@ void SpineSkeletonizer::run(const bool verbose)
 
         /// Get a list of all the branching/terminal nodes within the skeleton from the
         /// SkeletonWeightedEdges list
-        SkeletonNodes skeletonBranchingNodes = _selectBranchingNodesFromWeightedEdges(weighteEdges,
-                                                                                      verbose);
+        SkeletonNodes skeletonBranchingNodes = _selectBranchingNodesFromWeightedEdges(
+                    weighteEdges, verbose);
 
         /// Get the soma node index within the weighted graph
         int64_t rootNodeIndex = _getRootNodeIndexFromGraphNodes(skeletonBranchingNodes);
@@ -876,169 +637,122 @@ void SpineSkeletonizer::run(const bool verbose)
         // Construct the graph nodes list
         GraphNodes graphNodes = _constructGraphNodesFromSkeletonNodes(skeletonBranchingNodes);
 
-        /// After having the weighted edges and the nodes computed, compute the number of components in
-        /// the graph, if the result is more than 1 then then re-connect them to be in a single graph
+        // After having the weighted edges and the nodes computed, compute the number of
+        // components in the graph, if the result is more than 1 then then re-connect them to
+        // be in a single graph
         auto graph = new Graph(weighteEdges, graphNodes);
         auto components = graph->getComponents();
-//        if (components.size() == 1)
-//        {
-//            LOG_SUCCESS("The skeleton graph has 1 component! OK.");
-//        }
-//        else
-//        {
-//            LOG_WARNING("The skeleton graph has [ %d ] components!", components.size());
-//        }
 
-        std::cout << "1\n";
+        if (components.size() == 1)
+            VERBOSE_LOG(LOG_SUCCESS("The skeleton graph has 1 component! OK."), verbose);
+        else
+            LOG_WARNING("The skeleton of spine [%ld] graph has [ %d ] components!",
+                        _index, components.size());
+
         // Find the shortest paths of all the terminals and get a list of the indices of the active edges
         EdgesIndices edgeIndices = _findShortestPathsFromTerminalNodesToRoot(
                     weighteEdges, skeletonBranchingNodes, graphNodes, rootNodeIndex, verbose);
-
-        std::cout << "2\n";
 
         // Construct the GraphBranches from the GraphNodes
         GraphBranches graphBranches = _constructGraphBranchesFromGraphNodes(
                     graphNodes, rootNodeIndex, verbose);
 
-        std::cout << "3\n";
-
         // Construct the hierarchy of the graph
         _constructGraphHierarchy(graphBranches, verbose);
-
-        std::cout << "4\n";
 
         // Construct the hierarchy of the skeleton
         _constructSkeletonHierarchy(graphBranches, verbose);
 
-
-        std::cout << "5\n";
-
         // Update all the parents
         _updateParents(verbose);
-
     }
+}
 
-    /// todo: remove triangles edges
+bool SpineSkeletonizer::runSkeletonization(const bool verbose)
+{
+    // Initialize the skeletonizer data
+    initialize(verbose);
 
-//    std::cout << "\nIndex: " <<  _index << ": \n";
-//    for (auto branch : _branches)
+    //std::stringstream prefix;
+    //prefix << "/ssd2/skeletonization-project/spine-extraction/output/refacotr-1/spines/864691134832191490_" << _index << "_volume_";
+    // _volume->project(prefix.str(), true);
+
+    // Skeletonize the volume to center-lines
+    skeletonizeVolumeToCenterLines(verbose);
+
+    //prefix << SKELETON_SUFFIX;
+    //_volume->project(prefix.str(), true);
+
+    // Extract the nodes of the skeleton from the center-line "thinned" voxels and return a
+    // mapper that maps the indices of the voxels in the volume and the nodes in the skeleton
+    auto indicesMapper = _extractNodesFromVoxels(verbose);
+
+    // Connect the nodes of the skeleton to construct its edges. This operation will not connect
+    // any gaps, it will just connect the nodes extracted from the voxels.
+    _connectNodesToBuildEdges(indicesMapper, verbose);
+
+    // Remove any triangle loops from the graph
+    _removeTriangleLoops(false);
+
+    // Export the graph nodes
+    DEBUG_STEP(_exportGraphNodes(_debugPrefix, verbose), _debug);
+
+    // Inflate the nodes, i.e. adjust their radii
+    _inflateNodes(verbose);
+
+    // Reconstruct the sections "or branches" from the nodes using the edges data
+    _buildSpineBranchesFromNodes();
+
+    // Connect the spine branches
+    _identifySpineBranchConnections();
+
+    // Identify the terminal branches
+    identifyTerminalBranchesForSpine(_branches);
+
+    // Identify the root branch (and root node) of the spine
+    _identifyRootBranch();
+
+    // If this is not a valid spine, then return flase
+    if (_rootBranch == nullptr || !_validSpine)
+        return false;
+
+    // Construct the tree of the spine skeleton to be able to export it to SWC file.
+    _constructSkeletonTree(verbose);
+
+    // Successful skeletonization
+    return true;
+}
+
+
+//void SpineSkeletonizer::exportBranches(const std::string& prefix, const bool)
+//{
+
+//    // Construct the file path
+//    std::string filePath = prefix + BRANCHES_EXTENSION;
+
+//    std::fstream stream;
+//    stream.open(filePath, std::ios::out);
+
+//    for (size_t i = 0; i < _branches.size(); ++i)
 //    {
-//        std::cout << branch->t1Connections.size() << " " << branch->t2Connections.size();// << "\n";
-//        if (branch->isTerminal())
-//            std::cout << " T \n";
-//        else
-//            std::cout << "\n";
+//        // The @start marks a new branch in the file
+//        stream << "SB " << _branches[i]->index << "\n";
+
+//        for (auto& node: _branches[i]->nodes)
+//        {
+//            stream << node->point.x() << " " << node->point.y() << " " << node->point.z() << " "
+//                   << node->radius << NEW_LINE;
+//        }
+//        // The @end marks the terminal sample of a branch
+//        stream << "EB\n";
 //    }
 
+//    // Close the file
+//    stream.close();
+//}
 
-    // _constructGraphHierarchy();
-
-
-
-     exportBranches(prefix.str(), verbose);
-
-      exportSWCFile(prefix.str(), false, SILENT);
-
-
-    // Identify the connections at the terminals of each branch
-    // identifyTerminalConnections(_branches);
-
-    //
-    // identifyTerminalBranchesForSpine(_branches);
-
-    // Identify the root branch
-//    auto rootBranch = identifyRootBranchForSpine(_branches, _basePoint);
-//    if (rootBranch == nullptr)
-//        std::cout << "NULL ROOT BRANCH \n";
-
-//    // Identify the root node
-//    auto rootNode = identifyRootNodeForSpine(rootBranch, _basePoint);
-//    if (rootNode == nullptr)
-//        std::cout << "NULL ROOT NODE\n";
-
-//    // Verify the orientation of the root branch
-//    // mainly for the root branch
-//    adjustRootBranchOrientation(rootBranch, rootNode);
-
-
-//    // If the spine has more than one branch
-//    adjustChildrenBranchOrientation(rootBranch, _branches);
-
-
-
-
-    // Identify the paths of the morphology
-
-    // Construct the tree of the spine
-
-    // Compute the orientation of the spine
-
-
-
-
-
-}
-
-void SpineSkeletonizer::segmentComponents(const bool verbose)
-{
-
-}
-
-void SpineSkeletonizer::exportBranches(const std::string& prefix, const bool)
-{
-
-    // Construct the file path
-    std::string filePath = prefix + BRANCHES_EXTENSION;
-
-    std::fstream stream;
-    stream.open(filePath, std::ios::out);
-
-    for (size_t i = 0; i < _branches.size(); ++i)
-    {
-        // The @start marks a new branch in the file
-        stream << "SB " << _branches[i]->index << "\n";
-
-        for (auto& node: _branches[i]->nodes)
-        {
-            stream << node->point.x() << " " << node->point.y() << " " << node->point.z() << " "
-                   << node->radius << NEW_LINE;
-        }
-        // The @end marks the terminal sample of a branch
-        stream << "EB\n";
-    }
-
-    // Close the file
-    stream.close();
-}
-
-void SpineSkeletonizer::_collectSWCNodes(const SkeletonBranch* branch, SkeletonNodes& swcNodes,
-                                         int64_t& swcIndex, int64_t branchingNodeSWCIndex, const bool)
-{
-    // Get a reference to the nodes of the current branch
-    auto& currentBranchNodes = branch->nodes;
-
-    for (size_t i = 1; i < currentBranchNodes.size(); ++i)
-    {
-        currentBranchNodes[i]->swcIndex = swcIndex;
-
-        if (i == 1) { currentBranchNodes[i]->prevSampleSWCIndex = branchingNodeSWCIndex;}
-        else { currentBranchNodes[i]->prevSampleSWCIndex= swcIndex - 1; }
-
-        swcIndex++;
-        swcNodes.push_back(currentBranchNodes[i]);
-    }
-
-    const int64_t branchingIndex = swcIndex - 1;
-    for (size_t i = 0; i < branch->children.size(); ++i)
-    {
-        if (branch->children[i]->isValid())
-        {
-            _collectSWCNodes(branch->children[i], swcNodes, swcIndex, branchingIndex);
-        }
-    }
-}
-
-SkeletonNodes SpineSkeletonizer::_constructSWCTable(const bool& resampleSkeleton, const bool)
+SkeletonNodes SpineSkeletonizer::_constructSWCTable(const bool& resampleSkeleton,
+                                                    const bool verbose)
 {
     // A table, or list that contains all the nodes in order
     SkeletonNodes swcNodes;
@@ -1052,10 +766,10 @@ SkeletonNodes SpineSkeletonizer::_constructSWCTable(const bool& resampleSkeleton
     // Append the somatic mode
     fakeSomaNode->swcIndex = swcIndex;
     fakeSomaNode->prevSampleSWCIndex = -1;
-    fakeSomaNode->point.x() = _root->nodes.front()->point.x();
-    fakeSomaNode->point.y() = _root->nodes.front()->point.y();
-    fakeSomaNode->point.z() = _root->nodes.front()->point.z();
-    fakeSomaNode->radius = _root->nodes.front()->radius;
+    fakeSomaNode->point.x() = _rootBranch->nodes.front()->point.x();
+    fakeSomaNode->point.y() = _rootBranch->nodes.front()->point.y();
+    fakeSomaNode->point.z() = _rootBranch->nodes.front()->point.z();
+    fakeSomaNode->radius = _rootBranch->nodes.front()->radius;
 
     swcIndex++;
     swcNodes.push_back(fakeSomaNode);
@@ -1064,25 +778,22 @@ SkeletonNodes SpineSkeletonizer::_constructSWCTable(const bool& resampleSkeleton
     TIMER_SET;
     if (resampleSkeleton)
     {
-        LOOP_STARTS("Resampling Skeleton");
+        VERBOSE_LOG(LOOP_STARTS("Resampling Skeleton"), verbose);
         for (size_t i = 0; i < _branches.size(); ++i)
         {
             auto& branch = _branches[i];
 
-            // Do not resample the root sections
-            if (branch->isRoot()) continue;
-
             // Resample only valid branches
             if (branch->isValid()) { branch->resampleAdaptively(); }
-            LOOP_PROGRESS(i, _branches.size());
+            VERBOSE_LOG(LOOP_PROGRESS(i, _branches.size()), verbose);
         }
-        LOOP_DONE;
-        LOG_STATS(GET_TIME_SECONDS);
+        VERBOSE_LOG(LOOP_DONE, verbose);
+        VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
     }
 
     // Get all the root branches
     TIMER_RESET;
-    LOOP_STARTS("Constructing SWC Table");
+    VERBOSE_LOG(LOOP_STARTS("Constructing SWC Table"), verbose);
     const size_t numberBranches = _branches.size();
     for (size_t i = 0; i < numberBranches ; ++i)
     {
@@ -1092,16 +803,19 @@ SkeletonNodes SpineSkeletonizer::_constructSWCTable(const bool& resampleSkeleton
             // The branching index is that of the soma
             _collectSWCNodes(branch, swcNodes, swcIndex, 1);
         }
-        LOOP_PROGRESS(i, numberBranches);
+        VERBOSE_LOG(LOOP_PROGRESS(i, numberBranches), verbose);
     }
-    LOOP_DONE;
-    LOG_STATS(GET_TIME_SECONDS);
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
     return swcNodes;
 }
 
-void SpineSkeletonizer::exportSWCFile(const std::string& prefix, const bool& resampleSkeleton, const bool verbose)
+void SpineSkeletonizer::exportSWCFile(const std::string& prefix,
+                                      const bool& resampleSkeleton,
+                                      const bool verbose)
 {
+    TIMER_SET;
     if (!_validSpine)
         return;
 
@@ -1109,9 +823,8 @@ void SpineSkeletonizer::exportSWCFile(const std::string& prefix, const bool& res
     std::string filePath = prefix + SWC_EXTENSION;
     VERBOSE_LOG(LOG_STATUS("Exporting Spine to SWC file: [ %s ]", filePath.c_str()), verbose);
 
-    TIMER_SET;
-
-    auto swcNodes = _constructSWCTable(resampleSkeleton);
+    // Construct the SWC table
+    auto swcNodes = _constructSWCTable(resampleSkeleton, verbose);
 
     std::fstream stream;
     stream.open(filePath, std::ios::out);

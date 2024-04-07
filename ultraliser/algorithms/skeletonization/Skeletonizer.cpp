@@ -988,6 +988,55 @@ void Skeletonizer::skeletonizeVolumeBlockByBlock(const size_t& blockSize,
     segmentComponents();
 }
 
+void Skeletonizer::_updateParent(SkeletonBranch* branch)
+{
+    for(size_t j = 0; j < branch->children.size(); j++)
+    {
+        auto& child = branch->children[j];
+
+        // Clear old parents if any
+        child->parents.clear();
+        child->parents.shrink_to_fit();
+
+        // Add the new parent
+        child->parents.push_back(branch);
+        child->logicalParents.push_back(branch);
+
+        _updateParent(child);
+    }
+}
+
+void Skeletonizer::_updateParents(const bool verbose)
+{
+    TIMER_SET;
+    VERBOSE_LOG(LOG_STATUS("Updating Parents"), verbose);
+    for (size_t i = 0; i < _branches.size(); ++i)
+    {
+        auto& branch = _branches[i];
+
+        if (branch->isValid() && branch->isRoot())
+        {
+            for(size_t j = 0; j < branch->children.size(); j++)
+            {
+                auto& child = branch->children[j];
+
+                // Clear old parents if any
+                child->parents.clear();
+                child->parents.shrink_to_fit();
+
+                // Add the new parent
+                child->parents.push_back(branch);
+                child->logicalParents.push_back(branch);
+
+                _updateParent(child);
+            }
+        }
+        VERBOSE_LOG(LOOP_PROGRESS(i, _branches.size()), verbose);
+    }
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
+}
+
 GraphNodes Skeletonizer::_constructGraphNodesFromSkeletonNodes(
         const SkeletonNodes& skeletonNodes)
 {
@@ -1190,6 +1239,39 @@ void Skeletonizer::_verifySkeletonEdges(const bool verbose)
 std::vector< Vector3f > Skeletonizer::getShellPoints()
 {
     return _shellPoints;
+}
+
+
+
+
+
+
+
+void Skeletonizer::_collectSWCNodes(const SkeletonBranch* branch, SkeletonNodes& swcNodes,
+                                         int64_t& swcIndex, int64_t branchingNodeSWCIndex)
+{
+    // Get a reference to the nodes of the current branch
+    auto& currentBranchNodes = branch->nodes;
+
+    for (size_t i = 1; i < currentBranchNodes.size(); ++i)
+    {
+        currentBranchNodes[i]->swcIndex = swcIndex;
+
+        if (i == 1) { currentBranchNodes[i]->prevSampleSWCIndex = branchingNodeSWCIndex;}
+        else { currentBranchNodes[i]->prevSampleSWCIndex= swcIndex - 1; }
+
+        swcIndex++;
+        swcNodes.push_back(currentBranchNodes[i]);
+    }
+
+    const int64_t branchingIndex = swcIndex - 1;
+    for (size_t i = 0; i < branch->children.size(); ++i)
+    {
+        if (branch->children[i]->isValid())
+        {
+            _collectSWCNodes(branch->children[i], swcNodes, swcIndex, branchingIndex);
+        }
+    }
 }
 
 void Skeletonizer::_exportGraphNodes(const std::string prefix, const bool verbose)

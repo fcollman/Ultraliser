@@ -69,41 +69,45 @@ public:
 public:
 
     /**
-     * @brief exportBranches
-     * @param prefix
-     */
-    void exportBranches(const std::string& prefix, const bool = VERBOSE);
-
-    /**
-     * @brief run
-     * @param verbose
-     */
-    void run(const bool verbose = VERBOSE);
-
-    /**
-     * @brief exportSWCFile
-     * @param prefix
-     * @param resampleSkeleton
-     */
-    void exportSWCFile(const std::string& prefix, const bool& resampleSkeleton,
-                       const bool verbose = VERBOSE);
-
-    /**
      * @brief segmentComponents
+     * This function is useless in this context.
      */
-    void segmentComponents(const bool verbose = VERBOSE) override;
+    void segmentComponents(const bool verbose = VERBOSE) override { };
+
+    /**
+     * @brief runSkeletonization
+     * Runs the skeletonization procedure and returns true if the operation is successful.
+     * @param verbose
+     * @return
+     */
+    bool runSkeletonization(const bool verbose = VERBOSE);
+
+    /**
+      * @brief exportSWCFile
+      * Export the resulting skeleton into an SWC file.
+      * This function is called after the segmentation of all the components from the skeleton.
+      * @param prefix
+      * File prefix.
+      * @param resampleSkeleton
+      * If this flag is set, the morphology skeleton will be adaptively resampled to remove
+      * useless samples and create an optimum skeleton. False by default.
+      * @param verbose
+      */
+    void exportSWCFile(const std::string& prefix,
+                       const bool &resampleSkeleton = false,
+                       const bool verbose = VERBOSE) override;
 
 private:
 
-    void _addRootNode();
+    void _constructSkeletonTree(const bool verbose = VERBOSE);
+
 
     void _constructGraphHierarchy(GraphBranches& graphBranches, const bool verbose);
 
     void _constructSkeletonHierarchy(GraphBranches& graphBranches,
                                                          const bool verbose);
 
-    void _updateParent(SkeletonBranch* branch);
-        void _updateParents(const bool verbose);
+
 
     int64_t _getRootNodeIndexFromGraphNodes(const SkeletonNodes& nodes) const;
 
@@ -127,10 +131,7 @@ private:
      */
     void _identifySpineBranchConnections();
 
-    /**
-     * @brief _constructGraphHierarchy
-     */
-    void _constructGraphHierarchy();
+
 
     /**
      * @brief _findShortestPathsFromTerminalNodesToRoot
@@ -149,21 +150,11 @@ private:
     /**
      * @brief _constructSWCTable
      * @param resampleSkeleton
+     * @param verbose
      * @return
      */
-    SkeletonNodes _constructSWCTable(const bool& resampleSkeleton, const bool = VERBOSE);
-
-    /**
-     * @brief _collectSWCNodes
-     * @param branch
-     * @param swcNodes
-     * @param swcIndex
-     * @param branchingNodeSWCIndex
-     */
-    void _collectSWCNodes(const SkeletonBranch* branch, SkeletonNodes& swcNodes,
-                          int64_t& swcIndex, int64_t branchingNodeSWCIndex,
-                          const bool = VERBOSE);
-
+    SkeletonNodes _constructSWCTable(const bool& resampleSkeleton,
+                                     const bool verbose = VERBOSE);
 private:
 
     /**
@@ -179,15 +170,22 @@ private:
     Vector3f _basePoint;
 
     /**
-     * @brief _root
+     * @brief _rootBranch
+     * The root branch of the spine.
      */
-    SkeletonBranch* _root = nullptr;
+    SkeletonBranch* _rootBranch = nullptr;
 
-
+    /**
+     * @brief _rootNode
+     * The root node of the spine. This is similar to the soma in the neuron.
+     */
     SkeletonNode* _rootNode = nullptr;
 
+    /**
+     * @brief _validSpine
+     * If this flag is set, the spine is valid.
+     */
     bool _validSpine = true;
-
 };
 
 }

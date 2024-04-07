@@ -36,6 +36,9 @@
 #include <common/Headers.hh>
 #include <math/Vector3f.h>
 
+// Print a conditioned message
+#define DEBUG_STEP(FUNCTION, CONDITION) ({ if (CONDITION) { FUNCTION; }})
+
 namespace Ultraliser
 {
 /**
@@ -162,6 +165,29 @@ public:
 
     void applyVolumeThinningToVolume(Volume* volume, const bool &displayProgress = true);
 
+
+    /**
+      * @brief exportSWCFile
+      * Export the resulting skeleton into an SWC file.
+      * This function is called after the segmentation of all the components from the skeleton.
+      * @param prefix
+      * File prefix.
+      * @param resampleSkeleton
+      * If this flag is set, the morphology skeleton will be adaptively resampled to remove
+      * useless samples and create an optimum skeleton. False by default.
+      * @param verbose
+      */
+    virtual void exportSWCFile(const std::string& prefix,
+                               const bool& resampleSkeleton,
+                               const bool verbose = VERBOSE) { }
+
+    /**
+     * @brief exportBranches
+     * @param prefix
+     * @param verbose
+     */
+    void exportBranches(const std::string& prefix, const bool verbose = VERBOSE);
+
 protected:
 
     /**
@@ -252,6 +278,16 @@ protected:
 
     void _buildAcyclicTree(SkeletonBranch* branch, SkeletonBranches &branches);
 
+    /**
+     * @brief _updateParent
+     * @param branch
+     */
+    void _updateParent(SkeletonBranch* branch);
+
+    /**
+     * @brief _updateParents
+     */
+    void _updateParents(const bool verbose = VERBOSE);
 
     /**
      * @brief _inflateNodes
@@ -327,6 +363,19 @@ protected:
      */
     void _verifySkeletonEdges(const bool verbose = VERBOSE);
 
+
+
+
+
+    /**
+     * @brief _collectSWCNodes
+     * @param branch
+     * @param swcNodes
+     * @param swcIndex
+     * @param branchingNodeSWCIndex
+     */
+    void _collectSWCNodes(const SkeletonBranch* branch, SkeletonNodes& swcNodes,
+                          int64_t& swcIndex, int64_t branchingNodeSWCIndex);
 
 protected:
 

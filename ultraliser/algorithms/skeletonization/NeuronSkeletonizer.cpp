@@ -27,9 +27,6 @@
 #include <algorithms/skeletonization/graphs/Graphs.h>
 #include <algorithms/skeletonization/SkeletonizerUtils.h>
 
-// Print a conditioned message
-#define DEBUG_STEP(FUNCTION, CONDITION) ({ if (CONDITION) { FUNCTION; }})
-
 namespace Ultraliser
 {
 NeuronSkeletonizer::NeuronSkeletonizer(Volume* volume,
@@ -1319,55 +1316,6 @@ void NeuronSkeletonizer::_adjustSomaRadius(const bool verbose)
     _somaNode->radius = somaRadius;
 }
 
-void NeuronSkeletonizer::_updateParent(SkeletonBranch* branch)
-{
-    for(size_t j = 0; j < branch->children.size(); j++)
-    {
-        auto& child = branch->children[j];
-
-        // Clear old parents if any
-        child->parents.clear();
-        child->parents.shrink_to_fit();
-
-        // Add the new parent
-        child->parents.push_back(branch);
-        child->logicalParents.push_back(branch);
-
-        _updateParent(child);
-    }
-}
-
-void NeuronSkeletonizer::_updateParents(const bool verbose)
-{
-    TIMER_SET;
-    VERBOSE_LOG(LOG_STATUS("Updating Parents"), verbose);
-    for (size_t i = 0; i < _branches.size(); ++i)
-    {
-        auto& branch = _branches[i];
-
-        if (branch->isValid() && branch->isRoot())
-        {
-            for(size_t j = 0; j < branch->children.size(); j++)
-            {
-                auto& child = branch->children[j];
-
-                // Clear old parents if any
-                child->parents.clear();
-                child->parents.shrink_to_fit();
-
-                // Add the new parent
-                child->parents.push_back(branch);
-                child->logicalParents.push_back(branch);
-
-                _updateParent(child);
-            }
-        }
-        VERBOSE_LOG(LOOP_PROGRESS(i, _branches.size()), verbose);
-    }
-    VERBOSE_LOG(LOOP_DONE, verbose);
-    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
-}
-
 void NeuronSkeletonizer::_removeRootSpinesOnSoma(const bool verbose)
 {
     TIMER_SET;
@@ -1731,34 +1679,7 @@ void NeuronSkeletonizer::exportSomaMesh(const std::string& prefix,
     _somaMesh->exportMesh(prefix + SOMA_MESH_SUFFIX, formatOBJ, formatPLY, formatOFF, formatSTL);
 }
 
-void NeuronSkeletonizer::collectSWCNodes(const SkeletonBranch* branch, SkeletonNodes& swcNodes,
-                                         int64_t& swcIndex, int64_t branchingNodeSWCIndex)
-{
-    // Get a reference to the nodes of the current branch
-    auto& currentBranchNodes = branch->nodes;
-
-    for (size_t i = 1; i < currentBranchNodes.size(); ++i)
-    {
-        currentBranchNodes[i]->swcIndex = swcIndex;
-
-        if (i == 1) { currentBranchNodes[i]->prevSampleSWCIndex = branchingNodeSWCIndex;}
-        else { currentBranchNodes[i]->prevSampleSWCIndex= swcIndex - 1; }
-
-        swcIndex++;
-        swcNodes.push_back(currentBranchNodes[i]);
-    }
-
-    const int64_t branchingIndex = swcIndex - 1;
-    for (size_t i = 0; i < branch->children.size(); ++i)
-    {
-        if (branch->children[i]->isValid())
-        {
-            collectSWCNodes(branch->children[i], swcNodes, swcIndex, branchingIndex);
-        }
-    }
-}
-
-SkeletonNodes NeuronSkeletonizer::constructSWCTable(const bool& resampleSkeleton,
+SkeletonNodes NeuronSkeletonizer::_constructSWCTable(const bool& resampleSkeleton,
                                                     const bool verbose)
 {
     // A table, or list that contains all the nodes in order
@@ -1809,7 +1730,7 @@ SkeletonNodes NeuronSkeletonizer::constructSWCTable(const bool& resampleSkeleton
         if (branch->isRoot() && branch->isValid())
         {
             // The branching index is that of the soma
-            collectSWCNodes(branch, swcNodes, swcIndex, 1);
+            _collectSWCNodes(branch, swcNodes, swcIndex, 1);
         }
         VERBOSE_LOG(LOOP_PROGRESS(i, numberBranches), verbose);
     }
@@ -1827,7 +1748,7 @@ void NeuronSkeletonizer::exportSWCFile(const std::string& prefix,
     std::string filePath = prefix + SWC_EXTENSION;
     VERBOSE_LOG(LOG_STATUS("Exporting Neuron to SWC file: [ %s ]", filePath.c_str()), verbose);
 
-    auto swcNodes = constructSWCTable(resampleSkeleton, verbose);
+    auto swcNodes = _constructSWCTable(resampleSkeleton, verbose);
 
     std::fstream stream;
     stream.open(filePath, std::ios::out);

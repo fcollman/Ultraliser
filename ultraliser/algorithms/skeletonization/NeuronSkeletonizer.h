@@ -101,35 +101,13 @@ public:
       * useless samples and create an optimum skeleton. False by default.
       * @param verbose
       */
-    void exportSWCFile(const std::string& prefix, const bool &resampleSkeleton = false,
-                       const bool verbose = VERBOSE);
+    void exportSWCFile(const std::string& prefix,
+                       const bool &resampleSkeleton = false,
+                       const bool verbose = VERBOSE) override;
 
-    /**
-     * @brief constructSWCTable
-     * To facilitate exporting the skeleton into an SWC file, we construct a linear list of
-     * all the SWC in order and then export this table in the @exportSWCFile function.
-     * @return
-     * A list of all the skeleton nodes, constructed in order, and ready for being exported into
-     * SWC file.
-     * @param resampleSkeleton
-     * If this flag is set, the morphology skeleton will be adaptively resampled to remove
-     * useless samples and create an optimum skeleton. False by default.
-     * @param verbose
-     */
-    SkeletonNodes constructSWCTable(const bool &resampleSkeleton = false,
-                                    const bool verbose = VERBOSE);
 
-    /**
-     * @brief collectSWCNodes
-     * Traverses the skeleton using depth first search and builds a list of nodes that can be
-     * exported into SWC files.
-     * @param branch
-     * @param swcNodes
-     * @param swcIndex
-     * @param branchingNodeSWCIndex
-     */
-    void collectSWCNodes(const SkeletonBranch* branch, SkeletonNodes& swcNodes,
-                         int64_t &swcIndex, int64_t branchingNodeSWCIndex);
+
+
 
     /**
      * @brief exportSomaMesh
@@ -276,16 +254,7 @@ private:
      */
     void _filterLoopsAtSingleBranchingPoint();
 
-    /**
-     * @brief _updateParent
-     * @param branch
-     */
-    void _updateParent(SkeletonBranch* branch);
 
-    /**
-     * @brief _updateParents
-     */
-    void _updateParents(const bool verbose = VERBOSE);
 
     /**
      * @brief _getSomaIndexFromGraphNodes
@@ -471,6 +440,21 @@ private:
     void _exportSpineOrientations(const SpineMorphologies &spineProxyMorphologies,
                                   const std::string prefix,
                                   const bool verbose) const;
+
+    /**
+     * @brief constructSWCTable
+     * To facilitate exporting the skeleton into an SWC file, we construct a linear list of
+     * all the SWC in order and then export this table in the @exportSWCFile function.
+     * @return
+     * A list of all the skeleton nodes, constructed in order, and ready for being exported into
+     * SWC file.
+     * @param resampleSkeleton
+     * If this flag is set, the morphology skeleton will be adaptively resampled to remove
+     * useless samples and create an optimum skeleton. False by default.
+     * @param verbose
+     */
+    SkeletonNodes _constructSWCTable(const bool& resampleSkeleton,
+                                     const bool verbose = VERBOSE);
 private:
 
     /**

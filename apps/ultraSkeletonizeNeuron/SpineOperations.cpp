@@ -185,12 +185,12 @@ void transformSpinesToOrigin(Meshes& dendriticSpineMeshes,
     LOG_STATS(GET_TIME_SECONDS);
 }
 
-void reconstructAndExportSpineMorphology(Mesh* spineMesh,
+bool reconstructAndExportSpineMorphology(Mesh* spineMesh,
                                          const size_t spineIndex,
                                          const Vector3f& spineBasePoint,
                                          const AppOptions* options)
 {
-    // Construct the voxelization options of the spine
+    // TODO: Construct the voxelization options of the spine
     Skeletonizer::VoxelizationOptions spineVoxelizationOptions;
     spineVoxelizationOptions.volumeResolution = 256;
     spineVoxelizationOptions.verbose = SILENT;
@@ -198,14 +198,22 @@ void reconstructAndExportSpineMorphology(Mesh* spineMesh,
     std::unique_ptr< SpineSkeletonizer > skeletonizer = std::make_unique< SpineSkeletonizer >(
                 spineMesh, spineIndex, spineBasePoint, spineVoxelizationOptions, true, false);
 
-    // Run the spine skeletonization
-    skeletonizer->run(SILENT);
+    // Run the spine skeletonization operation
+    const bool success = skeletonizer->runSkeletonization(SILENT);
+    if (success && options->exportSpinesSWCMorphologies)
+    {
+        // Export the spine morphology
+        const bool resampleSkeleton = false;
+        std::stringstream prefix;
+        prefix << options->spinesMorphologiesPrefix << SPINE_SUFFIX << "-" << spineIndex;
+        skeletonizer->exportSWCFile(prefix.str(), resampleSkeleton, SILENT);
 
-    // Export the spine morphology
-    const bool resampleSkeleton = true;
-    // skeletonizer->exportSWCFile(options->spinesMorphologiesPrefix, resampleSkeleton, SILENT);
+        // Spine has been exported
+        return true;
+    }
 
-
+    // Spine has an issue, report it
+    return false;
 }
 
 void reconstructSpineMorphologies(const Meshes& spineMeshes,
