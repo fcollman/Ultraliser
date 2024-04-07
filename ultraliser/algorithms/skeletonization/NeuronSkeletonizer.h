@@ -288,32 +288,11 @@ private:
     void _updateParents(const bool verbose = VERBOSE);
 
     /**
-     * @brief _reduceSkeletonToWeightedEdges
-     * @return
-     */
-    SkeletonWeightedEdges _reduceSkeletonToWeightedEdges(const bool verbose = VERBOSE);
-
-    /**
-     * @brief _selectBranchingNodesFromWeightedEdges
-     * @param edges
-     * @return
-     */
-    SkeletonNodes _selectBranchingNodesFromWeightedEdges(const SkeletonWeightedEdges& edges,
-                                                         const bool verbose = VERBOSE);
-
-    /**
      * @brief _getSomaIndexFromGraphNodes
      * @param nodes
      * @return
      */
     int64_t _getSomaIndexFromGraphNodes(const SkeletonNodes& nodes) const;
-
-    /**
-     * @brief _constructGraphNodesFromSkeletonNodes
-     * @param skeletonNodes
-     * @return
-     */
-    GraphNodes _constructGraphNodesFromSkeletonNodes(const SkeletonNodes& skeletonNodes);
 
     /**
      * @brief _findShortestPathsFromTerminalNodesToSoma
@@ -330,16 +309,6 @@ private:
                                                            GraphNodes &graphNodes,
                                                            const int64_t& somaNodeIndex,
                                                            const bool verbose = VERBOSE);
-
-    /**
-     * @brief _constructGraphBranchesFromGraphNodes
-     * @param graphNodes
-     * @param somaNodeIndex
-     * @return
-     */
-    GraphBranches _constructGraphBranchesFromGraphNodes(GraphNodes &graphNodes,
-                                                        const int64_t& somaNodeIndex,
-                                                        const bool verbose = VERBOSE);
 
     /**
      * @brief _constructGraphHierarchy

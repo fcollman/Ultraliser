@@ -28,6 +28,11 @@
 #include <algorithms/skeletonization/SkeletonNode.hh>
 #include <algorithms/skeletonization/SkeletonEdge.hh>
 #include <algorithms/skeletonization/SkeletonBranch.h>
+#include <algorithms/skeletonization/SkeletonWeightedEdge.hh>
+#include <algorithms/skeletonization/graphs/GraphNode.h>
+#include <algorithms/skeletonization/graphs/GraphBranch.h>
+#include <algorithms/skeletonization/graphs/ShortestPathFinder.h>
+#include <algorithms/skeletonization/graphs/Graph.h>
 #include <common/Headers.hh>
 #include <math/Vector3f.h>
 
@@ -270,6 +275,37 @@ protected:
     void _removeTriangleLoops(const bool verbose = VERBOSE);
 
     void _buildBranchesFromNodes(const SkeletonNodes& nodes);
+
+    /**
+     * @brief _constructGraphNodesFromSkeletonNodes
+     * @param skeletonNodes
+     * @return
+     */
+    GraphNodes _constructGraphNodesFromSkeletonNodes(const SkeletonNodes& skeletonNodes);
+
+    /**
+     * @brief _reduceSkeletonToWeightedEdges
+     * @return
+     */
+    SkeletonWeightedEdges _reduceSkeletonToWeightedEdges(const bool verbose = VERBOSE);
+
+    /**
+     * @brief _selectBranchingNodesFromWeightedEdges
+     * @param edges
+     * @return
+     */
+    SkeletonNodes _selectBranchingNodesFromWeightedEdges(const SkeletonWeightedEdges& edges,
+                                                         const bool verbose = VERBOSE);
+
+    /**
+     * @brief _constructGraphBranchesFromGraphNodes
+     * @param graphNodes
+     * @param somaNodeIndex
+     * @return
+     */
+    GraphBranches _constructGraphBranchesFromGraphNodes(GraphNodes &graphNodes,
+                                                        const int64_t& somaNodeIndex,
+                                                        const bool verbose = VERBOSE);
 
     /**
      * @brief _exportGraphNodes

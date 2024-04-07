@@ -95,10 +95,56 @@ public:
 
 private:
 
+    void _addRootNode();
+
+    void _constructGraphHierarchy(GraphBranches& graphBranches, const bool verbose);
+
+    void _constructSkeletonHierarchy(GraphBranches& graphBranches,
+                                                         const bool verbose);
+
+    void _updateParent(SkeletonBranch* branch);
+        void _updateParents(const bool verbose);
+
+    int64_t _getRootNodeIndexFromGraphNodes(const SkeletonNodes& nodes) const;
+
     /**
      * @brief _buildSpineBranchesFromNodes
      */
     void _buildSpineBranchesFromNodes();
+
+    /**
+     * @brief _connectSpineBranches
+     */
+    void _connectSpineBranches();
+
+    /**
+     * @brief _identifyRootBranch
+     */
+    void _identifyRootBranch();
+
+    /**
+     * @brief _identifySpineBranchConnections
+     */
+    void _identifySpineBranchConnections();
+
+    /**
+     * @brief _constructGraphHierarchy
+     */
+    void _constructGraphHierarchy();
+
+    /**
+     * @brief _findShortestPathsFromTerminalNodesToRoot
+     * @param edges
+     * @param skeletonBranchingNodes
+     * @param graphNodes
+     * @param somaNodeIndex
+     * @param verbose
+     * @return
+     */
+    EdgesIndices _findShortestPathsFromTerminalNodesToRoot(
+            SkeletonWeightedEdges& edges,
+            SkeletonNodes &skeletonBranchingNodes, GraphNodes &graphNodes,
+            const int64_t& somaNodeIndex, const bool verbose);
 
     /**
      * @brief _constructSWCTable
@@ -131,6 +177,17 @@ private:
      * The base point of the spine. This value is used later to compute the orientation of the spine.
      */
     Vector3f _basePoint;
+
+    /**
+     * @brief _root
+     */
+    SkeletonBranch* _root = nullptr;
+
+
+    SkeletonNode* _rootNode = nullptr;
+
+    bool _validSpine = true;
+
 };
 
 }

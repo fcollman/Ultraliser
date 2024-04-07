@@ -325,7 +325,12 @@ Mesh* SpineMorphology::generateMeshWithoutDenderiticExtent(const float& voxelsPe
     auto volume = generateVolumeWithoutDenderiticExtent(voxelsPerMicron, edgeGap, verbose);
 
     // Instead of returning a nullptr, generate a spine with the dendritic extent included
-    if (volume == nullptr) { volume = generateVolume(voxelsPerMicron, edgeGap, verbose); }
+    if (volume == nullptr)
+    {
+        // TODO: FIX ME!
+        return nullptr;
+        volume = generateVolume(voxelsPerMicron, edgeGap, verbose);
+    }
 
     // Use the DMC algorithm to reconstruct a mesh
     auto mesh = DualMarchingCubes::generateMeshFromVolume(volume, verbose);

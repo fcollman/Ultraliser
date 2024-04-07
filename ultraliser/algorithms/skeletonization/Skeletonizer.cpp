@@ -988,6 +988,177 @@ void Skeletonizer::skeletonizeVolumeBlockByBlock(const size_t& blockSize,
     segmentComponents();
 }
 
+GraphNodes Skeletonizer::_constructGraphNodesFromSkeletonNodes(
+        const SkeletonNodes& skeletonNodes)
+{
+    // A list to conatin all the graph nodes
+    GraphNodes graphNodes;
+
+    // Resize it to be allow the parallelization of the list
+    graphNodes.resize(skeletonNodes.size());
+
+    // OMP_PARALLEL_FOR
+    for (size_t i = 0; i < skeletonNodes.size(); ++i)
+    {
+        const auto& skeletonNode = skeletonNodes[i];
+        graphNodes[i] = (new GraphNode(skeletonNode->graphIndex,
+                                       skeletonNode->point,
+                                       skeletonNode->index,
+                                       skeletonNode->edgeNodes.size()));
+    }
+
+    // Return the graph nodes list
+    return graphNodes;
+}
+
+GraphBranches Skeletonizer::_constructGraphBranchesFromGraphNodes(
+        GraphNodes &graphNodes, const int64_t& somaNodeIndex, const bool verbose)
+{
+    VERBOSE_LOG(LOG_STATUS("Constructing Graph Branches"), verbose);
+
+    // Use a new index to label graph branches
+    size_t branchGraphIndex = 0;
+
+    // A list of all the constructed GraphBranches
+    GraphBranches graphBranches;
+
+    // Construct the valid branches at the end
+    TIMER_SET;
+    for (size_t i = 0; i < graphNodes.size(); i++)
+    {
+        if (graphNodes[i]->children.size() > 0)
+        {
+            // This graph node is always the first node, becuase all the other nodes are children
+            const auto& firstNodeIndex = graphNodes[i]->index;
+            const auto& firstNodeSkeletonIndex = graphNodes[i]->skeletonIndex;
+
+            for (size_t j = 0; j < graphNodes[i]->children.size(); ++j)
+            {
+                // This graph node is always the last node, because it is a child node
+                const auto& lastNodeIndex = graphNodes[i]->children[j]->index;
+                const auto& lastNodeSkeletonIndex = graphNodes[i]->children[j]->skeletonIndex;
+
+                // Search for the branches
+                for (size_t k = 0; k < _branches.size(); k++)
+                {
+                    // Reference to the branch
+                    auto& branch = _branches[k];
+
+                    // The branch must be valid
+                    if (branch->isValid() &&
+                        branch->hasTerminalNodes(firstNodeSkeletonIndex, lastNodeSkeletonIndex))
+                    {
+                        GraphBranch* gBranch = new GraphBranch(branchGraphIndex);
+                        branchGraphIndex++;
+
+                        gBranch->skeletonIndex = branch->index;
+                        gBranch->firstNodeIndex = firstNodeIndex;
+                        gBranch->firstNodeSkeletonIndex = firstNodeSkeletonIndex;
+                        gBranch->lastNodeIndex = lastNodeIndex;
+                        gBranch->lastNodeSkeletonIndex = lastNodeSkeletonIndex;
+                        if (somaNodeIndex == firstNodeIndex) gBranch->isRoot = true;
+
+                        graphBranches.push_back(gBranch);
+                    }
+                }
+            }
+        }
+        VERBOSE_LOG(LOOP_PROGRESS(i, graphNodes.size()), verbose);
+    }
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
+
+    return graphBranches;
+}
+
+SkeletonWeightedEdges Skeletonizer::_reduceSkeletonToWeightedEdges(const bool verbose)
+{
+    VERBOSE_LOG(LOG_STATUS("Creating Simplified Weighted Graph from Skeleton"), verbose);
+
+    /// The "thinned" skeleton has a list of edges, but indeed we would like to simplify it to
+    /// avoid spending hours traversing it. Therefore, we created a "weighted skeleton", where
+    /// each edge in this skeleton is a connection between two branching/terminal nodes and the
+    /// weight represents the number of samples "or samples" between the two branching/terminal
+    /// nodes. The "weighted edges" must be constructed only for valid branches.
+    SkeletonWeightedEdges edges;
+    const auto branchesCount = _branches.size();
+
+    TIMER_SET;
+    VERBOSE_LOG(LOOP_STARTS("Constructing Weighted Edges"), verbose);
+    for (size_t i = 0; i < _branches.size(); ++i)
+    {
+        // Reference to the current branch
+        auto& branch = _branches[i];
+
+        // The branch must be valid to be able to have a valid graph
+        if (branch->isValid())
+        {
+            // Reset the traversal state of the "terminal" nodes of the branch
+            branch->nodes.front()->visited = false;
+            branch->nodes.back()->visited = false;
+
+            // Create a weighted edge and append it to the list, where the weight is indicated by
+            // the number of nodes "or samples" in the branch
+            SkeletonWeightedEdge* edge = new SkeletonWeightedEdge(branch);
+            edges.push_back(edge);
+        }
+
+        VERBOSE_LOG(LOOP_PROGRESS(i, branchesCount), verbose);
+    }
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
+
+    // Return the resulting edges array that will be used for constructing the graph
+    return edges;
+}
+
+
+SkeletonNodes Skeletonizer::_selectBranchingNodesFromWeightedEdges(
+        const SkeletonWeightedEdges& edges, const bool verbose)
+{
+    VERBOSE_LOG(LOG_STATUS("Identifying Branching Nodes"), verbose);
+
+    // Use a new index to label the branching nodes, where the maximum value corresponds to the
+    // actual number of the branching nodes in the graph
+    int64_t branchingNodeIndex = 0;
+
+    // A list to collect the branching nodes
+    SkeletonNodes nodes;
+
+    TIMER_SET;
+    VERBOSE_LOG(LOOP_STARTS("Selecting Branching Nodes for Weighted Skeleton"), verbose);
+    for (size_t i = 0; i < edges.size(); ++i)
+    {
+        // The node must be visited once to append it to the @skeletonBranchingNodes list
+        auto& edge = edges[i];
+        auto node1 = edge->node1;
+        auto node2 = edge->node2;
+
+        // First node of the edge
+        if (!node1->visited)
+        {
+            node1->graphIndex = branchingNodeIndex;
+            nodes.push_back(node1);
+            branchingNodeIndex++;
+            node1->visited = true;
+        }
+
+        // Second node of the edge
+        if (!node2->visited)
+        {
+            node2->graphIndex = branchingNodeIndex;
+            nodes.push_back(node2);
+            branchingNodeIndex++;
+            node2->visited = true;
+        }
+        VERBOSE_LOG(LOOP_PROGRESS(i, edges.size()), verbose);
+    }
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
+
+    return nodes;
+}
+
 void Skeletonizer::_verifySkeletonNodes(const bool verbose)
 {
     _totalNumberNodes = _nodes.size();
