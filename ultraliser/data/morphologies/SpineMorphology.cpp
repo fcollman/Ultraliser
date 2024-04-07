@@ -262,10 +262,11 @@ Volume* SpineMorphology::generateVolumeWithoutDenderiticExtent(const float& voxe
     size_t resolution = static_cast< size_t >(voxelsPerMicron * largestDimension);
 
     // Construct the volume
-    Volume* volume = new Volume(pMinInput, pMaxInput, resolution, edgeGap, VOLUME_TYPE::BIT, verbose);
+    Volume* volume = new Volume(pMinInput, pMaxInput, resolution, edgeGap, VOLUME_TYPE::UI8, verbose);
 
     // Rasterize the morphologies into the volume
     volume->surfaceVoxelizeSections(nonDendriticSections, verbose);
+    volume->solidVoxelization(Volume::SOLID_VOXELIZATION_AXIS::XYZ, verbose);
 
     // Return the volume
     return volume;
@@ -289,10 +290,11 @@ Volume* SpineMorphology::generateVolume(const float& voxelsPerMicron,
     size_t resolution = static_cast< size_t >(voxelsPerMicron * largestDimension);
 
     // Construct the volume
-    Volume* volume = new Volume(pMinInput, pMaxInput, resolution, edgeGap, VOLUME_TYPE::BIT, verbose);
+    Volume* volume = new Volume(pMinInput, pMaxInput, resolution, edgeGap, VOLUME_TYPE::UI8, verbose);
 
     // Rasterize the morphologies into the volume
     volume->surfaceVoxelizeSpineMorphology(this, POLYLINE_SPHERE_PACKING);
+    volume->solidVoxelization(Volume::SOLID_VOXELIZATION_AXIS::XYZ, verbose);
 
     // Return the volume
     return volume;
@@ -330,6 +332,7 @@ Mesh* SpineMorphology::generateMeshWithoutDenderiticExtent(const float& voxelsPe
 
     // Smooth the mesh to be able to have correct mapping
     mesh->smoothSurface(DEFAULT_SMOOTHING_ITERATIONS, verbose);
+    mesh->subdivideTrianglseAtCentroid();
 
     // Return the mesh
     return mesh;
@@ -394,6 +397,10 @@ void SpineMorphology::exportBranches(const std::string& prefix,
 
     // Close the file
     stream.close();
+}
+SpineMorphology::~SpineMorphology()
+{
+    /// EMPTY DESTRUCTOR
 }
 
 }

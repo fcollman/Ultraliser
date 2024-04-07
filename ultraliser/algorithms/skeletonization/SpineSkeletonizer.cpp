@@ -38,6 +38,7 @@ SpineSkeletonizer::SpineSkeletonizer(Volume* spineVolume,
 }
 
 SpineSkeletonizer::SpineSkeletonizer(Mesh* spineMesh,
+                                     const size_t& index,
                                      const Vector3f basePoint,
                                      const VoxelizationOptions& options,
                                      const bool useAcceleration,
@@ -45,6 +46,7 @@ SpineSkeletonizer::SpineSkeletonizer(Mesh* spineMesh,
                                      const std::string debugPrefix)
     : Skeletonizer(spineMesh, options, useAcceleration, debugSkeleton, debugPrefix)
 {
+    _index = index;
     _basePoint = basePoint;
     _computeVolumeFromMesh();
 }
@@ -111,32 +113,212 @@ void adjustChildrenBranchOrientation(SkeletonBranch* rootBranch, SkeletonBranche
     }
 }
 
+
+void SpineSkeletonizer::_buildSpineBranchesFromNodes()
+{
+    // Used to index the branch
+    size_t branchIndex = 0;
+
+    // Construct the hierarchy to the terminal
+    for (size_t i = 0; i < _nodes.size(); ++i)
+    {
+        auto& node = _nodes[i];
+
+        // The node must be branching
+        if (node->branching)
+        {
+            // The node must be visited less number of times than its branching edges
+            if (node->iVisit < node->edgeNodes.size())
+            {
+                // Construct the branch, starting with the edge node
+                for (size_t j = 0; j < node->edgeNodes.size(); ++j)
+                {
+                    // Get a reference to the edge node
+                    auto& edgeNode = node->edgeNodes[j];
+
+                    if (edgeNode->iVisit >= edgeNode->edgeNodes.size()) continue;
+
+                    // If the edge node is a terminal
+                    if (edgeNode->terminal)
+                    {
+                        SkeletonBranch* branch = new SkeletonBranch();
+
+                        node->iVisit += 1;
+                        branch->nodes.push_back(node);
+
+                        edgeNode->iVisit += 1;
+                        branch->nodes.push_back(edgeNode);
+
+                        branch->index = branchIndex;
+                        branchIndex++;
+                        _branches.push_back(branch);
+                    }
+
+                    // If the edge node is a branching node
+                    else if (edgeNode->branching)
+                    {
+                        SkeletonBranch* branch = new SkeletonBranch();
+
+                        node->iVisit += 1;
+                        branch->nodes.push_back(node);
+
+                        edgeNode->iVisit += 1;
+                        branch->nodes.push_back(edgeNode);
+
+                        branch->index = branchIndex;
+                        branchIndex++;
+                        _branches.push_back(branch);
+                    }
+
+                    // If the edge node is an intermediate node
+                    else
+                    {
+                        // Ensure that the edge node is not visited before to make a branch
+                        if (edgeNode->iVisit < 1)
+                        {
+                            SkeletonBranch* branch = new SkeletonBranch();
+
+                            node->iVisit += 1;
+                            branch->nodes.push_back(node);
+
+                            edgeNode->iVisit += 1;
+                            branch->nodes.push_back(edgeNode);
+
+                            // The previous node is the first node
+                            SkeletonNode *previousNode = node;
+
+                            // The current node is the edge node
+                            SkeletonNode *currentNode = edgeNode;
+
+                            // Ensure that the current node has only two connected edges (or nodes)
+                            while (true)
+                            {
+                                // Get a reference to the connecting nodes to the current node
+                                auto edgeNode0 = currentNode->edgeNodes[0];
+                                auto edgeNode1 = currentNode->edgeNodes[1];
+
+                                // Ignore the previous node
+                                if (edgeNode0->index == previousNode->index)
+                                {
+                                    previousNode = currentNode;
+                                    currentNode = edgeNode1;
+                                }
+                                else
+                                {
+                                    previousNode = currentNode;
+                                    currentNode = edgeNode0;
+                                }
+
+                                currentNode->iVisit += 1;
+                                branch->nodes.push_back(currentNode);
+
+                                if (!(currentNode->edgeNodes.size() == 2))
+                                    break;
+                            }
+
+                            branch->index = branchIndex;
+
+                            branchIndex++;
+                            _branches.push_back(branch);
+                        }
+                    }
+                }
+            }
+        }
+
+        // This case will handle single branches that have terminals only
+        else if (node->terminal)
+        {
+            if (node->visited) continue;
+
+            // Create a new branch and set its index to zero
+            SkeletonBranch* branch = new SkeletonBranch();
+            branch->index = branchIndex++;
+
+            SkeletonNode *currentNode = node;
+            branch->nodes.push_back(currentNode);
+            currentNode->visited = true;
+
+            SkeletonNode* nextNode = currentNode->edgeNodes[0];
+
+            while(true)
+            {
+                if (nextNode->visited) break;
+
+                // Add the current node to branch
+                branch->nodes.push_back(nextNode);
+                nextNode->visited = true;
+
+                // The other terminal node
+                if (nextNode->edgeNodes.size() == 1)
+                {
+                    nextNode = nextNode->edgeNodes[0];
+                    branch->nodes.push_back(nextNode);
+                    nextNode->visited = true;
+                    break;
+                }
+                else
+                {
+                    auto edgeNode0 = nextNode->edgeNodes[0];
+                    auto edgeNode1 = nextNode->edgeNodes[1];
+
+                    if (edgeNode0->visited)
+                        nextNode = edgeNode1;
+                    else
+                        nextNode = edgeNode0;
+
+                }
+            }
+            _branches.push_back(branch);
+        }
+
+    }
+}
+
+
 void SpineSkeletonizer::run(const bool verbose)
 {
     // Initialize
     initialize(verbose);
 
+    std::stringstream prefix;
+    prefix << "/ssd2/skeletonization-project/spine-extraction/output/refacotr-1/spines/864691134832191490_" << _index << "_volume_";
+    _volume->project(prefix.str(), true);
+
+    // Skeletonize the volume to center-lines
     skeletonizeVolumeToCenterLines(verbose);
 
-    const std::string prefix = _debugPrefix + SKELETON_SUFFIX;
-    _volume->project(prefix, true);
+    prefix << SKELETON_SUFFIX;
+    //_volume->project(prefix.str(), true);
 
     /// Extract the nodes of the skeleton from the center-line "thinned" voxels and return a
     /// mapper that maps the indices of the voxels in the volume and the nodes in the skeleton
     auto indicesMapper = _extractNodesFromVoxels(verbose);
 
+
     /// Connect the nodes of the skeleton to construct its edges. This operation will not connect
     /// any gaps, it will just connect the nodes extracted from the voxels.
     _connectNodesToBuildEdges(indicesMapper, verbose);
+
+
+    // export nodes
+    _exportGraphNodes(prefix.str(), false);
+
+
 
     /// Inflate the nodes, i.e. adjust their radii
     _inflateNodes(verbose);
 
     /// Reconstruct the sections "or branches" from the nodes using the edges data
-    _buildBranchesFromNodes(_nodes);
+    _buildSpineBranchesFromNodes();
+
+    /// todo: remove triangles edges
 
 
-    // exportBranches(_debugPrefix , verbose);
+
+
+
+     exportBranches(prefix.str(), verbose);
 
 
     // Identify the connections at the terminals of each branch
@@ -192,23 +374,18 @@ void SpineSkeletonizer::exportBranches(const std::string& prefix, const bool)
     std::fstream stream;
     stream.open(filePath, std::ios::out);
 
-    size_t progress = 0;
     for (size_t i = 0; i < _branches.size(); ++i)
     {
         // The @start marks a new branch in the file
-        stream << "start " << _branches[i]->index << "\n";
+        stream << "SB " << _branches[i]->index << "\n";
 
         for (auto& node: _branches[i]->nodes)
         {
-            stream << node->point.x() << " "
-                   << node->point.y() << " "
-                   << node->point.z() << " "
-                   << node->radius << "\n";
+            stream << node->point.x() << " " << node->point.y() << " " << node->point.z() << " "
+                   << node->radius << NEW_LINE;
         }
         // The @end marks the terminal sample of a branch
-        stream << "end\n";
-
-        ++progress;
+        stream << "EB\n";
     }
 
     // Close the file

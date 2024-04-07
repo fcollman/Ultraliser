@@ -38,7 +38,7 @@ void SomaSegmenter::_verifyVolume(const bool verbose)
         size_t resolution = static_cast< size_t >(_voxelizationVoxelsPerMicron* largestDimension);
 
         // Create the _neuronVolume from the _neuronMesh;
-        _neuronVolume = new Volume(pMinInput, pMaxInput, resolution, 0.1, VOLUME_TYPE::BIT, SILENT);
+        _neuronVolume = new Volume(pMinInput, pMaxInput, resolution, 0.1, VOLUME_TYPE::UI8, SILENT);
 
         // Adaptive and conservative Voxelization
         _neuronVolume->surfaceVoxelization(_neuronMesh, SILENT, false, 1.0);

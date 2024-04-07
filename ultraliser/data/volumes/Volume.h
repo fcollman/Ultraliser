@@ -56,6 +56,39 @@ public:
         XYZ = 3
     };
 
+private:
+
+    /**
+     * @brief The FloodFillingData struct
+     */
+    struct FloodFillingData
+    {
+        /**
+         * @brief dimension
+         * The dimension with which the flood filling will happen.
+         */
+        int64_t dimension;
+
+        /**
+         * @brief floodFillingString
+         * Flood-filling string.
+         */
+        std::string floodFillingString;
+
+        /**
+         * @brief floodFillingAxis
+         * Flood-filling axis.
+         */
+        AXIS floodFillingAxis;
+    };
+
+    /**
+     * @brief _getCaseSpecificFloodFillingData
+     * @param axis
+     * @return
+     */
+    FloodFillingData _getCaseSpecificFloodFillingData(const SOLID_VOXELIZATION_AXIS &axis);
+
 public:
 
     /**
@@ -1143,7 +1176,7 @@ private:
                          const size_t& x1, const size_t x2,
                          const size_t& y1, const size_t y2,
                          const size_t& z1, const size_t z2,
-                         const bool &verbose = true);
+                         const bool &verbose = VERBOSE);
 
     /**
      * @brief _floodFillAlongAxis
@@ -1152,7 +1185,18 @@ private:
      * @param verbose
      */
     void _floodFillAlongAxis(VolumeGrid* grid, const SOLID_VOXELIZATION_AXIS &axis,
-                             const bool &verbose = true);
+                             const bool &verbose = VERBOSE);
+
+
+    /**
+     * @brief _floodFillAlongAxisWithOpenMPLocks
+     * @param grid
+     * @param axis
+     * @param verbose
+     */
+    void _floodFillAlongAxisWithOpenMPLocks(VolumeGrid* grid,
+                                            const SOLID_VOXELIZATION_AXIS &axis,
+                                            const bool &verbose = VERBOSE);
 
     void _floodFillAlongAxisROI(VolumeGrid* grid, const SOLID_VOXELIZATION_AXIS &axis,
                                 const size_t& x1, const size_t x2,

@@ -50,7 +50,7 @@ public:
      * @return
      * The reconstructed mesh.
      */
-    Mesh* generateMesh();
+    Mesh* generateMesh(const bool verbose);
 
     /**
      * @brief generateAdvancedMesh
@@ -58,7 +58,7 @@ public:
      * @return
      * The reconstructed mesh.
      */
-    AdvancedMesh* generateAdvancedMesh();
+    AdvancedMesh* generateAdvancedMesh(const bool verbose = VERBOSE);
 
     /**
      * @brief generateMeshFromVolume
@@ -69,7 +69,7 @@ public:
      * @return
      * A pointer to the mesh.
      */
-    static Mesh* generateMeshFromVolume(Volume *volume);
+    static Mesh* generateMeshFromVolume(Volume *volume, const bool verbose = VERBOSE);
 
     /**
      * @brief generateAdvancedMeshFromVolume
@@ -80,7 +80,8 @@ public:
      * @return
      * A pointer to the mesh.
      */
-    static AdvancedMesh* generateAdvancedMeshFromVolume(Volume *volume);
+    static AdvancedMesh* generateAdvancedMeshFromVolume(Volume *volume,
+                                                        const bool verbose = VERBOSE);
 
 private:
 
@@ -93,7 +94,8 @@ private:
      * @param triangles
      * A list to collect the triangles of the mesh.
      */
-    void _buildSharedVertices(Vertices& vertices, Triangles &triangles);
+    void _buildSharedVertices(Vertices& vertices, Triangles &triangles,
+                              const bool verbose = VERBOSE);
 
 private:
 

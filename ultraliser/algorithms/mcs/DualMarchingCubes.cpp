@@ -45,22 +45,19 @@ DualMarchingCubes::DualMarchingCubes(Volume *volume,
 
 Mesh* DualMarchingCubes::generateMesh(const bool verbose)
 {
-    // Strat the timer
-    if (verbose) { LOG_TITLE("Mesh Reconstruction with DMC"); }
     TIMER_SET;
+    VERBOSE_LOG(LOG_TITLE("Mesh Reconstruction with DMC"), verbose);
 
     // Build the mesh
-    Vertices vertices;
-    Triangles triangles;
-
-    if (verbose) { LOG_STATUS("Building Mesh"); }
+    Vertices vertices; Triangles triangles;
+    VERBOSE_LOG(LOG_STATUS("Building Mesh"), verbose);
     _buildSharedVertices(vertices, triangles, verbose);
 
     // Construct the mesh from the vertices and triangles
     Mesh* mesh = new Mesh(vertices, triangles);
 
-    if (verbose) { LOG_STATUS_IMPORTANT("Mesh Reconstruction with Dual Marching Cubes Stats."); }
-    if (verbose) { LOG_STATS(GET_TIME_SECONDS); }
+    VERBOSE_LOG(LOG_STATUS_IMPORTANT("Mesh Reconstruction with DMC Stats."), verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
     // Save for statistics
     _meshExtractionTime = GET_TIME_SECONDS;
@@ -70,23 +67,20 @@ Mesh* DualMarchingCubes::generateMesh(const bool verbose)
 
 AdvancedMesh* DualMarchingCubes::generateAdvancedMesh(const bool verbose)
 {
-    // Strat the timer
-    if (verbose) { LOG_TITLE("Mesh Reconstruction with DMC"); }
     TIMER_SET;
+    VERBOSE_LOG(LOG_TITLE("Mesh Reconstruction with DMC"), verbose);
 
     // Build the mesh
-    Vertices vertices;
-    Triangles triangles;
-
-    if (verbose) { LOG_STATUS("Building Mesh"); }
+    Vertices vertices; Triangles triangles;
+    VERBOSE_LOG(LOG_STATUS("Building Mesh"), verbose);
     _buildSharedVertices(vertices, triangles, verbose);
 
-        // Construct the mesh from the vertices and triangles
+    // Construct the mesh from the vertices and triangles
     AdvancedMesh* mesh = new AdvancedMesh(vertices, triangles);
 
     // Statistics
-    if (verbose) { LOG_STATUS_IMPORTANT("Mesh Reconstruction with Dual Marching Cubes Stats."); }
-    if (verbose) { LOG_STATS(_meshExtractionTime); }
+    VERBOSE_LOG(LOG_STATUS_IMPORTANT("Mesh Reconstruction with DMC Stats."), verbose);
+    VERBOSE_LOG(LOG_STATS(_meshExtractionTime), verbose);
 
     // Save for statistics
     _meshExtractionTime = GET_TIME_SECONDS;
@@ -384,7 +378,7 @@ void DualMarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &tria
     pointToIndex.clear();
 
     // Searching for non-zero voxels in parallel
-    if (verbose) { LOOP_STARTS("Searching Filled Voxels"); }
+    VERBOSE_LOG(LOOP_STARTS("Searching Filled Voxels"), verbose);
     PROGRESS_SET;
     OMP_PARALLEL_FOR
     for (int64_t x = minValue; x < maxX; ++x)
@@ -449,15 +443,15 @@ void DualMarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &tria
 
         // Update the progress bar
         PROGRESS_UPDATE;
-        if (verbose) { LOOP_PROGRESS(PROGRESS, sizeX); }
+        VERBOSE_LOG(LOOP_PROGRESS(PROGRESS, sizeX), verbose);
     }
-    if (verbose) { LOOP_DONE; LOG_STATS(GET_TIME_SECONDS); }
+    VERBOSE_LOG(LOOP_DONE; LOG_STATS(GET_TIME_SECONDS), verbose);
 
     // Reset the time
     TIMER_RESET;
 
     // Building the shared vertices
-    if (verbose) { LOOP_STARTS("Building Shared Vertices"); }
+    VERBOSE_LOG(LOOP_STARTS("Building Shared Vertices"), verbose);
     for (size_t i = 0; i < volumeDMCVoxels.size(); i++)
     {
         for (size_t j = 0; j < volumeDMCVoxels[i].size(); j++)
@@ -566,9 +560,9 @@ void DualMarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &tria
         volumeDMCVoxels[i].clear();
         volumeDMCVoxels[i].shrink_to_fit();
 
-        if (verbose) { LOOP_PROGRESS(i, volumeDMCVoxels.size()); }
+        VERBOSE_LOG(LOOP_PROGRESS(i, volumeDMCVoxels.size()), verbose);
     }
-    if (verbose) { LOOP_DONE; LOG_STATS(GET_TIME_SECONDS); }
+    VERBOSE_LOG(LOOP_DONE; LOG_STATS(GET_TIME_SECONDS), verbose);
 
     // Clear the DMC voxel list
     volumeDMCVoxels.clear();

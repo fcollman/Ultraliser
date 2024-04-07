@@ -61,7 +61,7 @@ public:
          * @brief volumeType
          * The type of the volume, by default BIT.
          */
-        VOLUME_TYPE volumeType = VOLUME_TYPE::BIT;
+        VOLUME_TYPE volumeType = VOLUME_TYPE::UI8;
 
         /**
          * @brief edgeGapPrecentage

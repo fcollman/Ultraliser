@@ -1572,46 +1572,32 @@ void Volume::_floodFill2DROI(const SOLID_VOXELIZATION_AXIS &axis,
     _solidVoxelizationTime = GET_TIME_SECONDS;
 }
 
-
-void Volume::_floodFillAlongAxis(VolumeGrid* grid, const SOLID_VOXELIZATION_AXIS &axis,
-                                 const bool &verbose)
+Volume::FloodFillingData Volume::_getCaseSpecificFloodFillingData(
+        const SOLID_VOXELIZATION_AXIS &axis)
 {
-    // Start the timer
-    TIMER_SET;
-
-    /// Disable buffering
-    setbuf(stdout, nullptr);
-
-    // The dimension with which the flood filling will happen
-    int64_t dimension;
-
-    // Flood-filling string
-    std::string floodFillingString;
-
-    // Flood-filling axis
-    AXIS floodFillingAxis;
+    FloodFillingData data;
 
     switch (axis)
     {
     case SOLID_VOXELIZATION_AXIS::X:
     {
-        dimension = getWidth();
-        floodFillingAxis = AXIS::X;
-        floodFillingString = "2D Slice Flood-filling (X-axis)";
+        data.dimension = getWidth();
+        data.floodFillingAxis = AXIS::X;
+        data.floodFillingString = "2D Slice Flood-filling (X-axis)";
     } break;
 
     case SOLID_VOXELIZATION_AXIS::Y:
     {
-        dimension = getHeight();
-        floodFillingAxis = AXIS::Y;
-        floodFillingString = "2D Slice Flood-filling (Y-axis)";
+        data.dimension = getHeight();
+        data.floodFillingAxis = AXIS::Y;
+        data.floodFillingString = "2D Slice Flood-filling (Y-axis)";
     } break;
 
     case SOLID_VOXELIZATION_AXIS::Z:
     {
-        dimension = getDepth();
-        floodFillingAxis = AXIS::Z;
-        floodFillingString = "2D Slice Flood-filling (Z-axis)";
+        data.dimension = getDepth();
+        data.floodFillingAxis = AXIS::Z;
+        data.floodFillingString = "2D Slice Flood-filling (Z-axis)";
     } break;
 
     // XYZ voxelization will be handled
@@ -1619,17 +1605,30 @@ void Volume::_floodFillAlongAxis(VolumeGrid* grid, const SOLID_VOXELIZATION_AXIS
         break;
     }
 
+    return data;
+}
+
+void Volume::_floodFillAlongAxis(VolumeGrid* grid, const SOLID_VOXELIZATION_AXIS &axis,
+                                 const bool &verbose)
+{
+    // Disable buffering
+    setbuf(stdout, nullptr);
+
+    // Get the flood filling data
+    const auto floodFillingData = _getCaseSpecificFloodFillingData(axis);
+
     if (verbose)
     {
-        LOOP_STARTS(floodFillingString.c_str());
+        TIMER_SET;
+        LOOP_STARTS(floodFillingData.floodFillingString.c_str());
         PROGRESS_SET;
         OMP_PARALLEL_FOR
-        for (int64_t i = 0 ; i < dimension; ++i)
+        for (int64_t i = 0 ; i <floodFillingData.dimension; ++i)
         {
-            grid->floodFillSliceAlongAxis(i, floodFillingAxis);
+            grid->floodFillSliceAlongAxis(i, floodFillingData.floodFillingAxis);
 
             // Update the progress bar
-            LOOP_PROGRESS(PROGRESS, dimension);
+            LOOP_PROGRESS(PROGRESS, floodFillingData.dimension);
             PROGRESS_UPDATE;
         }
         LOOP_DONE;
@@ -1638,9 +1637,83 @@ void Volume::_floodFillAlongAxis(VolumeGrid* grid, const SOLID_VOXELIZATION_AXIS
     else
     {
         OMP_PARALLEL_FOR
-        for (int64_t i = 0 ; i < dimension; ++i)
+        for (int64_t i = 0 ; i < floodFillingData.dimension; ++i)
         {
-            grid->floodFillSliceAlongAxis(i, floodFillingAxis);
+            grid->floodFillSliceAlongAxis(i, floodFillingData.floodFillingAxis);
+        }
+    }
+}
+
+void Volume::_floodFillAlongAxisWithOpenMPLocks(VolumeGrid* grid,
+                                                const SOLID_VOXELIZATION_AXIS &axis,
+                                                const bool &verbose)
+{
+    // Disable buffering
+    setbuf(stdout, nullptr);
+
+    // Get the flood filling data
+    const auto floodFillingData = _getCaseSpecificFloodFillingData(axis);
+
+    if (verbose)
+    {
+        if (_gridType == VOLUME_TYPE::BIT)
+        {
+            TIMER_SET;
+            CREATE_OMP_LOCK;
+            LOOP_STARTS(floodFillingData.floodFillingString.c_str());
+            PROGRESS_SET;
+            OMP_PARALLEL_FOR
+            for (int64_t i = 0 ; i <floodFillingData.dimension; ++i)
+            {
+                OMP_SET_LOCK;
+                grid->floodFillSliceAlongAxis(i, floodFillingData.floodFillingAxis);
+                OMP_UNSET_LOCK;
+
+                // Update the progress bar
+                LOOP_PROGRESS(PROGRESS, floodFillingData.dimension);
+                PROGRESS_UPDATE;
+            }
+            LOOP_DONE;
+            LOG_STATS(GET_TIME_SECONDS);
+        }
+        else
+        {
+            TIMER_SET;
+            LOOP_STARTS(floodFillingData.floodFillingString.c_str());
+            PROGRESS_SET;
+            OMP_PARALLEL_FOR
+            for (int64_t i = 0 ; i <floodFillingData.dimension; ++i)
+            {
+                grid->floodFillSliceAlongAxis(i, floodFillingData.floodFillingAxis);
+
+                // Update the progress bar
+                LOOP_PROGRESS(PROGRESS, floodFillingData.dimension);
+                PROGRESS_UPDATE;
+            }
+            LOOP_DONE;
+            LOG_STATS(GET_TIME_SECONDS);
+        }
+    }
+    else
+    {
+        if (_gridType == VOLUME_TYPE::BIT)
+        {
+            CREATE_OMP_LOCK;
+            OMP_PARALLEL_FOR
+            for (int64_t i = 0 ; i < floodFillingData.dimension; ++i)
+            {
+                OMP_SET_LOCK;
+                grid->floodFillSliceAlongAxis(i, floodFillingData.floodFillingAxis);
+                OMP_UNSET_LOCK;
+            }
+        }
+        else
+        {
+            OMP_PARALLEL_FOR
+            for (int64_t i = 0 ; i < floodFillingData.dimension; ++i)
+            {
+                grid->floodFillSliceAlongAxis(i, floodFillingData.floodFillingAxis);
+            }
         }
     }
 }

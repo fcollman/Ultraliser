@@ -21,6 +21,7 @@
 
 #include "SkeletonizeNeuron.h"
 #include "AppCommon.h"
+#include <algorithms/skeletonization/SpineSkeletonizer.h>
 
 // Defines
 #define NEURON_SMOOTHING_ITERATIONS 25
@@ -28,31 +29,31 @@
 namespace Ultraliser
 {
 
-Mesh* remeshSpine(Mesh* inputSpineMesh, const float voxelsPerMicron = 50,
+Mesh* remeshSpine(Mesh* spineMesh, const float voxelsPerMicron = 50,
                   const bool verbose = SILENT)
 {
     // Compute the bounding box of the input neuron mesh
     Vector3f pMinInput, pMaxInput;
-    inputSpineMesh->computeBoundingBox(pMinInput, pMaxInput);
-    const auto& meshBoundingBox = pMaxInput - pMinInput;
+    spineMesh->computeBoundingBox(pMinInput, pMaxInput);
+    const auto& bounds = pMaxInput - pMinInput;
 
-    if (meshBoundingBox.x() < 1e-16 || meshBoundingBox.y() < 1e-16 || meshBoundingBox.z() < 1e-16)
+    if (bounds.x() < 1e-16 || bounds.y() < 1e-16 || bounds.z() < 1e-16)
     {
         return nullptr;
     }
 
     // Compute the resolution of the volume
-    const auto largestDimension = meshBoundingBox.getLargestDimension();
+    const auto largestDimension = bounds.getLargestDimension();
     size_t resolution = static_cast< size_t >(voxelsPerMicron * largestDimension);
 
     // Construct the volume
     Volume* volume = new Volume(pMinInput, pMaxInput, resolution, 0.1,
-                                VOLUME_TYPE::BIT, SILENT);
+                                VOLUME_TYPE::UI8, SILENT);
 
     // Apply surface and solid voxelization to the input neuron mesh
-    volume->surfaceVoxelization(inputSpineMesh, SILENT, false, 1.0);
+    volume->surfaceVoxelization(spineMesh, SILENT, false, 1.0);
     volume->solidVoxelization(Volume::SOLID_VOXELIZATION_AXIS::XYZ, SILENT);
-    volume->surfaceVoxelization(inputSpineMesh, SILENT, false, 0.5);
+    // volume->surfaceVoxelization(inputSpineMesh, SILENT, false, 0.5);
 
     // Construct the mesh using the DMC technique
     auto reconstructedSpineMesh = DualMarchingCubes::generateMeshFromVolume(volume, SILENT);
@@ -158,7 +159,6 @@ void exportSpineMeshes(const Meshes& spinesMeshes, const AppOptions* options)
 void transformSpinesToOrigin(Meshes& dendriticSpineMeshes,
                              SpineMorphologies& proxySpineMorphologies)
 {
-    // Exporting the spines
     TIMER_SET;
     LOOP_STARTS("Transforming Spines to Origin");
     for (size_t i = 0; i < dendriticSpineMeshes.size(); ++i)
@@ -185,9 +185,56 @@ void transformSpinesToOrigin(Meshes& dendriticSpineMeshes,
     LOG_STATS(GET_TIME_SECONDS);
 }
 
-std::vector< Mesh* > reconstructSpineMeshes(NeuronSkeletonizer* skeletonizer,
-                                            const Mesh* inputNeuronMesh,
-                                            const AppOptions* options)
+void reconstructAndExportSpineMorphology(Mesh* spineMesh,
+                                         const size_t spineIndex,
+                                         const Vector3f& spineBasePoint,
+                                         const AppOptions* options)
+{
+    // Construct the voxelization options of the spine
+    Skeletonizer::VoxelizationOptions spineVoxelizationOptions;
+    spineVoxelizationOptions.volumeResolution = 256;
+    spineVoxelizationOptions.verbose = SILENT;
+    spineVoxelizationOptions.edgeGapPrecentage = 0.5;
+    std::unique_ptr< SpineSkeletonizer > skeletonizer = std::make_unique< SpineSkeletonizer >(
+                spineMesh, spineIndex, spineBasePoint, spineVoxelizationOptions, true, false);
+
+    // Run the spine skeletonization
+    skeletonizer->run(SILENT);
+
+    // Export the spine morphology
+    const bool resampleSkeleton = true;
+    // skeletonizer->exportSWCFile(options->spinesMorphologiesPrefix, resampleSkeleton, SILENT);
+
+
+}
+
+void reconstructSpineMorphologies(const Meshes& spineMeshes,
+                                  const SpineMorphologies& spineProxyMorphologies,
+                                  const AppOptions* options)
+{
+    TIMER_SET;
+    LOOP_STARTS("Reconstructing HQ Spine Morphologies");
+    for (size_t i = 0; i < spineMeshes.size(); ++i)
+    {
+        auto spineMesh = spineMeshes[i];
+        if (spineMesh == nullptr) continue;
+
+        // Get the base point of the spine
+        const auto basePoint = spineProxyMorphologies[i]->getBasePoint();
+
+        // Reconstruct the spine morphology
+        reconstructAndExportSpineMorphology(spineMesh, i, basePoint, options);
+
+        LOOP_PROGRESS(i, spineMeshes.size());
+    }
+    LOOP_DONE;
+    LOG_STATS(GET_TIME_SECONDS);
+}
+
+
+void reconstructSpines(NeuronSkeletonizer* skeletonizer,
+                       const Mesh* inputNeuronMesh,
+                       const AppOptions* options)
 {
     // Reconstruct the dendritic proxy morphologies of the spines (not final and located on spines)
     auto proxySpinesMorphologies = skeletonizer->reconstructSpineProxyMorphologies();
@@ -220,22 +267,23 @@ std::vector< Mesh* > reconstructSpineMeshes(NeuronSkeletonizer* skeletonizer,
         exportSpineMeshes(spinesMeshes, options);
     }
 
-    // Skeletonize the spine meshes to reconstruct high quality spine morphologies
-    if (options->exportSpinesSWCMorphologies)
-    {
-
-    }
-
     // Clear the proxy spine meshes
     for (auto& mesh : proxySpinesMeshes) { if (mesh != nullptr) mesh->~Mesh();  }
 
-    return spinesMeshes;
+    // Reconstruct the spine morphologies
+    reconstructSpineMorphologies(spinesMeshes, proxySpinesMorphologies, options);
+
+    // Clear the spine proxy morphologies
+    for (auto& morphology : proxySpinesMorphologies)
+    {
+        if (morphology != nullptr) morphology->~SpineMorphology();
+    }
+
+    // Clear the spine meshes
+    for (auto& mesh : spinesMeshes) { if (mesh != nullptr) mesh->~Mesh();  }
+
 }
 
-void reconstructSpineMorphologies(const Meshes& spineMeshes, const AppOptions* options)
-{
-
-}
 
 void exportSpineMeshes(NeuronSkeletonizer* skeletonizer,
                        const Mesh* inputNeuronMesh,
@@ -289,14 +337,8 @@ void runSpineSegmentationOperations(const AppOptions* options,
             return;
         }
 
-        // Reconstruct the spine meshes
-        auto spineMeshes = reconstructSpineMeshes(skeletonizer, neuronMesh, options);
-
-        // Reconstruct the spine morphologies
-        if (options->exportSpinesSWCMorphologies)
-        {
-            reconstructSpineMorphologies(spineMeshes, options);
-        }
+        // Reconstruct the spines
+        reconstructSpines(skeletonizer, neuronMesh, options);
     }
 
 
@@ -315,6 +357,5 @@ void runSpineSegmentationOperations(const AppOptions* options,
 //        }
 //    }
 }
-
 
 }

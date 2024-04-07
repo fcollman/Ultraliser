@@ -58,6 +58,7 @@ public:
      * @param debugPrefix
      */
     SpineSkeletonizer(Mesh* spineMesh,
+                      const size_t& index,
                       const Vector3f basePoint,
                       const VoxelizationOptions& options,
                       const bool useAcceleration,
@@ -95,6 +96,11 @@ public:
 private:
 
     /**
+     * @brief _buildSpineBranchesFromNodes
+     */
+    void _buildSpineBranchesFromNodes();
+
+    /**
      * @brief _constructSWCTable
      * @param resampleSkeleton
      * @return
@@ -113,6 +119,12 @@ private:
                           const bool = VERBOSE);
 
 private:
+
+    /**
+     * @brief _index
+     * The index of the spine.
+     */
+    size_t _index;
 
     /**
      * @brief _basePoint

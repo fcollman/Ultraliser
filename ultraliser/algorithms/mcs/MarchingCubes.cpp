@@ -76,18 +76,14 @@ size_t addSharedVertex(double x1, double y1, double z1,
     return 0;
 }
 
-Mesh* MarchingCubes::generateMesh()
+Mesh* MarchingCubes::generateMesh(const bool verbose)
 {
-    LOG_TITLE("Mesh Reconstruction with Marching Cubes");
+    TIMER_SET;
+    VERBOSE_LOG(LOG_TITLE("Mesh Reconstruction with Marching Cubes"), verbose);
 
     // Build the mesh
-    Vertices vertices;
-    Triangles triangles;
-
-    // Start the timer
-    TIMER_SET;
-
-    LOG_STATUS("Building Mesh");
+    Vertices vertices; Triangles triangles;
+    VERBOSE_LOG(LOG_STATUS("Building Mesh"), verbose);
     _buildSharedVertices(vertices, triangles);
 
     // Reconstruct the mesh
@@ -95,24 +91,21 @@ Mesh* MarchingCubes::generateMesh()
 
     // Statistics
     _meshExtractionTime = GET_TIME_SECONDS;
-    LOG_STATUS_IMPORTANT("Mesh Reconstruction with Marching Cubes Stats.");
-    LOG_STATS(_meshExtractionTime);
+
+    VERBOSE_LOG(LOG_STATUS_IMPORTANT("Mesh Reconstruction with MC Stats."), verbose);
+    VERBOSE_LOG(LOG_STATS(_meshExtractionTime), verbose);
 
     return mesh;
 }
 
-AdvancedMesh* MarchingCubes::generateAdvancedMesh()
+AdvancedMesh* MarchingCubes::generateAdvancedMesh(const bool verbose)
 {
-    LOG_TITLE("Mesh Reconstruction with Marching Cubes");
+    TIMER_SET;
+    VERBOSE_LOG(LOG_TITLE("Mesh Reconstruction with Marching Cubes"), verbose);
 
     // Build the mesh
-    Vertices vertices;
-    Triangles triangles;
-
-    // Start the timer
-    TIMER_SET;
-
-    LOG_STATUS("Building Mesh");
+    Vertices vertices; Triangles triangles;
+    VERBOSE_LOG(LOG_STATUS("Building Mesh"), verbose);
     _buildSharedVertices(vertices, triangles);
 
     // Reconstruct the mesh
@@ -120,13 +113,14 @@ AdvancedMesh* MarchingCubes::generateAdvancedMesh()
 
     // Statistics
     _meshExtractionTime = GET_TIME_SECONDS;
-    LOG_STATUS_IMPORTANT("Mesh Reconstruction with Marching Cubes Stats.");
-    LOG_STATS(_meshExtractionTime);
+
+    VERBOSE_LOG(LOG_STATUS_IMPORTANT("Mesh Reconstruction with Marching Cubes Stats."), verbose);
+    VERBOSE_LOG(LOG_STATS(_meshExtractionTime), verbose);
 
     return mesh;
 }
 
-void MarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &triangles)
+void MarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &triangles, const bool verbose)
 {
     // Start the timer
     TIMER_SET;
@@ -168,7 +162,7 @@ void MarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &triangle
     const size_t z3 = sizeZ * 3;
     const size_t yz3 = sizeY * z3;
 
-    LOOP_STARTS("Searching Filled Voxels");
+    VERBOSE_LOG(LOOP_STARTS("Searching Filled Voxels"), verbose);
     PROGRESS_SET;
     OMP_PARALLEL_FOR
     for (int64_t i = minValue; i < maxX; ++i)
@@ -204,21 +198,21 @@ void MarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &triangle
         }
 
         // Update the progress bar
-        LOOP_PROGRESS(PROGRESS, sizeX);
+        VERBOSE_LOG(LOOP_PROGRESS(PROGRESS, sizeX), verbose);
         PROGRESS_UPDATE;
     }
-    LOOP_DONE;
-    LOG_STATS(GET_TIME_SECONDS);
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
     // Delta between the voxels
     const float voxelSize = _volume->getVoxelSize();
 
     // Building the shared vertices
     TIMER_RESET;
-    LOOP_STARTS("Building Shared Vertices");
+    VERBOSE_LOG(LOOP_STARTS("Building Shared Vertices"), verbose);
     for (size_t ii = 0; ii < volumeMCVoxels.size(); ii++)
     {
-        LOOP_PROGRESS(ii, volumeMCVoxels.size());
+        VERBOSE_LOG(LOOP_PROGRESS(ii, volumeMCVoxels.size()), verbose);
         for (size_t jj = 0; jj < volumeMCVoxels[ii].size(); jj++)
         {
             // Reference to the voxel
@@ -412,9 +406,8 @@ void MarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &triangle
             }
         }
     }
-
-    LOOP_DONE;
-    LOG_STATS(GET_TIME_SECONDS);
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
     // Construct the triangles from the indices
     for (size_t i = 0; i < polygons.size() / 3; i++)
@@ -432,22 +425,22 @@ void MarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &triangle
     polygons.shrink_to_fit();
 }
 
-Mesh* MarchingCubes::generateMeshFromVolume(Volume* volume)
+Mesh* MarchingCubes::generateMeshFromVolume(Volume* volume, const bool verbose)
 {
     // Reconstruct a watertight mesh from the volume with DMC
     std::unique_ptr< MarchingCubes > workflow = std::make_unique< MarchingCubes >(volume);
 
     // Generate the DMC mesh
-    return workflow->generateMesh();
+    return workflow->generateMesh(verbose);
 }
 
-AdvancedMesh* MarchingCubes::generateAdvancedMeshFromVolume(Volume* volume)
+AdvancedMesh* MarchingCubes::generateAdvancedMeshFromVolume(Volume* volume, const bool verbose)
 {
     // Reconstruct a watertight mesh from the volume with DMC
     std::unique_ptr< MarchingCubes > workflow = std::make_unique< MarchingCubes >(volume);
 
     // Generate the DMC mesh
-    return workflow->generateAdvancedMesh();
+    return workflow->generateAdvancedMesh(verbose);
 }
 
 }

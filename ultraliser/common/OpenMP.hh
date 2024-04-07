@@ -1,5 +1,5 @@
 /***************************************************************************************************
- * Copyright (c) 2016 - 2021
+ * Copyright (c) 2016 - 2024
  * Blue Brain Project (BBP) / Ecole Polytechnique Federale de Lausanne (EPFL)
  *
  * Author(s)
@@ -30,3 +30,24 @@
 #else
 #define OMP_PARALLEL_FOR
 #endif
+
+static omp_lock_t createOMPLock() {omp_lock_t LOCK; omp_init_lock(&LOCK); return LOCK; }
+
+#ifdef ULTRALISER_USE_OPENMP
+#define CREATE_OMP_LOCK omp_lock_t ULTRALISER_OMP_LOCK = createOMPLock();
+#else
+#define CREATE_OMP_LOCK
+#endif
+
+#ifdef ULTRALISER_USE_OPENMP
+#define OMP_SET_LOCK omp_set_lock(&ULTRALISER_OMP_LOCK );
+#else
+#define OMP_SET_LOCK
+#endif
+
+#ifdef ULTRALISER_USE_OPENMP
+#define OMP_UNSET_LOCK omp_unset_lock(&ULTRALISER_OMP_LOCK );
+#else
+#define OMP_UNSET_LOCK
+#endif
+

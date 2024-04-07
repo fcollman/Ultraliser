@@ -788,7 +788,7 @@ void NeuronSkeletonizer::_reconstructSomaMeshFromProxy(const bool verbose)
     const auto& meshBoundingBox = pMaxInput - pMinInput;
 
     // Construct the volume
-    Volume* somaVolume = new Volume(pMinInput, pMaxInput, 128, 0.1, VOLUME_TYPE::BIT, verbose);
+    Volume* somaVolume = new Volume(pMinInput, pMaxInput, 128, 0.1, VOLUME_TYPE::UI8, verbose);
 
     // Voxelize the proxy mesh
     somaVolume->surfaceVoxelization(_somaProxyMesh, SILENT, false, 1.0);

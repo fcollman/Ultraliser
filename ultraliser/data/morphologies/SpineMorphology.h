@@ -62,6 +62,8 @@ public:
     SpineMorphology(SkeletonBranches branches,
                     const size_t& index);
 
+    ~SpineMorphology();
+
 public:
 
     /**

@@ -102,7 +102,7 @@ void Skeletonizer::_computeVolumeFromMesh()
     {
         // Create the volume extent
         _volume = new Volume(_pMinMesh, _pMaxMesh,
-                             _voxelizationOptions.volumeResolution,
+                             256, // _voxelizationOptions.volumeResolution,
                              _voxelizationOptions.edgeGapPrecentage,
                              _voxelizationOptions.volumeType,
                              _voxelizationOptions.verbose);
@@ -124,6 +124,24 @@ void Skeletonizer::_computeVolumeFromMesh()
         }
         bordeVoxels.clear();
         _volume->surfaceVoxelization(_mesh, _voxelizationOptions.verbose, false, 0.5);
+
+        _pMinMesh = _volume->getPMin();
+        _pMaxMesh = _volume->getPMax();
+        _boundsMesh = _pMaxMesh - _pMinMesh;
+        _centerMesh = _pMinMesh + 0.5 * _boundsMesh;
+
+        // Compute the scale factors
+        // Volume bounding box
+        _pMinVolume = Vector3f(0.f);
+        _pMaxVolume = Vector3f((_volume->getWidth() - 1) * 1.f,
+                               (_volume->getHeight() - 1) * 1.f,
+                               (_volume->getDepth() - 1) * 1.f);
+
+        _boundsVolume = _pMaxVolume;
+        _centerVolume = 0.5 * _boundsVolume;
+
+        // Mesh to volume scale factor
+        _scaleFactor = _boundsMesh / _boundsVolume;
     }
 }
 
@@ -1018,10 +1036,20 @@ void Skeletonizer::_exportGraphNodes(const std::string prefix, const bool verbos
     for (size_t i = 0; i < _nodes.size(); ++i)
     {
         auto& node = _nodes[i];
+        if (node->terminal)
+        {
+            stream << node->point.x() << " "
+                   << node->point.y() << " "
+                   << node->point.z() << " "
+                   << node->radius << " T " << NEW_LINE;
+        }
+        else
+        {
         stream << node->point.x() << " "
                << node->point.y() << " "
                << node->point.z() << " "
                << node->radius << NEW_LINE;
+        }
 
         VERBOSE_LOG(LOOP_PROGRESS(progress, _nodes.size()), verbose);
         ++progress;
