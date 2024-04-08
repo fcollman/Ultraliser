@@ -379,7 +379,6 @@ void generateOptimizedMesh(Mesh *mesh, const AppOptions* options)
                              options->exportOBJ, options->exportPLY,
                              options->exportOFF, options->exportSTL);
     }
-
 }
 
 Volume* reconstructVolumeFromMesh(Mesh* inputMesh, const AppOptions* options,

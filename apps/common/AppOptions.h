@@ -734,6 +734,11 @@ public:
     float somaSegmenterVPM = 5;
 
     /**
+     * @brief somaSegmentationRadiusThreshold
+     */
+    float somaSegmentationRadiusThreshold = 2.5;
+
+    /**
      * @brief debugSkeletonization
      * Debugs the skeletonization process by generating the artifacts at every stage.
      */

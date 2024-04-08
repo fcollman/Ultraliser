@@ -31,11 +31,13 @@ namespace Ultraliser
 {
 NeuronSkeletonizer::NeuronSkeletonizer(Volume* volume,
                                        const bool &removeSpinesFromSkeleton,
+                                       const float& somaRadiusCuttoff,
                                        const bool &useAcceleration,
                                        const bool &debugSkeleton,
                                        const std::string debugPrefix)
     : Skeletonizer(volume, useAcceleration, debugSkeleton, debugPrefix)
     , _removeSpinesFromSkeleton(removeSpinesFromSkeleton)
+    , _somaRadiusCutoff(somaRadiusCuttoff)
 {
     /// EMPTY CONSTRUCTOR
 }
@@ -304,7 +306,6 @@ void NeuronSkeletonizer::_updateBranchesTraversalCounts()
     }
 }
 
-
 void NeuronSkeletonizer::_addSomaNode()
 {
     _somaNode = new SkeletonNode();
@@ -344,7 +345,7 @@ void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
 
         /// TODO: This is a magic value, it works now, but we need to find an optimum value based
         /// on some statistical analysis.
-        if (node->radius >= 2.0)
+        if (node->radius >= _somaRadiusCutoff)
         {
             interSomaticNodes.insert({node->index, node->radius});
             interSomaticNodesCount++;

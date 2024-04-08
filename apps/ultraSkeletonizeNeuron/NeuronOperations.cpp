@@ -126,9 +126,9 @@ void projectInputNeuronVolume(const AppOptions* options, const Volume* neuronVol
 
 NeuronSkeletonizer* createNeuronSkeletonizer(const AppOptions* options, Volume* neuronVolume)
 {
-    // Create a skeletonization object
     return new NeuronSkeletonizer(neuronVolume,
                                   options->removeSpinesFromSkeleton,
+                                  options->somaSegmentationRadiusThreshold,
                                   options->useAccelerationStructures,
                                   options->debugSkeletonization,
                                   options->debugPrefix);

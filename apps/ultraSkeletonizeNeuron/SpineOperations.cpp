@@ -279,7 +279,10 @@ void reconstructSpines(NeuronSkeletonizer* skeletonizer,
     for (auto& mesh : proxySpinesMeshes) { if (mesh != nullptr) mesh->~Mesh();  }
 
     // Reconstruct the spine morphologies
-    reconstructSpineMorphologies(spinesMeshes, proxySpinesMorphologies, options);
+    if (options->exportSpinesSWCMorphologies)
+    {
+        reconstructSpineMorphologies(spinesMeshes, proxySpinesMorphologies, options);
+    }
 
     // Clear the spine proxy morphologies
     for (auto& morphology : proxySpinesMorphologies)

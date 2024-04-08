@@ -50,6 +50,7 @@ public:
      */
     NeuronSkeletonizer(Volume *volume,
                        const bool &removeSpinesFromSkeleton = true,
+                       const float& somaRadiusCutoff = DEFAULT_SOMA_RADIUS_CUTOFF,
                        const bool &useAcceleration = true,
                        const bool &debugSkeleton = false,
                        const std::string debugPrefix = NONE);
@@ -412,6 +413,11 @@ private:
      * @brief _removeSpinesFromSkeleton
      */
     const bool _removeSpinesFromSkeleton;
+
+    /**
+     * @brief _somaRadiusCutoff
+     */
+    const float _somaRadiusCutoff;
 
     /**
      * @brief _somaProxyMesh

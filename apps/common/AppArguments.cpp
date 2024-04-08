@@ -672,6 +672,15 @@ void AppArguments::addNeuronalMorphologyExportArguments()
     _args->addArgument(&fixSomaSlicingArtifacts);
     _options->fixSomaSlicingArtifacts = _args->getBoolValue(&fixSomaSlicingArtifacts);
 
+    Argument somaSegmentationRadiusThreshold(
+        "--soma-segmentation-radius-threshold",
+        ARGUMENT_TYPE::FLOAT,
+        "The Default value is 2.0 microns.",
+        ARGUMENT_PRESENCE::OPTIONAL,
+        "2.0");
+    _args->addArgument(&somaSegmentationRadiusThreshold);
+    _options->somaSegmentationRadiusThreshold = _args->getFloatValue(&somaSegmentationRadiusThreshold);
+
     Argument somaSegmenterVPM(
                 "--soma-segmenter-vpm",
                 ARGUMENT_TYPE::FLOAT,

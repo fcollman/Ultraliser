@@ -286,6 +286,7 @@
 
 #define DEFAULT_SPINES_VOXELS_PER_MICRON        25
 #define DEFAULT_SMOOTHING_ITERATIONS            10
+#define DEFAULT_SOMA_RADIUS_CUTOFF              2.0
 
 // Application done
 #define ULTRALISER_DONE                         printf("\n"); return EXIT_SUCCESS;
