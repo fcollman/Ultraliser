@@ -25,6 +25,7 @@
 #include <common/Common.h>
 #include <utilities/Utilities.h>
 #include <utilities/TypeConversion.h>
+#include <math/Vector3f.h>
 
 namespace Ultraliser
 {
@@ -1145,6 +1146,71 @@ void exportPLY(const std::string &prefix,
 
     // Close the file
     fclose(filePointer);
+}
+
+// Function to perform K-means clustering
+std::vector<Vector3f> clusterVertices(const Vector3f* vertices,
+                                      const size_t numberVertices,
+                                      size_t numClusters)
+{
+    std::vector<Vector3f> centroids(numClusters);
+    std::vector<size_t> clusterAssignment(numberVertices);
+
+    // Randomly initialize centroids
+    srand(time(nullptr));
+    for (size_t i = 0; i < numClusters; ++i)
+    {
+        size_t randomIndex = static_cast< size_t >(rand() % numberVertices);
+        centroids[i] = vertices[randomIndex];
+    }
+
+    bool converged = false;
+    while (!converged)
+    {
+        // Assign each vertex to the nearest centroid
+        converged = true;
+        for (size_t i = 0; i < numberVertices; ++i)
+        {
+            float minDistance = std::numeric_limits<float>::max();
+            int64_t closestCluster = -1;
+            for (size_t j = 0; j < numClusters; ++j)
+            {
+                float d = vertices[i].distance(centroids[j]);
+                if (d < minDistance)
+                {
+                    minDistance = d;
+                    closestCluster = j;
+                }
+            }
+            if (clusterAssignment[i] != closestCluster)
+            {
+                clusterAssignment[i] = closestCluster;
+                converged = false;
+            }
+        }
+
+        // Update centroids
+        std::vector< size_t > clusterCounts(numClusters, 0);
+        std::vector<Vertex> sum(numClusters);
+        for (size_t i = 0; i < numberVertices; ++i)
+        {
+            int cluster = clusterAssignment[i];
+            sum[cluster].x() += vertices[i].x();
+            sum[cluster].y() += vertices[i].y();
+            sum[cluster].z() += vertices[i].z();
+            clusterCounts[cluster]++;
+        }
+        for (size_t i = 0; i < numClusters; ++i)
+        {
+            if (clusterCounts[i] > 0) {
+                centroids[i].x() = sum[i].x() / clusterCounts[i];
+                centroids[i].y() = sum[i].y() / clusterCounts[i];
+                centroids[i].z() = sum[i].z() / clusterCounts[i];
+            }
+        }
+    }
+
+    return centroids;
 }
 
 }

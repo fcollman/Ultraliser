@@ -78,6 +78,16 @@ float computeMeshSurfaceArea(const Vertex* vertices,
                              const bool& verbose = true);
 
 /**
+ * @brief clusterVertices
+ * @param vertices
+ * @param numberVertices
+ * @param numClusters
+ * @return
+ */
+std::vector<Vector3f> clusterVertices(const Vector3f* vertices,
+                                      const size_t numberVertices,
+                                      size_t numClusters);
+/**
  * @brief importOBJ
  * @param file
  * @param vertices

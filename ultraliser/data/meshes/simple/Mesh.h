@@ -459,6 +459,12 @@ public:
                     const bool verbose = VERBOSE);
 
     /**
+     * @brief simplifyUsingVertexClustering
+     * @param ratio
+     */
+    void simplifyUsingVertexClustering(const float ratio);
+
+    /**
      * @brief optimizeUsingDefaultParameters
      */
     void optimizeUsingDefaultParameters();

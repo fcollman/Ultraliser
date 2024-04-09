@@ -3269,4 +3269,41 @@ void Mesh::removeFloatingFaces()
     }
 }
 
+void Mesh::simplifyUsingVertexClustering(const float targetRatio)
+{
+    // Compute the number of cluster based on the target ration of the mesh
+    size_t numberCluster = _numberVertices * targetRatio;
+
+    std::vector< Vector3f > centroids = clusterVertices(_vertices, _numberVertices, numberCluster);
+
+    bool* mergedFlags = new bool[_numberVertices];
+    for (size_t i = 0; i < _numberVertices; ++i)
+        mergedFlags[i] = false;
+
+    for (size_t i = 0; i < _numberVertices; i++)
+    {
+        auto& vertex = _vertices[i];
+        auto& merged = mergedFlags[i];
+
+        if (!merged)
+        {
+            float minDistance = std::numeric_limits<float>::max();
+            int closestCentroid = -1;
+            for (size_t j = 0; j < centroids.size(); ++j)
+            {
+                float d = vertex.distance(centroids[j]);
+                if (d < minDistance)
+                {
+                    minDistance = d;
+                    closestCentroid = j;
+                }
+            }
+            vertex = centroids[closestCentroid];
+            merged = true;
+        }
+    }
+
+    /// TODO: Update the vertex and triangle removel.
+}
+
 }
