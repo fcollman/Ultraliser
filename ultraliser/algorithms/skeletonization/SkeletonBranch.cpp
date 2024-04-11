@@ -231,6 +231,80 @@ bool SkeletonBranch::isInsideSoma()
     return _flags->bit(INSIDE_SOMA_BIT_INDEX);
 }
 
+void SkeletonBranch::resampleRootBranchAdaptively()
+{
+    // Get the total number of samples in the section
+    const size_t numberSamples = nodes.size();
+
+    // If the section has less than three samples, return as it is not valid
+    if (numberSamples < 3)
+        return;
+
+    // TODO: If the section has only three samples, it is better not to resample it UFN
+    if (numberSamples == 3)
+        return;
+
+    /// Initialization
+    // Make a copy of the skeleton nodes
+    SkeletonNodes newNodes;
+    for (size_t i = 1; i < nodes.size(); ++i) { newNodes.push_back(nodes[i]); }
+
+    /// Resample the section
+    size_t nodeIndex = 0;
+    // Resample until there is nothing to resample
+    while (true)
+    {
+        // Break if the last sample is reached
+        if (nodeIndex >= newNodes.size() - 2) { break; }
+
+        // Compute the distance between the current sample and the next one
+        auto& sample0 = newNodes[nodeIndex];
+        auto& sample1 = newNodes[nodeIndex + 1];
+
+        const auto distance = sample1->point.distance(sample0->point);
+
+        // Get the extent of the sample, where no other samples should be located
+        const auto extent = sample1->radius + sample0->radius;
+
+        // If the next sample is located within the extent of the current sample, then remove it
+        if (distance < extent)
+        {
+            newNodes.erase(newNodes.begin() + nodeIndex + 1);
+            continue;
+        }
+
+        // If the sample is at a greater step, then add a new sample
+        else
+        {
+            // Compute the radius of the new sample
+            const auto radius = (sample0->radius + sample1->radius) * 0.5f;
+
+            // Compute the direction of the next sample
+            const auto direction = (sample1->point - sample0->point).normalized();
+
+            // Compute the location of the new sample
+            const auto point = sample0->point + (direction * extent);
+
+            // Construct the new sample
+            auto newNode = new SkeletonNode(nodeIndex + 1, point, radius);
+
+            // Insert the new node to the list
+            newNodes.insert(newNodes.begin() + nodeIndex + 1, newNode);
+
+            // Update the index
+            nodeIndex++;
+
+            // If we reach the last sample, then break
+            if (nodeIndex >= newNodes.size() - 1) { break; }
+        }
+    }
+
+    /// Clean-up
+    nodes.clear();
+    nodes.shrink_to_fit();
+    nodes = newNodes;
+}
+
 void SkeletonBranch::resampleAdaptively()
 {
     // Get the total number of samples in the section
@@ -250,7 +324,7 @@ void SkeletonBranch::resampleAdaptively()
     for (size_t i = 0; i < nodes.size(); ++i) { newNodes.push_back(nodes[i]); }
 
     /// Resample the section
-    size_t nodeIndex = isRoot()? 1 : 0;
+    size_t nodeIndex = 0;
     // Resample until there is nothing to resample
     while (true)
     {

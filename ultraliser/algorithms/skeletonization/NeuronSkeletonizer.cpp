@@ -1436,7 +1436,7 @@ void NeuronSkeletonizer::exportSomaMesh(const std::string& prefix,
 }
 
 SkeletonNodes NeuronSkeletonizer::_constructSWCTable(const bool& resampleSkeleton,
-                                                    const bool verbose)
+                                                     const bool verbose)
 {
     // A table, or list that contains all the nodes in order
     SkeletonNodes swcNodes;
@@ -1462,7 +1462,11 @@ SkeletonNodes NeuronSkeletonizer::_constructSWCTable(const bool& resampleSkeleto
 
             // Do not resample the root sections
             // TODO: Fix the soma segment resampling issue
-            if (branch->isRoot()) continue;
+            if (branch->isRoot())
+            {
+                branch->resampleRootBranchAdaptively();
+                continue;
+            }
 
             // Resample only valid branches
             if (branch->isValid())

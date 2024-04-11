@@ -251,6 +251,11 @@ public:
     void resampleAdaptively();
 
     /**
+     * @brief resampleRootBranchAdaptively
+     */
+    void resampleRootBranchAdaptively();
+
+    /**
      * @brief getBoundingBox
      * Gets the bounding box or the extent of the branch.
      * @param pMin
