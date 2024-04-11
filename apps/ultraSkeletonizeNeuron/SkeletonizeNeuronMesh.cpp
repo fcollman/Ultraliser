@@ -77,29 +77,6 @@ void run(int argc , const char** argv)
     // Parse the arguments and get the tool options
     auto options = parseArguments(argc, argv);
 
-
-
-    Circle circle(Vector3f(5, 2, 3.0), 1.0, 50);
-    circle.exportOBJ("/home/abdellah/testing_circle/circle2");
-
-    // circle.rotateTowardsTargetPoint(Vector3f(0.0, 0.0, 0.0));
-    // circle.exportOBJ("/home/abdellah/testing_circle/circle2o");
-
-
-    circle.rotateTowardsTargetPoint(Vector3f(1.0, 0.0, 0.0));
-    circle.exportOBJ("/home/abdellah/testing_circle/circle2x");
-
-    circle.rotateTowardsTargetPoint(Vector3f(0.0, 1.0, 0.0));
-    circle.exportOBJ("/home/abdellah/testing_circle/circle2y");
-
-    circle.rotateTowardsTargetPoint(Vector3f(0.0, 0.0, 1.0));
-    circle.exportOBJ("/home/abdellah/testing_circle/circle2z");
-
-    circle.rotateTowardsTargetPoint(Vector3f(7.0, -2.0, 3.0));
-    circle.exportOBJ("/home/abdellah/testing_circle/circle2p");
-
-    exit(0);
-
     // Load the input mesh of the neuron
     auto inputNeuronMesh = loadInputMesh(options);
 

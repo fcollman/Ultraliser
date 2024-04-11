@@ -26,6 +26,7 @@
 #include <algorithms/mcs/DualMarchingCubes.h>
 #include <algorithms/skeletonization/graphs/Graphs.h>
 #include <algorithms/skeletonization/SkeletonizerUtils.h>
+#include <geometry/Circle.h>
 
 namespace Ultraliser
 {
@@ -1489,6 +1490,41 @@ SkeletonNodes NeuronSkeletonizer::_constructSWCTable(const bool& resampleSkeleto
     return swcNodes;
 }
 
+void NeuronSkeletonizer::_constructCrossSectionalProfiles(const SkeletonNodes &swcNodes)
+{
+    std::vector< Circle > circles;
+
+    // Avoid the soma
+    for (size_t i = 1; i < swcNodes.size() - 1; ++i)
+    {
+        const auto n = swcNodes[i];
+
+
+
+        const auto node = swcNodes[n->swcIndex - 1];
+
+        const auto prevNode = swcNodes[node->prevSampleSWCIndex - 1];
+
+        const auto p1 = node->point;
+        const auto p2 = prevNode->point;
+        const auto radius = node->radius * 2;
+
+        Circle circle(p2, radius, 16);
+
+        circle.rotateTowardsTargetPoint(p1);
+        circles.push_back(circle);
+    }
+
+    for (size_t i = 0; i < circles.size(); ++i)
+    {
+        std::stringstream stream;
+        stream << "/home/abdellah/testing_circle/profile" << i;
+        circles[i].exportOBJ(stream.str());
+    }
+
+    exit(0);
+}
+
 void NeuronSkeletonizer::exportSWCFile(const std::string& prefix,
                                        const bool& resampleSkeleton,
                                        const bool verbose)
@@ -1498,6 +1534,8 @@ void NeuronSkeletonizer::exportSWCFile(const std::string& prefix,
     VERBOSE_LOG(LOG_STATUS("Exporting Neuron to SWC file: [ %s ]", filePath.c_str()), verbose);
 
     auto swcNodes = _constructSWCTable(resampleSkeleton, verbose);
+
+    _constructCrossSectionalProfiles(swcNodes);
 
     std::fstream stream;
     stream.open(filePath, std::ios::out);

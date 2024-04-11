@@ -407,6 +407,9 @@ private:
      */
     SkeletonNodes _constructSWCTable(const bool& resampleSkeleton,
                                      const bool verbose = VERBOSE);
+
+    void _constructCrossSectionalProfiles(const SkeletonNodes& swcNodes);
+
 private:
 
     /**

@@ -85,7 +85,7 @@ void Circle::rotateTowardsTargetPoint(const Vector3f& targetPoint)
     auto rotationMatrix = Matrix4f::rotation(q.normalized());
 
     // Translate all the vertices to the center at first
-    for (auto& vertex : _vertices) { vertex = vertex - _center; vertex.print(); }
+    for (auto& vertex : _vertices) { vertex = vertex - _center; }
 
     // Rotate the vertices using the computed rotation matrix
     _rotate(rotationMatrix);

@@ -1493,12 +1493,6 @@ std::vector< Vector3f > Skeletonizer::getShellPoints()
     return _shellPoints;
 }
 
-
-
-
-
-
-
 void Skeletonizer::_collectSWCNodes(const SkeletonBranch* branch, SkeletonNodes& swcNodes,
                                          int64_t& swcIndex, int64_t branchingNodeSWCIndex)
 {
