@@ -317,6 +317,15 @@ public:
      * @return
      */
     static Vector3f cross(const Vector3f& v0, const Vector3f& v1);
+
+    /**
+     * @brief normal
+     * @param v0
+     * @param v1
+     * @param v3
+     * @return
+     */
+    static Vector3f normal(const Vector3f& v0, const Vector3f& v1, const Vector3f& v3);
     
     /**
      * @brief lerp

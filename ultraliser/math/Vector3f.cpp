@@ -334,6 +334,14 @@ Vector3f Vector3f::cross(const Vector3f& v0, const Vector3f& v1)
                     v0.x() * v1.y() - v0.y() * v1.x());
 }
 
+Vector3f Vector3f::normal(const Vector3f& v1, const Vector3f& v2, const Vector3f& v3)
+{
+    // Construct the verctors
+    const auto vec1 = (v2 - v1).normalized();
+    const auto vec2 = (v3 - v1).normalized();
+    return Vector3f::cross(vec1, vec2).normalized();
+}
+
 Vector3f Vector3f::lerp(const Vector3f& v0, const Vector3f& v1, float alpha)
 {
     return alpha * (v1 - v0) + v0;
