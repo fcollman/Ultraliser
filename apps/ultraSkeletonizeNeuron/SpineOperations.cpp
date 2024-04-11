@@ -169,15 +169,15 @@ void transformSpinesToOrigin(Meshes& dendriticSpineMeshes,
         // Get the base point to translate the spine to the origin
         const auto basePoint = proxySpineMorphologies[i]->getBasePoint();
 
-        // Translate the spine mesh
-        spineMesh->translate(-basePoint);
-
         // Get thr orientation data needed to make the spine point up towards the Y-axis
         const auto spineDirection = proxySpineMorphologies[i]->getDirection().normalized();
         const auto targetPoint = basePoint + 5 * Vector3f(0, 1, 0);
 
         // Rotate the spine towards the Y-axis
         spineMesh->rotateTowardsTargetPoint(basePoint, spineDirection, targetPoint);
+
+        // Translate the spine mesh
+       spineMesh->translate(-basePoint);
 
         LOOP_PROGRESS(i, dendriticSpineMeshes.size());
     }
@@ -249,7 +249,7 @@ void reconstructSpines(NeuronSkeletonizer* skeletonizer,
 
     // Reconstruct dendritic proxy spine meshes (not final and located on spines)
     auto proxySpinesMeshes = skeletonizer->reconstructSpineMeshes(
-                inputNeuronMesh, options->spinesVoxelsPerMicron, 0.2);
+                inputNeuronMesh, options->spinesVoxelsPerMicron, 0.1);
 
     // Export the dendritic proxy spine meshes, if needed
     if (options->exportDenditicSpinesProxyMeshes)
@@ -295,7 +295,6 @@ void reconstructSpines(NeuronSkeletonizer* skeletonizer,
 
 }
 
-
 void exportSpineMeshes(NeuronSkeletonizer* skeletonizer,
                        const Mesh* inputNeuronMesh,
                        const AppOptions* options)
@@ -316,6 +315,12 @@ void exportSpineMeshes(NeuronSkeletonizer* skeletonizer,
     LOOP_STARTS("Spine Remeshing");
     for (size_t i = 0; i < proxySpineMeshes.size(); ++i)
     {
+        if (proxySpineMeshes[i] == nullptr)
+        {
+            remeshedSpines[i] = nullptr;
+            continue;
+        }
+
         remeshedSpines[i] = remeshSpine(proxySpineMeshes[i], options->spinesVoxelsPerMicron, VERBOSE);
 
         LOOP_PROGRESS(i, proxySpineMeshes.size());

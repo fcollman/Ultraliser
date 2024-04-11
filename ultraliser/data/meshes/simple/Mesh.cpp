@@ -328,8 +328,22 @@ void Mesh::rotateTowardsTargetPoint(const Vector3f& location,
     auto q = Vector3f::rotationDifference(upVector, direction);
     auto rotationMatrix = Matrix4f::rotation(q.normalized());
 
+    // Translate all the vertices to the center at first
+    for (size_t i = 0; i < _numberVertices; ++i)
+    {
+        auto& vertex = _vertices[i];
+        vertex = vertex - location;
+    }
+
     // Rotate using the computed rotation matrix
     rotate(rotationMatrix);
+
+    // Translate back to the center
+    for (size_t i = 0; i < _numberVertices; ++i)
+    {
+        auto& vertex = _vertices[i];
+        vertex = vertex + location;
+    }
 }
 
 void Mesh::append(const Mesh* inputMesh)

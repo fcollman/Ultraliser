@@ -1229,6 +1229,8 @@ Meshes NeuronSkeletonizer::reconstructSpineMeshes(const Mesh* neuronMesh,
 
     auto spineProxyMorphologies = reconstructSpineProxyMorphologies();
 
+    spineMeshes.resize(_spineRoots.size());
+
     TIMER_RESET;
     LOOP_STARTS("Mapping Spine Meshes");
     for (size_t i = 0; i < _spineRoots.size(); ++i)
@@ -1247,7 +1249,11 @@ Meshes NeuronSkeletonizer::reconstructSpineMeshes(const Mesh* neuronMesh,
             spineModelMesh->kdTreeMapping(neuronKdTree, SILENT);
 
             // Add the mesh to the list
-            spineMeshes.push_back(spineModelMesh);
+            spineMeshes[i] = spineModelMesh;
+        }
+        else
+        {
+            spineMeshes[i] = nullptr;
         }
 
         // Update the progress bar
