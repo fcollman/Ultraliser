@@ -32,10 +32,10 @@ namespace Ultraliser
 {
 NeuronSkeletonizer::NeuronSkeletonizer(Volume* volume,
                                        const bool &removeSpinesFromSkeleton,
-                                       const float& somaRadiusCuttoff,
                                        const bool &useAcceleration,
                                        const bool &debugSkeleton,
-                                       const std::string debugPrefix)
+                                       const std::string debugPrefix,
+                                       const float& somaRadiusCuttoff)
     : Skeletonizer(volume, useAcceleration, debugSkeleton, debugPrefix)
     , _removeSpinesFromSkeleton(removeSpinesFromSkeleton)
     , _somaRadiusCutoff(somaRadiusCuttoff)
@@ -1517,7 +1517,7 @@ void NeuronSkeletonizer::exportCrossSectionalProfiles(const std::string& prefix,
         const auto p2 = prevNode->point;
         const auto radius = node->radius * 2;
 
-        Circle circle(p2, radius, 16);
+        Circle circle(p2, radius, 50);
 
         circle.rotateTowardsTargetPoint(p1);
 
@@ -1532,43 +1532,6 @@ void NeuronSkeletonizer::exportCrossSectionalProfiles(const std::string& prefix,
         stream << prefix << i;
         circles[i].exportOBJ(stream.str());
     }
-
-}
-
-void NeuronSkeletonizer::_constructCrossSectionalProfiles(const SkeletonNodes &swcNodes)
-{
-    std::vector< Circle > circles;
-
-    // Avoid the soma
-    for (size_t i = 1; i < swcNodes.size() - 1; ++i)
-    {
-        const auto n = swcNodes[i];
-
-        const auto node = swcNodes[n->swcIndex - 1];
-
-        const auto prevNode = swcNodes[node->prevSampleSWCIndex - 1];
-
-        const auto p1 = node->point;
-        const auto p2 = prevNode->point;
-        const auto radius = node->radius * 2;
-
-        Circle circle(p2, radius, 16);
-
-        circle.rotateTowardsTargetPoint(p1);
-
-        circle.mapToPointCloud(_shellPoints);
-
-        circles.push_back(circle);
-    }
-
-    for (size_t i = 0; i < circles.size(); ++i)
-    {
-        std::stringstream stream;
-        stream << "/home/abdellah/testing_circle/profile" << i;
-        circles[i].exportOBJ(stream.str());
-    }
-
-    exit(0);
 }
 
 void NeuronSkeletonizer::exportSWCFile(const std::string& prefix,
@@ -1580,8 +1543,6 @@ void NeuronSkeletonizer::exportSWCFile(const std::string& prefix,
     VERBOSE_LOG(LOG_STATUS("Exporting Neuron to SWC file: [ %s ]", filePath.c_str()), verbose);
 
     auto swcNodes = _constructSWCTable(resampleSkeleton, verbose);
-
-    _constructCrossSectionalProfiles(swcNodes);
 
     std::fstream stream;
     stream.open(filePath, std::ios::out);

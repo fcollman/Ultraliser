@@ -112,4 +112,14 @@ void runSpineSegmentationOperations(const AppOptions* options,
                                     NeuronSkeletonizer* skeletonizer,
                                     Mesh* neuronMesh);
 
+/**
+ * @brief createMeshFromSections
+ * @param sections
+ * @param options
+ * @return
+ */
+Mesh* createMeshFromSections(Sections& sections, AppOptions* options);
+
+Mesh* createHighResolutionMesh(Mesh* inputMesh, float voxelsPerMicron);
+
 }

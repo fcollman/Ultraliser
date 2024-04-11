@@ -73,6 +73,53 @@ Mesh* reconstructNeuronMeshFromVolume(Volume* neuronVolume, AppOptions* options,
     return reconstructedNeuronMesh;
 }
 
+Mesh* createHighResolutionMesh(Mesh* inputMesh, float voxelsPerMicron)
+{
+    // Get relaxed bounding box to build the volume
+    Vector3f pMinInput, pMaxInput;
+    inputMesh->computeBoundingBox(pMinInput, pMaxInput);
+    const auto& meshBoundingBox = pMaxInput - pMinInput;
+
+    // Get the largest dimension
+    const auto largestDimension = meshBoundingBox.getLargestDimension();
+
+    size_t resolution = static_cast< size_t >(voxelsPerMicron * largestDimension);
+
+    LOG_SUCCESS("Volume resolution [%d], Largest dimension [%f], Voxel size [%.5f]",
+                resolution, largestDimension, largestDimension / resolution);
+
+    // Construct the volume
+    auto volume =  new Volume(pMinInput, pMaxInput, resolution, 0.1,
+                      VOLUME_TYPE::BIT, true);
+
+    // Adaptive and conservative Voxelization
+    volume->surfaceVoxelization(inputMesh, VERBOSE, false, 1.0);
+    volume->solidVoxelization(Volume::SOLID_VOXELIZATION_AXIS::XYZ, VERBOSE);
+
+    // Remove the border voxels that span less than half the voxel
+    auto bordeVoxels = volume->searchForBorderVoxels(true);
+    for (size_t i = 0; i < bordeVoxels.size(); ++i)
+    {
+        for (size_t j = 0; j < bordeVoxels[i].size(); ++j)
+        {
+            auto voxel = bordeVoxels[i][j];
+            volume->clear(voxel.x(), voxel.y(), voxel.z());
+        }
+        bordeVoxels[i].clear();
+    }
+    bordeVoxels.clear();
+    volume->surfaceVoxelization(inputMesh, VERBOSE, false, 0.5);
+
+    // Construct the mesh using the DMC technique
+    auto reconstructedNeuronMesh = DualMarchingCubes::generateMeshFromVolume(volume);
+
+    // Smooth the resulting surface mesh
+    reconstructedNeuronMesh->smoothSurface(NEURON_SMOOTHING_ITERATIONS, true);
+
+    // Return a pointer to the resulting neuron
+    return reconstructedNeuronMesh;
+}
+
 Mesh* remeshNeuron(Mesh* inputNeuronMesh, AppOptions* options, const bool verbose)
 {
     // Compute the bounding box of the input neuron mesh
@@ -128,10 +175,10 @@ NeuronSkeletonizer* createNeuronSkeletonizer(const AppOptions* options, Volume* 
 {
     return new NeuronSkeletonizer(neuronVolume,
                                   options->removeSpinesFromSkeleton,
-                                  options->somaSegmentationRadiusThreshold,
                                   options->useAccelerationStructures,
                                   options->debugSkeletonization,
-                                  options->debugPrefix);
+                                  options->debugPrefix,
+                                  options->somaSegmentationRadiusThreshold);
 }
 
 void projectSkeletonVolume(const AppOptions* options, const NeuronSkeletonizer* skeletonizer)

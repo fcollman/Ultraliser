@@ -95,11 +95,11 @@ void run(int argc , const char** argv)
     // Run the skeletonization operations
     runNeuronSkeletonizationOperations(options, skeletonizer);
 
-    // Run cross-sectional variations detection along the arbors
-    skeletonizer->exportCrossSectionalProfiles(options->morphologyPrefix,
-                                               inputNeuronMesh,
-                                               true,
-                                               false);
+//    // Run cross-sectional variations detection along the arbors
+//    skeletonizer->exportCrossSectionalProfiles(options->morphologyPrefix,
+//                                               inputNeuronMesh,
+//                                               true,
+//                                               false);
 
     // Run the soma export operations
     runSomaExportOperations(options, skeletonizer);
@@ -108,6 +108,27 @@ void run(int argc , const char** argv)
     runSpineSegmentationOperations(options, skeletonizer, inputNeuronMesh);
 
 
+
+    // Get the brancehs
+    auto sections = skeletonizer->getValidSections();
+
+    // Construct mesh from sections
+    auto validSectionsMesh = createMeshFromSections(sections, options);
+
+    // Append the valid sections mesh to the input mesh
+    inputNeuronMesh->append(validSectionsMesh);
+
+    // Create a new big mesh from the input neuron mesh
+    auto highMesh = createHighResolutionMesh(inputNeuronMesh, 20);
+
+    highMesh->exportMesh(options->meshPrefix + "-clean", true);
+
+
+    // Run cross-sectional variations detection along the arbors
+    skeletonizer->exportCrossSectionalProfiles(options->morphologyPrefix,
+                                               highMesh,
+                                               true,
+                                               false);
 
 }
 

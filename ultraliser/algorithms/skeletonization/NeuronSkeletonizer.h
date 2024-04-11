@@ -50,10 +50,10 @@ public:
      */
     NeuronSkeletonizer(Volume *volume,
                        const bool &removeSpinesFromSkeleton = true,
-                       const float& somaRadiusCutoff = DEFAULT_SOMA_RADIUS_CUTOFF,
                        const bool &useAcceleration = true,
                        const bool &debugSkeleton = false,
-                       const std::string debugPrefix = NONE);
+                       const std::string debugPrefix = NONE,
+                       const float& somaRadiusCutoff = DEFAULT_SOMA_RADIUS_CUTOFF);
     ~NeuronSkeletonizer();
 
     /**
@@ -171,6 +171,13 @@ public:
     Meshes reconstructSpineMeshes(const Mesh* neuronMesh,
                                   const float& voxelsPerMicron,
                                   const float& edgeGap = 0.1);
+
+    /**
+     * @brief getBranches
+     * @return
+     */
+    SkeletonBranches& getBranches() { return _branches; }
+
     /**
      * @brief exportSpineLocations
      * @param prefix
@@ -418,8 +425,6 @@ private:
      */
     SkeletonNodes _constructSWCTable(const bool& resampleSkeleton,
                                      const bool verbose = VERBOSE);
-
-    void _constructCrossSectionalProfiles(const SkeletonNodes& swcNodes);
 
 private:
 
