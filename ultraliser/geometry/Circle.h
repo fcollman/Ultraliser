@@ -9,6 +9,8 @@
 #include <math/Functions.h>
 #include <common/Common.h>
 #include <math/Matrix4f.h>
+#include <algorithms/utilities/KdTree.h>
+
 
 namespace Ultraliser
 {
@@ -53,6 +55,12 @@ public:
      * @param pointCloud
      */
     void mapToPointCloud( const std::vector< Vector3f >& pointCloud);
+
+    /**
+     * @brief mapToPointCloud
+     * @param kdTree
+     */
+    void mapToPointCloud(const KdTree& kdTree);
 
     /**
      * @brief printData
@@ -114,6 +122,11 @@ private:
      * @param matrix
      */
     void _rotate(const Matrix4f& matrix);
+
+    /**
+     * @brief _recomputeCenter
+     */
+    void _recomputeCenter();
 
 private:
 

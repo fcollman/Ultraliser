@@ -1490,16 +1490,24 @@ SkeletonNodes NeuronSkeletonizer::_constructSWCTable(const bool& resampleSkeleto
     return swcNodes;
 }
 
-void NeuronSkeletonizer::_constructCrossSectionalProfiles(const SkeletonNodes &swcNodes)
+void NeuronSkeletonizer::exportCrossSectionalProfiles(const std::string& prefix,
+                                                      const Mesh* neuronMesh,
+                                                      const bool& resampleSkeleton,
+                                                      const bool verbose)
 {
+    auto swcNodes = _constructSWCTable(resampleSkeleton, verbose);
+
+    auto neuronPointCloud = neuronMesh->constructPointCloud();
+
+    // Build the kdTree from the point cloud
+    auto kdTree = KdTree::from(neuronPointCloud);
+
     std::vector< Circle > circles;
 
     // Avoid the soma
     for (size_t i = 1; i < swcNodes.size() - 1; ++i)
     {
         const auto n = swcNodes[i];
-
-
 
         const auto node = swcNodes[n->swcIndex - 1];
 
@@ -1512,6 +1520,44 @@ void NeuronSkeletonizer::_constructCrossSectionalProfiles(const SkeletonNodes &s
         Circle circle(p2, radius, 16);
 
         circle.rotateTowardsTargetPoint(p1);
+
+        circle.mapToPointCloud(kdTree);
+
+        circles.push_back(circle);
+    }
+
+    for (size_t i = 0; i < circles.size(); ++i)
+    {
+        std::stringstream stream;
+        stream << prefix << i;
+        circles[i].exportOBJ(stream.str());
+    }
+
+}
+
+void NeuronSkeletonizer::_constructCrossSectionalProfiles(const SkeletonNodes &swcNodes)
+{
+    std::vector< Circle > circles;
+
+    // Avoid the soma
+    for (size_t i = 1; i < swcNodes.size() - 1; ++i)
+    {
+        const auto n = swcNodes[i];
+
+        const auto node = swcNodes[n->swcIndex - 1];
+
+        const auto prevNode = swcNodes[node->prevSampleSWCIndex - 1];
+
+        const auto p1 = node->point;
+        const auto p2 = prevNode->point;
+        const auto radius = node->radius * 2;
+
+        Circle circle(p2, radius, 16);
+
+        circle.rotateTowardsTargetPoint(p1);
+
+        circle.mapToPointCloud(_shellPoints);
+
         circles.push_back(circle);
     }
 

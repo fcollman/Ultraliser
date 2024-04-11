@@ -55,9 +55,48 @@ void Circle::_rotate(const Matrix4f& matrix)
     }
 }
 
-void Circle::mapToPointCloud( const std::vector< Vector3f >& pointCloud)
+void Circle::mapToPointCloud(const std::vector< Vector3f >& pointCloud)
 {
+    // Build the kdTree from the point cloud
+    auto kdTree = KdTree::from(pointCloud);
 
+    // Find the nearest point and map
+    OMP_PARALLEL_FOR
+    for (size_t i = 0; i < _vertices.size(); ++i)
+    {
+        auto nearestPoint = kdTree.findNearestPoint(_vertices[i]);
+        _vertices[i].x() = nearestPoint.position.x();
+        _vertices[i].y() = nearestPoint.position.y();
+        _vertices[i].z() = nearestPoint.position.z();
+    }
+
+    _recomputeCenter();
+}
+
+void Circle::mapToPointCloud(const KdTree& kdTree)
+{
+    // Find the nearest point and map
+    OMP_PARALLEL_FOR
+    for (size_t i = 0; i < _vertices.size(); ++i)
+    {
+        auto nearestPoint = kdTree.findNearestPoint(_vertices[i]);
+        _vertices[i].x() = nearestPoint.position.x();
+        _vertices[i].y() = nearestPoint.position.y();
+        _vertices[i].z() = nearestPoint.position.z();
+    }
+
+    _recomputeCenter();
+}
+
+void Circle::_recomputeCenter()
+{
+    Vector3f newCenter(0.f);
+    for (const auto& vertex : _vertices)
+    {
+        newCenter += vertex;
+    }
+    newCenter /= _vertices.size();
+    _center = newCenter;
 }
 
 void Circle::getNormals(Vector3f& normal1, Vector3f& normal2) const

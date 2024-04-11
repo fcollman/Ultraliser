@@ -185,6 +185,17 @@ public:
      */
     void exportSpineExtents(const std::string& prefix, const bool verbose = VERBOSE) const;
 
+    /**
+     * @brief exportCrossSectionalProfiles
+     * @param prefix
+     * @param neuronMesh
+     * @param resampleSkeleton
+     * @param verbose
+     */
+    void exportCrossSectionalProfiles(const std::string& prefix,
+                                      const Mesh* neuronMesh,
+                                      const bool& resampleSkeleton,
+                                      const bool verbose);
 private:
 
     /**

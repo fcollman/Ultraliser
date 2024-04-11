@@ -77,7 +77,7 @@ Mesh* SomaSegmenter::segmentSomaMesh(const bool verbose)
     const bool ignoreSpines = false;
     const bool useAcceleration = true;
     const bool ignoreDebugging = false;
-    NeuronSkeletonizer*  skeletonizer = new NeuronSkeletonizer (
+    NeuronSkeletonizer* skeletonizer = new NeuronSkeletonizer (
                 _neuronVolume, ignoreSpines, useAcceleration, ignoreDebugging);
 
     // Initialize the skeletonizer
