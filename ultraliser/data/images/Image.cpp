@@ -21,6 +21,8 @@
 
 #include "Image.h"
 #include <utilities/Utilities.h>
+#include <algorithms/floodfill/FloodFiller.h>
+#include <stack>
 
 namespace Ultraliser
 {
@@ -32,6 +34,19 @@ Image::Image(const size_t &width, const size_t &height)
 {
     // Allocate the memory of the image
     _allocateMemory();
+}
+
+Image::Image(const std::string& imagePath, bool readMask)
+{
+    // Read the image
+    if (readMask)
+    {
+        _readMask(imagePath);
+    }
+    else
+    {
+        _readPPM(imagePath);
+    }
 }
 
 void Image::_allocateMemory()
@@ -62,40 +77,385 @@ size_t Image::dimension(const size_t& i) const
     }
 }
 
+// Function to skip over comments in the PPM file
+void skipComments(std::ifstream& file)
+{
+    char c = file.peek();
+    while (c == '#' || c == '\n' || c == '\r')
+    {
+        // Skip until the end of the line
+        file.ignore(std::numeric_limits< std::streamsize >::max(), '\n');
+        c = file.peek();
+    }
+}
+
+void Image::_readPPM(const std::string &imagePath)
+{
+    struct Pixel {
+        unsigned char red, green, blue;
+    };
+
+    std::ifstream file(imagePath, std::ios::binary);
+    if (!file)
+    {
+        LOG_ERROR("Error: Unable to open file [%s]", imagePath.c_str());
+        return;
+    }
+
+    std::string magic;
+    file >> magic;
+    LOG_INFO("Magic %s", magic.c_str());
+    if (magic != "P6")
+    {
+        LOG_ERROR("Error: Not a valid PPM file [%s]", imagePath.c_str());
+        return;
+    }
+
+    // Skip comments after the magic number
+    skipComments(file);
+
+    file >> _width >> _height;
+    LOG_INFO("Dimensions %d %d", _width, _height);
+    int maxColorValue;
+    file >> maxColorValue;
+
+    if (maxColorValue != 255)
+    {
+        LOG_ERROR("Error: Unsupported max color value. "
+                  "This program only supports 8-bit PPM files.");
+        return;
+    }
+
+    // Allocate the data
+    _data = new uint8_t[_width * _height];
+
+    uint8_t* pixelsData = new uint8_t[_width * _height * 3];
+    file.read(reinterpret_cast< char* >(pixelsData), _width * _height * 3);
+
+    int count = 0;
+    size_t pIndex = 0;
+    for (size_t i = 0; i < _width * _height; ++i)
+    {
+        uint8_t r = unsigned(pixelsData[pIndex]); pIndex++;
+        uint8_t g = unsigned(pixelsData[pIndex]); pIndex++;
+        uint8_t b = unsigned(pixelsData[pIndex]); pIndex++;
+
+        // float pixelValue = (0.2126f * p.red) + (0.7152f * p.green) + (0.0722f * p.blue);
+        const uint8_t value = std::max(std::max(r, g), b);
+        if (value > 0) { count++; }
+
+        // const int64_t index = _width * _height - ii;
+        _data[i] = (value > 0) ? 255 : 0;
+    }
+
+    delete [] pixelsData;
+
+    LOG_INFO("Count : %d", count);
+}
+
+void Image::_readMask(const std::string& imagePath)
+{
+    std::ifstream file(imagePath);
+    if (!file)
+    {
+        LOG_ERROR("Error: Unable to open file [%s]", imagePath.c_str());
+        return;
+    }
+
+    file >> _width >> _height;
+    LOG_INFO("Dimensions %d %d", _width, _height);
+
+    // Allocate the data
+    _data = new uint8_t[_width * _height];
+
+    int count = 0;
+    for (size_t i = 0; i < _width * _height; ++i)
+    {
+        int value;
+        file >> value;
+
+        if (value > 0) { count++; }
+
+        // const int64_t index = _width * _height - ii;
+        _data[i] = value;
+    }
+
+    LOG_INFO("Count : %d", count);
+}
+
+void Image::writeMask(const std::string &prefix) const
+{
+    std::stringstream stream;
+    stream << prefix << ".mask";
+
+    std::ofstream file(stream.str(), std::ios::app);
+
+    // Write the header
+    file << _width << " " << _height << "\n";
+
+    int count = 0;
+    for (size_t i = 0; i < _width * _height; ++i)
+    {
+        int index = i;
+        size_t value = _data[index];
+        if (value > 0) { count++; }
+
+        if (PIXEL_COLOR(_data[index]) == WHITE)
+            value = 255;
+        else if (PIXEL_COLOR(_data[index]) == GRAY)
+            value = 128;
+        else
+            value = 0;
+        file << value << "\n";
+    }
+
+    file.close();
+    LOG_INFO("Count : %d", count);
+}
+
 void Image::writePPM(const std::string &prefix) const
 {
     std::stringstream stream;
     stream << prefix << ".ppm";
-    FILE *image = fopen(stream.str().c_str(), "wb");
-    fprintf(image, "P6\n%ld %ld\n255\n", getWidth(), getHeight());
 
-    size_t index = 0;
-    for (size_t i = 0; i < _width; ++i)
+    std::ofstream file(stream.str(), std::ios::binary);
+
+    // Write the header
+    file << "P6\n" << _width << " " << _height << "\n255\n";
+
+    int count = 0;
+    for (size_t i = 0; i < _width * _height; ++i)
     {
-        for (size_t j = 0; j < _height; ++j)
+        int index = i;
+        uint8_t value = _data[index];
+        if (value > 0) { count++; }
+
+        if (PIXEL_COLOR(_data[index]) == WHITE)
+            value = 255;
+        else if (PIXEL_COLOR(_data[index]) == GRAY)
+            value = 128;
+        else
+            value = 0;
+
+        file.put(static_cast<unsigned char>(value)); // Red
+        file.put(static_cast<unsigned char>(value)); // Green
+        file.put(static_cast<unsigned char>(value)); // Blue
+    }
+
+    file.close();
+    LOG_INFO("Count : %d", count);
+}
+
+std::vector< std::vector< Image::ImagePixel > > Image::_getComponents()
+{
+    uint64_t** labels = new uint64_t*[_width];
+    for (size_t i = 0; i < _width; ++i) {
+        labels[i] = new uint64_t[_height];
+    }
+
+    int labelCount = 1;
+
+    // Define 8-connectivity offsets
+    std::vector<ImagePixel> neighbors = { ImagePixel(-1, -1), ImagePixel(-1, 0), ImagePixel(-1, 1),
+                                          ImagePixel( 0, -1),                    ImagePixel( 0, 1),
+                                          ImagePixel( 1, -1), ImagePixel( 1, 0), ImagePixel( 1, 1)};
+
+    std::vector< std::vector< ImagePixel > > components;
+
+    // Iterate through each pixel of the image
+    for (int x = 0; x < _width; ++x)
+    {
+        for (int y = 0; y < _height; ++y)
         {
-            size_t index1D = (getWidth() * getHeight()) - index;
-            uint8_t value;
+            const size_t index = x + _width * y;
 
-            if (PIXEL_COLOR(_data[index1D]) == WHITE)
-                value = 255;
-            else if (PIXEL_COLOR(_data[ index1D ]) == GRAY)
-                value = 128;
-            else
-                value = 0;
+            // Skip background pixels and pixels already labeled
+            if (_data[index] == 0 || labels[x][y] != 0) { continue; }
 
-            uint8_t color[3];
-            color[0] = value; // R
-            color[1] = value; // G
-            color[2] = value; // B
+            // Start a new connected component
+            std::stack< ImagePixel > st;
+            std::vector< ImagePixel > component;
 
-            fwrite(color, 1, 3, image);
+            st.push(ImagePixel(x, y));
 
-            index++;
+            // Explore the connected pixels using a stack
+            while (!st.empty())
+            {
+                ImagePixel current = st.top();
+                st.pop();
+                component.push_back(current);
+                labels[current.x][current.y] = labelCount;
+
+                // Check 8-connectivity neighbors
+                for (const ImagePixel& offset : neighbors)
+                {
+                    ImagePixel neighbor = current + offset;
+                    size_t nIndex = neighbor.x + _width * neighbor.y;
+
+                    if (neighbor.x >= 0 && neighbor.x < _width &&
+                            neighbor.y >= 0 && neighbor.y < _height &&
+                            _data[nIndex] != 0 && labels[neighbor.x][neighbor.y] == 0)
+                    {
+                        st.push(neighbor);
+                    }
+                }
+            }
+
+            components.push_back(component);
+            labelCount++;
         }
     }
 
-    fclose(image);
+    // Delete the labels
+    for (size_t i = 0; i < _width; ++i) { delete [] labels[i]; } delete [] labels;
+
+    // Return the components
+    return components;
+}
+
+void Image::floodFill()
+{
+    for (size_t i = 0; i < _width * _height; ++i)
+    {
+        if (_data[i] == 255) { _data[i] = 128; }
+    }
+
+    for (size_t i = 0; i < _width * _height; ++i)
+    {
+        if (_data[i] == 0) { _data[i] = 255; }
+    }
+
+    // Flood Filler
+    PIXEL_COLOR newColor = WHITE;
+    PIXEL_COLOR oldColor = BLACK;
+    FloodFiller::fill(this, _width, _height, 0, 0, newColor, oldColor);
+
+
+}
+
+void Image::_fillComponent(const std::vector< ImagePixel >& component, size_t componentIndex)
+{
+    // If the component is composed of a single pixel, return
+    if (component.size() == 1) { return; }
+
+    int64_t xMin = std::numeric_limits<int64_t>::max();
+    int64_t xMax = 0;
+    int64_t yMin = std::numeric_limits<int64_t>::max();
+    int64_t yMax = 0;
+
+    // Get the bounds of the component
+    for (const auto& p : component)
+    {
+        if (p.x > xMax) xMax = p.x; if (p.x < xMin) xMin = p.x;
+        if (p.y > yMax) yMax = p.y; if (p.y < yMin) yMin = p.y;
+    }
+
+    const size_t width = xMax - xMin + 1;
+    const size_t height = yMax - yMin + 1;
+
+    // If the components has a single pixel dimension, return
+    if (width == 1 || height == 1) { return; }
+
+    // Create an image
+    const size_t gap = 2;
+    const size_t componentWidth = width + 2 * gap;
+    const size_t componentHeight = height + 2 * gap;
+    Image componentImage = Image(componentWidth, componentHeight);
+    componentImage.fill(WHITE);
+
+    int xStart = 0;
+    int yStart = 0;
+
+    if (xMin == 0)
+    {
+        for (size_t j = 0; j < componentHeight; ++j)
+        {
+            componentImage.setPixelColor(gap - 1, j, GRAY);
+        }
+
+        xStart = gap;
+    }
+
+    if (xMax >= _width - 1)
+    {
+        for (size_t j = 0; j < componentHeight; ++j)
+        {
+            componentImage.setPixelColor(componentWidth - gap - 1, j, GRAY);
+        }
+    }
+
+    if (yMin == 0)
+    {
+        for (size_t i = 0; i < componentWidth; ++i)
+        {
+            componentImage.setPixelColor(i, gap - 1, GRAY);
+        }
+
+        yStart = gap;
+    }
+
+    if (yMax >= _height - 1)
+    {
+        for (size_t i = 0; i < componentWidth; ++i)
+        {
+            componentImage.setPixelColor(i, componentHeight - gap - 1, GRAY);
+        }
+    }
+
+    // Fill the image with the component object
+    for (const auto& p : component)
+    {
+        int xComponent = p.x - xMin;
+        int yComponent = p.y - yMin;
+        componentImage.setPixelColor(gap + xComponent , gap + yComponent , PIXEL_COLOR::GRAY);
+    }
+
+    // Flood Filler
+    PIXEL_COLOR newColor = WHITE;
+    PIXEL_COLOR oldColor = BLACK;
+    FloodFiller::fill(&componentImage, componentImage.getWidth(),componentImage.getHeight(),
+                      xStart, yStart, newColor, oldColor);
+
+#ifdef DEBUG
+    std::stringstream stream;
+    stream << "~/component_" << componentIndex;
+    componentImage.writePPM(stream.str());
+#endif
+
+
+    for (int64_t i = 0; i < width; ++i)
+    {
+        for (int64_t j = 0; j < height; ++j)
+        {
+            // Component color
+            const auto componentColor = componentImage.getPixelColor(i + gap, j + gap);
+            const int64_t xPixel = xMin + gap + i - 1;
+            const int64_t yPixel = yMin + gap + j - 1;
+
+            if (xPixel > 0 && xPixel < _width && yPixel > 0 && yPixel < _height)
+            {
+                if (componentColor == PIXEL_COLOR::BLACK)
+                {
+                    setPixelColor(xPixel, yPixel, PIXEL_COLOR::BLACK);
+                }
+                else
+                {
+                    setPixelColor(xPixel, yPixel, WHITE);
+                }
+            }
+        }
+    }
+}
+
+void Image::fillComponents()
+{
+    auto components = _getComponents();
+    for (size_t i = 0; i < components.size(); ++i)
+    {
+        // std::cout << "Component " << i << " " << components[i].size() << std::endl;
+        auto& component = components[i];
+        _fillComponent(component, i);
+    }
 }
 
 Image::~Image()

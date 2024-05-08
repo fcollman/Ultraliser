@@ -116,6 +116,8 @@ Mesh* createHighResolutionMesh(Mesh* inputMesh, float voxelsPerMicron)
     // Smooth the resulting surface mesh
     reconstructedNeuronMesh->smoothSurface(NEURON_SMOOTHING_ITERATIONS, true);
 
+    reconstructedNeuronMesh->optimizeAdaptively(5, 5, 0.05, 5.0, SILENT);
+
     // Return a pointer to the resulting neuron
     return reconstructedNeuronMesh;
 }

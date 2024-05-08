@@ -42,6 +42,33 @@ class Image
 {
 public:
 
+    struct ImagePixel
+    {
+        /**
+         * @brief Point
+         * @param xx
+         * @param yy
+         */
+        ImagePixel(int64_t xx, int64_t yy) : x(xx), y(yy) { }
+
+        /**
+         * @brief x
+         */
+        int64_t x;
+
+        /**
+         * @brief y
+         */
+        int64_t y;
+
+        /**
+         * @brief operator +
+         * @param rhs
+         * @return
+         */
+        ImagePixel operator +(ImagePixel rhs) { return ImagePixel(x + rhs.x, y + rhs.y); }
+    };
+
     /**
      * @brief Image
      * Constructor
@@ -51,6 +78,13 @@ public:
      * The height of the image in pixels.
      */
     Image(const size_t& width, const size_t& height);
+
+    /**
+     * @brief Image
+     * @param imagePath
+     * @param readMask
+     */
+    Image(const std::string& imagePath, bool readMask);
     ~Image();
 
     /**
@@ -218,6 +252,22 @@ public:
      */
     void writePPM(const std::string &prefix) const;
 
+    /**
+     * @brief writeMask
+     * @param prefix
+     */
+    void writeMask(const std::string &prefix) const;
+
+    /**
+     * @brief fillComponents
+     */
+    void fillComponents();
+
+    /**
+     * @brief floodFill
+     */
+    void floodFill();
+
 private:
 
     /**
@@ -229,6 +279,30 @@ private:
      * @brief _freeMemory
      */
     void _freeMemory();
+
+    /**
+     * @brief _readPPM
+     * @param imagePath
+     */
+    void _readPPM(const std::string& imagePath);
+
+    /**
+     * @brief _readMask
+     * @param imagePath
+     */
+    void _readMask(const std::string& imagePath);
+
+    /**
+     * @brief _getComponents
+     * @return
+     */
+    std::vector< std::vector< ImagePixel > > _getComponents();
+
+    /**
+     * @brief _fillComponent
+     * @param component
+     */
+    void _fillComponent(const std::vector< ImagePixel >& component, size_t componentIndex);
 
 private:
 

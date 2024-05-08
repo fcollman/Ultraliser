@@ -119,14 +119,13 @@ void run(int argc , const char** argv)
     inputNeuronMesh->append(validSectionsMesh);
 
     // Create a new big mesh from the input neuron mesh
-    auto highMesh = createHighResolutionMesh(inputNeuronMesh, 20);
+    auto highResolutionMesh = createHighResolutionMesh(inputNeuronMesh, 20);
 
-    highMesh->exportMesh(options->meshPrefix + "-clean", true);
-
+    highResolutionMesh->exportMesh(options->meshPrefix + "-high-resolution", true);
 
     // Run cross-sectional variations detection along the arbors
     skeletonizer->exportCrossSectionalProfiles(options->morphologyPrefix,
-                                               highMesh,
+                                               highResolutionMesh,
                                                true,
                                                false);
 

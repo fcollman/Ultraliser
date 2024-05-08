@@ -85,3 +85,6 @@ add_subdirectory(ultraAnalysis)
 
 # ultraResampling
 add_subdirectory(ultraResampling)
+
+# ultraRasterize
+add_subdirectory(ultraRasterize)
