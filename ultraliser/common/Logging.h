@@ -180,3 +180,9 @@ static inline void logTitle(std::string title, const uint64_t& titleLength = 80)
 // Print a conditioned message
 #define VERBOSE_LOG(LOG_MESSAGE, CONDITION) ({ if (CONDITION) { LOG_MESSAGE; }})
 
+#ifdef ENABLE_PROGRESS_BAR
+#define VERBOSE_LOG_PROGRESS(LOG_MESSAGE, CONDITION) ({ if (CONDITION) { LOG_MESSAGE; }})
+#else
+#define VERBOSE_LOG_PROGRESS(LOG_MESSAGE, CONDITION) ()
+
+#endif

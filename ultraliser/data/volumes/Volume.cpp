@@ -37,6 +37,7 @@
 #include <data/volumes/utilities/VolumeReader.h>
 #include <algorithms/skeletonization/Skeletonization.h>
 #include <data/meshes/simple/TriangleOperations.h>
+#include <data/volumes/voxels/Voxel3.h>
 
 #ifdef ULTRALISER_USE_NRRD
 #include <nrrdloader/NRRDLoader.h>
@@ -48,9 +49,6 @@ namespace Ultraliser
 {
 
 Volume::Volume(const Volume *inputVolume)
-    : _surfaceVoxelizationTime(0.f)
-    , _solidVoxelizationTime(0.f)
-    , _addingVolumePassTime(0.f)
 {
     // Copy the bounds
     _pMin = inputVolume->getPMin();
@@ -138,9 +136,6 @@ Volume::Volume(const Volume *inputVolume)
 Volume::Volume(const std::string &filePath)
     : _pMin(Vector3f::ZERO)
     , _pMax(Vector3f::ZERO)
-    , _surfaceVoxelizationTime(0.f)
-    , _solidVoxelizationTime(0.f)
-    , _addingVolumePassTime(0.f)
 {
     // Get the volume extension
     auto extension = std::filesystem::path(filePath).extension().string();
@@ -210,9 +205,6 @@ Volume::Volume(const Vector3f& pMin,
     , _pMax(pMax)
     , _expansionRatio(expansionRatio)
     , _baseResolution(baseResolution)
-    , _surfaceVoxelizationTime(0.f)
-    , _solidVoxelizationTime(0.f)
-    , _addingVolumePassTime(0.f)
 {
     // Create the grid
     _createGrid(verbose);
@@ -229,9 +221,6 @@ Volume::Volume(const int64_t width,
     , _pMin(pMin)
     , _pMax(pMax)
     , _expansionRatio(expansionRatio)
-    , _surfaceVoxelizationTime(0.f)
-    , _solidVoxelizationTime(0.f)
-    , _addingVolumePassTime(0.f)
 {
     // Since we don't have any geometric bounds, use 1.0 for the voxel resolution
     // TODO: The voxel resolution should be computed from the given bounds
@@ -583,11 +572,8 @@ void Volume::surfaceVoxelization(Mesh* mesh,
     VERBOSE_LOG(LOG_STATUS("Creating Volume Shell [%zu x %zu x %zu]",
                            _grid->getWidth(), _grid->getHeight(), _grid->getDepth()), verbose);
 
-    if (parallel)
-        _rasterizeParallel(mesh, _grid, sideRatio);
-    else
-        _rasterize(mesh , _grid, sideRatio, verbose);
-    _surfaceVoxelizationTime = GET_TIME_SECONDS;
+    // _rasterize(mesh , _grid, sideRatio, verbose);
+    _rasterizeParallel(mesh, _grid, sideRatio, verbose);
 
     // Statistics
     VERBOSE_LOG(LOG_STATUS_IMPORTANT("Rasterization Stats."), verbose);
@@ -605,7 +591,6 @@ void Volume::surfaceVoxelizationRegion(Mesh* mesh,
                    _grid->getWidth(), _grid->getHeight(), _grid->getDepth()), verbose);
 
     _rasterizeRegion(mesh , _grid, pMinRegion, pMaxRegion, verbose);
-    _surfaceVoxelizationTime = GET_TIME_SECONDS;
 
     // Statistics
     VERBOSE_LOG(LOG_STATUS_IMPORTANT("Rasterization Stats."), verbose);
@@ -638,7 +623,6 @@ void Volume::surfaceVoxelizeSections(const Sections& sections, const bool& verbo
         PROGRESS_UPDATE;
     }
 
-    _surfaceVoxelizationTime = GET_TIME_SECONDS;
     VERBOSE_LOG(LOOP_DONE, verbose);
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
@@ -765,7 +749,6 @@ void Volume::surfaceVoxelizeNeuronMorphology(NeuronMorphology* neuronMorphology,
     {
         LOG_ERROR("[%s] is not a correct packing algorithm.");
     }
-    _surfaceVoxelizationTime = GET_TIME_SECONDS;
     VERBOSE_LOG(LOOP_DONE, verbose);
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
@@ -860,7 +843,6 @@ void Volume::surfaceVoxelizeSpineMorphology(
     {
         LOG_ERROR("[%s] is not a correct packing algorithm.");
     }
-    _surfaceVoxelizationTime = GET_TIME_SECONDS;
     VERBOSE_LOG(LOOP_DONE, verbose);
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
@@ -958,11 +940,9 @@ void Volume::surfaceVoxelizeVasculatureMorphology(
     }
     LOOP_DONE;
 
-    _surfaceVoxelizationTime = GET_TIME_SECONDS;
-
     // Statistics
     LOG_STATUS_IMPORTANT("Rasterization Stats.");
-    LOG_STATS(_surfaceVoxelizationTime);
+    LOG_STATS(GET_TIME_SECONDS);
 }
 
 void Volume::surfaceVoxelizeAstrocyteMorphology(const AstrocyteMorphology* astrocyteMorphology,
@@ -1159,12 +1139,9 @@ void Volume::surfaceVoxelizeAstrocyteMorphology(const AstrocyteMorphology* astro
         }
     }
 
-    // Timer
-    _surfaceVoxelizationTime = GET_TIME_SECONDS;
-
     // Statistics
     LOG_STATUS_IMPORTANT("Rasterization Stats.");
-    LOG_STATS(_surfaceVoxelizationTime);
+    LOG_STATS(GET_TIME_SECONDS);
 }
 
 void Volume::surfaceVoxelization(AdvancedMesh *mesh)
@@ -1177,10 +1154,8 @@ void Volume::surfaceVoxelization(AdvancedMesh *mesh)
     LOG_STATUS("Creating Volume Shell");
     _rasterize(mesh , _grid);
 
-    _surfaceVoxelizationTime = GET_TIME_SECONDS;
-
     // Statistics
-    LOG_STATS(_surfaceVoxelizationTime);
+    LOG_STATS(GET_TIME_SECONDS);
 }
 
 void Volume::surfaceVoxelization(const std::string &inputDirectory,
@@ -1222,8 +1197,7 @@ void Volume::surfaceVoxelization(const std::string &inputDirectory,
     LOOP_DONE;
 
     // Statistics
-    _surfaceVoxelizationTime = GET_TIME_SECONDS;
-    LOG_STATS(_surfaceVoxelizationTime);
+    LOG_STATS(GET_TIME_SECONDS);
     LOG_DETAIL("[%zu/%zu] Meshes were Voxelized with Surface Voxelization",
                processedMeshCount, meshFiles.size());
 }
@@ -1233,7 +1207,7 @@ std::vector< Vec3ui_64 > Volume::verifyBorderVoxels(Mesh* mesh,
 {
     std::vector< Vec3ui_64 > candidates;
 
-    if (verbose) LOOP_STARTS("Rasterization");
+    VERBOSE_LOG(LOOP_STARTS("Border Voxels"), verbose);
     size_t progress = 0;
 
     size_t allVoxels = 0, toBeRemoved = 0;
@@ -1241,7 +1215,7 @@ std::vector< Vec3ui_64 > Volume::verifyBorderVoxels(Mesh* mesh,
     for (size_t triangleIdx = 0; triangleIdx < mesh->getNumberTriangles(); ++triangleIdx)
     {
         ++progress;
-        if (verbose) LOOP_PROGRESS(progress, mesh->getNumberTriangles());
+        VERBOSE_LOG(LOOP_PROGRESS(progress, mesh->getNumberTriangles()), verbose);
 
         // Get the pMin and pMax of the triangle within the grid
         int64_t pMinTriangle[3], pMaxTriangle[3];
@@ -1275,20 +1249,21 @@ std::vector< Vec3ui_64 > Volume::verifyBorderVoxels(Mesh* mesh,
             }
         }
     }
-    if (verbose) LOOP_DONE;
+    VERBOSE_LOG(LOOP_DONE, verbose);
 
     return candidates;
 }
 
 void Volume::_rasterize(Mesh* mesh, VolumeGrid* grid, const float& sideRatio, const bool& verbose)
 {
-    if (verbose) LOOP_STARTS("Rasterization");
+    TIMER_SET;
+    VERBOSE_LOG(LOOP_STARTS("Rasterization"), verbose);
     size_t progress = 0;
-    
+
     for (size_t triangleIdx = 0; triangleIdx < mesh->getNumberTriangles(); ++triangleIdx)
     {
         ++progress;
-        if (verbose) LOOP_PROGRESS(progress, mesh->getNumberTriangles());
+        VERBOSE_LOG(LOOP_PROGRESS(progress, mesh->getNumberTriangles()), verbose);
 
         // Get the pMin and pMax of the triangle within the grid
         int64_t pMinTriangle[3], pMaxTriangle[3];
@@ -1307,7 +1282,66 @@ void Volume::_rasterize(Mesh* mesh, VolumeGrid* grid, const float& sideRatio, co
             }
         }
     }
-    if (verbose) LOOP_DONE;
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
+}
+
+void Volume::_rasterizeParallel(Mesh* mesh, VolumeGrid* grid,
+                                const float& sideRatio,
+                                const bool& verbose)
+{
+    TIMER_SET;
+    Voxel3Bucket voxels;
+    voxels.resize(mesh->getNumberTriangles());
+
+    VERBOSE_LOG(LOOP_STARTS("Rasterization *"), verbose);
+    PROGRESS_SET;
+    OMP_PARALLEL_FOR
+    for (size_t it = 0; it < mesh->getNumberTriangles(); it++)
+    {
+        auto& voxelsPerTriangle = voxels[it];
+
+        // Get the pMin and pMax of the triangle within the grid
+        int64_t pMinTriangle[3], pMaxTriangle[3];
+        _getBoundingBox(mesh, it, pMinTriangle, pMaxTriangle);
+
+        for (int64_t ix = pMinTriangle[0]; ix <= pMaxTriangle[0]; ix++)
+        {
+            for (int64_t iy = pMinTriangle[1]; iy <= pMaxTriangle[1]; iy++)
+            {
+                for (int64_t iz = pMinTriangle[2]; iz <= pMaxTriangle[2]; iz++)
+                {
+                    GridIndex gi(I2I64(ix), I2I64(iy), I2I64(iz));
+                    if (_testTriangleCubeIntersection(mesh, it, gi, sideRatio))
+                    {
+                        // grid->fillVoxel(I2I64(ix), I2I64(iy), I2I64(iz));
+                        voxelsPerTriangle.push_back(Voxel3(ix, iy, iz));
+                    }
+                }
+            }
+        }
+
+        // Update the progress bar
+        VERBOSE_LOG(LOOP_PROGRESS(PROGRESS, mesh->getNumberTriangles()), verbose);
+        PROGRESS_UPDATE;
+    }
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
+
+    VERBOSE_LOG(LOOP_STARTS("Updating Volume *"), verbose);
+    PROGRESS_RESET;
+    for (size_t i = 0; i < voxels.size(); ++i)
+    {
+        for (size_t j = 0; j < voxels[i].size(); ++j)
+        {
+            grid->fillVoxel(voxels[i][j].x, voxels[i][j].y, voxels[i][j].z);
+        }
+        voxels[i].clear();
+    }
+    voxels.clear();
+
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 }
 
 void Volume::_rasterizeRegion(Mesh* mesh, VolumeGrid* grid,
@@ -1315,13 +1349,13 @@ void Volume::_rasterizeRegion(Mesh* mesh, VolumeGrid* grid,
                               const Vector3f& pMaxRegion,
                               const bool& verbose)
 {
-    if (verbose) LOOP_STARTS("Rasterization");
+    VERBOSE_LOG(LOOP_STARTS("Rasterization"), verbose);
     size_t progress = 0;
 
     for (size_t triangleIdx = 0; triangleIdx < mesh->getNumberTriangles(); ++triangleIdx)
     {
         ++progress;
-        if (verbose) LOOP_PROGRESS(progress, mesh->getNumberTriangles());
+        VERBOSE_LOG(LOOP_PROGRESS(progress, mesh->getNumberTriangles()), verbose);
 
         // Get the pMin and pMax of the triangle within the grid
         int64_t pMinTriangle[3], pMaxTriangle[3];
@@ -1368,7 +1402,7 @@ void Volume::_rasterizeRegion(Mesh* mesh, VolumeGrid* grid,
             }
         }
     }
-    if (verbose) LOOP_DONE;
+    VERBOSE_LOG(LOOP_DONE, verbose);
 }
 
 void Volume::_rasterize(Sample* sample, VolumeGrid* grid)
@@ -1408,45 +1442,9 @@ void Volume::_rasterize(Sample* sample0, Sample* sample1, VolumeGrid* grid, floa
     for (uint32_t i = 0; i <= numSteps; ++i)
     {
         // Compute the interpolated sample
-        Sample sample(position0 + positionIncrement * i,
-                      radius0 + radiusIncrement * i, 0);
+        Sample sample(position0 + positionIncrement * i, radius0 + radiusIncrement * i, 0);
         _rasterize(&sample, grid);
     }
-}
-
-void Volume::_rasterizeParallel(Mesh* mesh, VolumeGrid* grid, const float& sideRatio)
-{
-    // Start the timer
-    TIMER_SET;
-
-    LOOP_STARTS("Rasterization");
-    PROGRESS_SET;
-    #pragma omp parallel for schedule(dynamic)
-    for (size_t tIdx = 0; tIdx < mesh->getNumberTriangles(); tIdx++)
-    {
-        // Get the pMin and pMax of the triangle within the grid
-        int64_t pMinTriangle[3], pMaxTriangle[3];
-        _getBoundingBox(mesh, tIdx, pMinTriangle, pMaxTriangle);
-
-        for (int64_t ix = pMinTriangle[0]; ix <= pMaxTriangle[0]; ix++)
-        {
-            for (int64_t iy = pMinTriangle[1]; iy <= pMaxTriangle[1]; iy++)
-            {
-                for (int64_t iz = pMinTriangle[2]; iz <= pMaxTriangle[2]; iz++)
-                {
-                    GridIndex gi(I2I64(ix), I2I64(iy), I2I64(iz));
-                    if (_testTriangleCubeIntersection(mesh, tIdx, gi, sideRatio))
-                        grid->fillVoxel(I2I64(ix), I2I64(iy), I2I64(iz));
-                }
-            }
-        }
-
-        // Update the progress bar
-         LOOP_PROGRESS(PROGRESS, mesh->getNumberTriangles());
-         PROGRESS_UPDATE;
-    }
-    LOOP_DONE;
-    LOG_STATS(GET_TIME_SECONDS);
 }
 
 void Volume::_rasterize(AdvancedMesh* mesh, VolumeGrid* grid)
@@ -1489,13 +1487,14 @@ void Volume::_rasterize(AdvancedMesh* mesh, VolumeGrid* grid)
 void Volume::solidVoxelization(const SOLID_VOXELIZATION_AXIS& axis, const bool& verbose)
 {
     VERBOSE_LOG(LOG_TITLE("Solid Voxelization"), verbose);
+    TIMER_SET;
 
     // The 2D flood filling is only supported for the solid voxelization
     VERBOSE_LOG(LOG_STATUS("Flood-filling Volume"), verbose);
     _floodFill2D(axis, verbose);
 
     VERBOSE_LOG(LOG_STATUS_IMPORTANT("Solid Voxelization Stats."), verbose);
-    VERBOSE_LOG(LOG_STATS(_solidVoxelizationTime), verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 }
 
 void Volume::solidVoxelizationROI(const SOLID_VOXELIZATION_AXIS& axis,
@@ -1504,17 +1503,16 @@ void Volume::solidVoxelizationROI(const SOLID_VOXELIZATION_AXIS& axis,
                                   const size_t& z1, const size_t z2,
                                   const bool& verbose)
 {
-    if (verbose) LOG_TITLE("Solid Voxelization");
+    VERBOSE_LOG(LOG_TITLE("Solid Voxelization"), verbose);
+    TIMER_SET;
 
     // The 2D flood filling is only supported for the solid voxelization
-    if (verbose) LOG_STATUS("Flood-filling Volume");
+    VERBOSE_LOG(LOG_STATUS("Flood-filling Volume"), verbose);
     _floodFill2DROI(axis, x1, x2, y1, y2, z1, z2, verbose);
 
-    if (verbose)
-    {
-        LOG_STATUS_IMPORTANT("Solid Voxelization Stats.");
-        LOG_STATS(_solidVoxelizationTime);
-    }
+
+    VERBOSE_LOG(LOG_STATUS_IMPORTANT("Solid Voxelization Stats."), verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 }
 
 void Volume::_floodFill2D(const SOLID_VOXELIZATION_AXIS &axis, const bool &verbose)
@@ -1524,21 +1522,18 @@ void Volume::_floodFill2D(const SOLID_VOXELIZATION_AXIS &axis, const bool &verbo
 
     switch (axis)
     {
-    case X: _floodFillAlongAxis(_grid, SOLID_VOXELIZATION_AXIS::X, verbose);
+    case X: _floodFillAlongAxisOptimized(_grid, SOLID_VOXELIZATION_AXIS::X, verbose);
         break;
 
-    case Y: _floodFillAlongAxis(_grid, SOLID_VOXELIZATION_AXIS::Y, verbose);
+    case Y: _floodFillAlongAxisOptimized(_grid, SOLID_VOXELIZATION_AXIS::Y, verbose);
         break;
 
-    case Z: _floodFillAlongAxis(_grid, SOLID_VOXELIZATION_AXIS::Z, verbose);
+    case Z: _floodFillAlongAxisOptimized(_grid, SOLID_VOXELIZATION_AXIS::Z, verbose);
         break;
 
     case XYZ:_floodFillAlongXYZ(_grid, verbose);
         break;
     }
-
-    // Save the solid voxelization time
-    _solidVoxelizationTime = GET_TIME_SECONDS;
 }
 
 void Volume::_floodFill2DROI(const SOLID_VOXELIZATION_AXIS &axis,
@@ -1567,9 +1562,6 @@ void Volume::_floodFill2DROI(const SOLID_VOXELIZATION_AXIS &axis,
     case XYZ:_floodFillAlongXYZROI(_grid, x1, x2, y1, y2, z1, z2, verbose);
         break;
     }
-
-    // Save the solid voxelization time
-    _solidVoxelizationTime = GET_TIME_SECONDS;
 }
 
 Volume::FloodFillingData Volume::_getCaseSpecificFloodFillingData(
@@ -1641,6 +1633,138 @@ void Volume::_floodFillAlongAxis(VolumeGrid* grid, const SOLID_VOXELIZATION_AXIS
         {
             grid->floodFillSliceAlongAxis(i, floodFillingData.floodFillingAxis);
         }
+    }
+}
+
+void Volume::_floodFillAlongAxisOptimized(VolumeGrid *grid,
+                                          const SOLID_VOXELIZATION_AXIS &axis,
+                                          const bool &verbose)
+{
+    // Disable buffering
+    setbuf(stdout, nullptr);
+
+    // Get the flood filling data
+    const auto floodFillingData = _getCaseSpecificFloodFillingData(axis);
+
+    std::vector< Pixels2 > filledPixels;
+    filledPixels.resize(floodFillingData.dimension);
+
+    if (verbose)
+    {
+        TIMER_SET;
+        LOOP_STARTS(floodFillingData.floodFillingString.c_str());
+        PROGRESS_SET;
+        OMP_PARALLEL_FOR
+        for (int64_t i = 0 ; i <floodFillingData.dimension; ++i)
+        {
+            filledPixels[i] = grid->getFilledPixelsAfterFloodFillSliceAlongAxis(
+                        i, floodFillingData.floodFillingAxis);
+
+            // Update the progress bar
+            LOOP_PROGRESS(PROGRESS, floodFillingData.dimension);
+            PROGRESS_UPDATE;
+        }
+        LOOP_DONE;
+        LOG_STATS(GET_TIME_SECONDS);
+
+        // Update the volume
+        TIMER_RESET;
+        LOOP_STARTS("Updating Volume");
+        switch (axis)
+        {
+        case SOLID_VOXELIZATION_AXIS::X:
+            for (size_t i = 0; i < filledPixels.size(); ++i)
+            {
+                for (size_t j = 0; j < filledPixels[i].size(); ++j)
+                {
+                    grid->fillVoxel(i, filledPixels[i][j].x, filledPixels[i][j].y);
+                }
+                filledPixels[i].clear();
+                LOOP_PROGRESS(i, filledPixels.size());
+            }
+            break;
+
+        case SOLID_VOXELIZATION_AXIS::Y:
+            for (size_t i = 0; i < filledPixels.size(); ++i)
+            {
+                for (size_t j = 0; j < filledPixels[i].size(); ++j)
+                {
+                    grid->fillVoxel(filledPixels[i][j].x, i, filledPixels[i][j].y);
+                }
+                filledPixels[i].clear();
+                LOOP_PROGRESS(i, filledPixels.size());
+            }
+            break;
+
+
+        case SOLID_VOXELIZATION_AXIS::Z:
+            for (size_t i = 0; i < filledPixels.size(); ++i)
+            {
+                for (size_t j = 0; j < filledPixels[i].size(); ++j)
+                {
+                    grid->fillVoxel(filledPixels[i][j].x, filledPixels[i][j].y, i);
+                }
+                filledPixels[i].clear();
+                LOOP_PROGRESS(i, filledPixels.size());
+            }
+            break;
+
+        case XYZ:
+            break;
+        }
+        LOOP_DONE;
+        filledPixels.clear();
+        LOG_STATS(GET_TIME_SECONDS);
+    }
+    else
+    {
+        OMP_PARALLEL_FOR
+        for (int64_t i = 0 ; i < floodFillingData.dimension; ++i)
+        {
+            filledPixels[i] = grid->getFilledPixelsAfterFloodFillSliceAlongAxis(
+                        i, floodFillingData.floodFillingAxis);
+        }
+
+        switch (axis)
+        {
+        case SOLID_VOXELIZATION_AXIS::X:
+            for (size_t i = 0; i < filledPixels.size(); ++i)
+            {
+                for (size_t j = 0; j < filledPixels[i].size(); ++j)
+                {
+                    grid->fillVoxel(i, filledPixels[i][j].x, filledPixels[i][j].y);
+                }
+                filledPixels[i].clear();
+            }
+            break;
+
+        case SOLID_VOXELIZATION_AXIS::Y:
+            for (size_t i = 0; i < filledPixels.size(); ++i)
+            {
+                for (size_t j = 0; j < filledPixels[i].size(); ++j)
+                {
+                    grid->fillVoxel(filledPixels[i][j].x, i, filledPixels[i][j].y);
+                }
+                filledPixels[i].clear();
+            }
+            break;
+
+
+        case SOLID_VOXELIZATION_AXIS::Z:
+            for (size_t i = 0; i < filledPixels.size(); ++i)
+            {
+                for (size_t j = 0; j < filledPixels[i].size(); ++j)
+                {
+                    grid->fillVoxel(filledPixels[i][j].x, filledPixels[i][j].y, i);
+                }
+                filledPixels[i].clear();
+            }
+            break;
+
+        case XYZ:
+            break;
+        }
+        filledPixels.clear();
     }
 }
 
@@ -1864,9 +1988,9 @@ void Volume::_floodFillAlongXYZ(VolumeGrid *grid, const bool &verbose)
     }
 
     // Flood fill along the three axes
-    _floodFillAlongAxis(xGrid, SOLID_VOXELIZATION_AXIS::X, verbose);
-    _floodFillAlongAxis(yGrid, SOLID_VOXELIZATION_AXIS::Y, verbose);
-    _floodFillAlongAxis(zGrid, SOLID_VOXELIZATION_AXIS::Z, verbose);
+    _floodFillAlongAxisOptimized(xGrid, SOLID_VOXELIZATION_AXIS::X, verbose);
+    _floodFillAlongAxisOptimized(yGrid, SOLID_VOXELIZATION_AXIS::Y, verbose);
+    _floodFillAlongAxisOptimized(zGrid, SOLID_VOXELIZATION_AXIS::Z, verbose);
 
     // Blend the three grids using AND operation and store the final result in the xGrid
     xGrid->andWithAnotherGrid(yGrid);
@@ -2307,21 +2431,6 @@ int64_t Volume::getDepth(void) const
 size_t Volume::getNumberVoxels(void) const
 {
     return static_cast< size_t >(_grid->getWidth() * _grid->getHeight() * _grid->getDepth());
-}
-
-double Volume::getSurfaceVoxelizationTime(void) const
-{
-    return _surfaceVoxelizationTime;
-}
-
-double Volume::getSolidVoxelizationTime(void) const
-{
-    return _solidVoxelizationTime;
-}
-
-double Volume::getAppendingVolumePassTime(void) const
-{
-    return _addingVolumePassTime;
 }
 
 bool Volume::isFilled(const u_int64_t& index) const
@@ -3243,8 +3352,6 @@ void Volume::addVolumePass(const Volume* volume)
     {
         addByte(i, volume->getByte(i));
     }
-
-    _addingVolumePassTime = GET_TIME_SECONDS;
 }
 
 void Volume::addVolume(const std::string &volumePrefix)

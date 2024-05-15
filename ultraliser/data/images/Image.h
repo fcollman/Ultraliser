@@ -24,6 +24,7 @@
 #include <common/Common.h>
 #include <math/Vector.h>
 #include <utilities/Utilities.h>
+#include <data/images/Pixel2.h>
 
 namespace Ultraliser
 {
@@ -54,12 +55,12 @@ public:
         /**
          * @brief x
          */
-        int64_t x;
+        int64_t x = -1;
 
         /**
          * @brief y
          */
-        int64_t y;
+        int64_t y = -1;
 
         /**
          * @brief operator +
@@ -261,12 +262,25 @@ public:
     /**
      * @brief fillComponents
      */
-    void fillComponents();
+    void fillComponents(size_t imageIndex);
+
+    /**
+     * @brief getFilledPixelsAfterFloodFilling
+     * @param imageIndex
+     * @return
+     */
+    Pixels2 getFilledPixelsAfterFloodFilling(size_t imageIndex);
 
     /**
      * @brief floodFill
      */
     void floodFill();
+
+    /**
+     * @brief _getComponents
+     * @return
+     */
+    std::vector< std::vector< ImagePixel > > _getComponents();
 
 private:
 
@@ -293,16 +307,21 @@ private:
     void _readMask(const std::string& imagePath);
 
     /**
-     * @brief _getComponents
-     * @return
-     */
-    std::vector< std::vector< ImagePixel > > _getComponents();
-
-    /**
      * @brief _fillComponent
      * @param component
      */
-    void _fillComponent(const std::vector< ImagePixel >& component, size_t componentIndex);
+    void _fillComponent(const std::vector< ImagePixel >& component, size_t componentIndex, size_t imageIndex);
+
+    /**
+     * @brief _getFilledPixelsAfterFloodFilling
+     * @param component
+     * @param componentIndex
+     * @param imageIndex
+     * @return
+     */
+    Pixels2 _getFilledPixelsAfterFloodFilling(const std::vector< ImagePixel >& component,
+                                              size_t componentIndex,
+                                              size_t imageIndex);
 
 private:
 

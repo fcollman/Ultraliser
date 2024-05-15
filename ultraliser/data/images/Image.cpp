@@ -163,7 +163,6 @@ void Image::_readMask(const std::string& imagePath)
     }
 
     file >> _width >> _height;
-    LOG_INFO("Dimensions %d %d", _width, _height);
 
     // Allocate the data
     _data = new uint8_t[_width * _height];
@@ -210,7 +209,6 @@ void Image::writeMask(const std::string &prefix) const
     }
 
     file.close();
-    LOG_INFO("Count : %d", count);
 }
 
 void Image::writePPM(const std::string &prefix) const
@@ -230,12 +228,12 @@ void Image::writePPM(const std::string &prefix) const
         uint8_t value = _data[index];
         if (value > 0) { count++; }
 
-        if (PIXEL_COLOR(_data[index]) == WHITE)
-            value = 255;
-        else if (PIXEL_COLOR(_data[index]) == GRAY)
-            value = 128;
-        else
-            value = 0;
+//        if (PIXEL_COLOR(_data[index]) == WHITE)
+//            value = 255;
+//        else if (PIXEL_COLOR(_data[index]) == GRAY)
+//            value = 128;
+//        else
+//            value = 0;
 
         file.put(static_cast<unsigned char>(value)); // Red
         file.put(static_cast<unsigned char>(value)); // Green
@@ -243,22 +241,20 @@ void Image::writePPM(const std::string &prefix) const
     }
 
     file.close();
-    LOG_INFO("Count : %d", count);
+    // LOG_INFO("Count : %d", count);
 }
 
 std::vector< std::vector< Image::ImagePixel > > Image::_getComponents()
 {
-    uint64_t** labels = new uint64_t*[_width];
-    for (size_t i = 0; i < _width; ++i) {
-        labels[i] = new uint64_t[_height];
-    }
+    size_t* labels = new size_t[_width * _height]();
 
     int labelCount = 1;
 
     // Define 8-connectivity offsets
-    std::vector<ImagePixel> neighbors = { ImagePixel(-1, -1), ImagePixel(-1, 0), ImagePixel(-1, 1),
-                                          ImagePixel( 0, -1),                    ImagePixel( 0, 1),
-                                          ImagePixel( 1, -1), ImagePixel( 1, 0), ImagePixel( 1, 1)};
+    std::vector<ImagePixel> neighbors = {
+        ImagePixel(-1, -1), ImagePixel(-1, 0), ImagePixel(-1, 1),
+        ImagePixel( 0, -1),                    ImagePixel( 0, 1),
+        ImagePixel( 1, -1), ImagePixel( 1, 0), ImagePixel( 1, 1) };
 
     std::vector< std::vector< ImagePixel > > components;
 
@@ -270,21 +266,23 @@ std::vector< std::vector< Image::ImagePixel > > Image::_getComponents()
             const size_t index = x + _width * y;
 
             // Skip background pixels and pixels already labeled
-            if (_data[index] == 0 || labels[x][y] != 0) { continue; }
+            if (_data[index] == 0 || labels[index] != 0) { continue; }
 
             // Start a new connected component
-            std::stack< ImagePixel > st;
-            std::vector< ImagePixel > component;
+            std::stack< ImagePixel > _stack;
+            std::vector< ImagePixel > _component;
 
-            st.push(ImagePixel(x, y));
+            _stack.push(ImagePixel(x, y));
 
             // Explore the connected pixels using a stack
-            while (!st.empty())
+            while (!_stack.empty())
             {
-                ImagePixel current = st.top();
-                st.pop();
-                component.push_back(current);
-                labels[current.x][current.y] = labelCount;
+                ImagePixel current = _stack.top();
+                _stack.pop();
+                _component.push_back(current);
+
+                const size_t currentIndex = current.x + _width * current.y;
+                labels[currentIndex] = labelCount;
 
                 // Check 8-connectivity neighbors
                 for (const ImagePixel& offset : neighbors)
@@ -292,22 +290,26 @@ std::vector< std::vector< Image::ImagePixel > > Image::_getComponents()
                     ImagePixel neighbor = current + offset;
                     size_t nIndex = neighbor.x + _width * neighbor.y;
 
+                    const size_t neighbourIndex = neighbor.x + _width * neighbor.y;
                     if (neighbor.x >= 0 && neighbor.x < _width &&
-                            neighbor.y >= 0 && neighbor.y < _height &&
-                            _data[nIndex] != 0 && labels[neighbor.x][neighbor.y] == 0)
+                        neighbor.y >= 0 && neighbor.y < _height &&
+                        _data[nIndex] != 0 && labels[neighbourIndex] == 0)
                     {
-                        st.push(neighbor);
+                        _stack.push(neighbor);
                     }
                 }
             }
 
-            components.push_back(component);
+            components.push_back(_component);
+            _component.clear();
             labelCount++;
         }
     }
 
-    // Delete the labels
-    for (size_t i = 0; i < _width; ++i) { delete [] labels[i]; } delete [] labels;
+    delete [] labels;
+
+    neighbors.clear();
+    neighbors.shrink_to_fit();
 
     // Return the components
     return components;
@@ -329,19 +331,22 @@ void Image::floodFill()
     PIXEL_COLOR newColor = WHITE;
     PIXEL_COLOR oldColor = BLACK;
     FloodFiller::fill(this, _width, _height, 0, 0, newColor, oldColor);
-
-
 }
 
-void Image::_fillComponent(const std::vector< ImagePixel >& component, size_t componentIndex)
+void Image::_fillComponent(const std::vector< ImagePixel >& component,
+                           size_t componentIndex, size_t imageIndex)
 {
-    // If the component is composed of a single pixel, return
-    if (component.size() == 1) { return; }
+    // If the component is composed of a single pixel, return, there is nothing to be filled
+    if (component.size() == 1)
+    {
+        setPixelColor(component[0].x, component[0].y, WHITE);
+        return;
+    }
 
     int64_t xMin = std::numeric_limits<int64_t>::max();
-    int64_t xMax = 0;
+    int64_t xMax = -1;
     int64_t yMin = std::numeric_limits<int64_t>::max();
-    int64_t yMax = 0;
+    int64_t yMax = -1;
 
     // Get the bounds of the component
     for (const auto& p : component)
@@ -353,14 +358,11 @@ void Image::_fillComponent(const std::vector< ImagePixel >& component, size_t co
     const size_t width = xMax - xMin + 1;
     const size_t height = yMax - yMin + 1;
 
-    // If the components has a single pixel dimension, return
-    if (width == 1 || height == 1) { return; }
-
     // Create an image
-    const size_t gap = 2;
+    const size_t gap = 8;
     const size_t componentWidth = width + 2 * gap;
     const size_t componentHeight = height + 2 * gap;
-    Image componentImage = Image(componentWidth, componentHeight);
+    Image componentImage(componentWidth, componentHeight);
     componentImage.fill(WHITE);
 
     int xStart = 0;
@@ -413,15 +415,8 @@ void Image::_fillComponent(const std::vector< ImagePixel >& component, size_t co
     // Flood Filler
     PIXEL_COLOR newColor = WHITE;
     PIXEL_COLOR oldColor = BLACK;
-    FloodFiller::fill(&componentImage, componentImage.getWidth(),componentImage.getHeight(),
-                      xStart, yStart, newColor, oldColor);
 
-#ifdef DEBUG
-    std::stringstream stream;
-    stream << "~/component_" << componentIndex;
-    componentImage.writePPM(stream.str());
-#endif
-
+    FloodFiller::fill(&componentImage, componentImage.getWidth(),componentImage.getHeight(), xStart, yStart, newColor, oldColor);
 
     for (int64_t i = 0; i < width; ++i)
     {
@@ -429,32 +424,165 @@ void Image::_fillComponent(const std::vector< ImagePixel >& component, size_t co
         {
             // Component color
             const auto componentColor = componentImage.getPixelColor(i + gap, j + gap);
-            const int64_t xPixel = xMin + gap + i - 1;
-            const int64_t yPixel = yMin + gap + j - 1;
+            const int64_t xPixel = xMin +  i ;
+            const int64_t yPixel = yMin +  j ;
+
+            bool filled = componentImage.isFilled(i + gap, j + gap);
 
             if (xPixel > 0 && xPixel < _width && yPixel > 0 && yPixel < _height)
             {
-                if (componentColor == PIXEL_COLOR::BLACK)
+                if (filled)
                 {
-                    setPixelColor(xPixel, yPixel, PIXEL_COLOR::BLACK);
-                }
-                else
-                {
-                    setPixelColor(xPixel, yPixel, WHITE);
+                    setPixelColor(xPixel, yPixel, PIXEL_COLOR::WHITE);
                 }
             }
         }
     }
 }
 
-void Image::fillComponents()
+Pixels2 Image::_getFilledPixelsAfterFloodFilling(const std::vector< ImagePixel >& component,
+                                                 size_t componentIndex,
+                                                 size_t imageIndex)
+{
+    Pixels2 filledPixels;
+
+    // Single pixel
+    if (component.size() == 1)
+    {
+        filledPixels.push_back(Pixel2(component[0].x, component[0].y));
+        return filledPixels;
+    }
+
+    int64_t xMin = std::numeric_limits<int64_t>::max();
+    int64_t xMax = -1;
+    int64_t yMin = std::numeric_limits<int64_t>::max();
+    int64_t yMax = -1;
+
+    // Get the bounds of the component
+    for (const auto& p : component)
+    {
+        if (p.x > xMax) xMax = p.x; if (p.x < xMin) xMin = p.x;
+        if (p.y > yMax) yMax = p.y; if (p.y < yMin) yMin = p.y;
+    }
+
+    const size_t width = xMax - xMin + 1;
+    const size_t height = yMax - yMin + 1;
+
+    // Create an image
+    const size_t gap = 8;
+    const size_t componentWidth = width + 2 * gap;
+    const size_t componentHeight = height + 2 * gap;
+    Image componentImage(componentWidth, componentHeight);
+    componentImage.fill(WHITE);
+
+    int xStart = 0;
+    int yStart = 0;
+
+    if (xMin == 0)
+    {
+        for (size_t j = 0; j < componentHeight; ++j)
+        {
+            componentImage.setPixelColor(gap - 1, j, GRAY);
+        }
+
+        xStart = gap;
+    }
+
+    if (xMax >= _width - 1)
+    {
+        for (size_t j = 0; j < componentHeight; ++j)
+        {
+            componentImage.setPixelColor(componentWidth - gap - 1, j, GRAY);
+        }
+    }
+
+    if (yMin == 0)
+    {
+        for (size_t i = 0; i < componentWidth; ++i)
+        {
+            componentImage.setPixelColor(i, gap - 1, GRAY);
+        }
+
+        yStart = gap;
+    }
+
+    if (yMax >= _height - 1)
+    {
+        for (size_t i = 0; i < componentWidth; ++i)
+        {
+            componentImage.setPixelColor(i, componentHeight - gap - 1, GRAY);
+        }
+    }
+
+    // Fill the image with the component object
+    for (const auto& p : component)
+    {
+        int xComponent = p.x - xMin;
+        int yComponent = p.y - yMin;
+        componentImage.setPixelColor(gap + xComponent , gap + yComponent , PIXEL_COLOR::GRAY);
+    }
+
+    // Flood Filler
+    PIXEL_COLOR newColor = WHITE;
+    PIXEL_COLOR oldColor = BLACK;
+
+    // Apply the flood filling algorithm
+    FloodFiller::fill(&componentImage, componentImage.getWidth(),componentImage.getHeight(),
+                      xStart, yStart, newColor, oldColor);
+
+    // Get the filled pixels
+    for (int64_t i = 0; i < width; ++i)
+    {
+        for (int64_t j = 0; j < height; ++j)
+        {
+            // Component color
+            const auto componentColor = componentImage.getPixelColor(i + gap, j + gap);
+            const int64_t xPixel = xMin +  i ;
+            const int64_t yPixel = yMin +  j ;
+
+            bool filled = componentImage.isFilled(i + gap, j + gap);
+
+            if (xPixel > 0 && xPixel < _width && yPixel > 0 && yPixel < _height)
+            {
+                if (filled) { filledPixels.push_back(Pixel2(xPixel, yPixel)); }
+            }
+        }
+    }
+
+    return filledPixels;
+}
+
+Pixels2 Image::getFilledPixelsAfterFloodFilling(size_t imageIndex)
+{
+    Pixels2 filledPixels;
+
+    auto components = _getComponents();
+    for (size_t i = 0; i < components.size(); ++i)
+    {
+        auto& component = components[i];
+        if (component.size() == 0) { continue; }
+        else
+        {
+            auto filledPixelsInComponent =
+                    _getFilledPixelsAfterFloodFilling(component, i, imageIndex);
+            filledPixels.insert(filledPixels.end(),
+                                filledPixelsInComponent.begin(), filledPixelsInComponent.end());
+        }
+    }
+
+    return filledPixels;
+}
+
+void Image::fillComponents(size_t imageIndex)
 {
     auto components = _getComponents();
     for (size_t i = 0; i < components.size(); ++i)
     {
-        // std::cout << "Component " << i << " " << components[i].size() << std::endl;
         auto& component = components[i];
-        _fillComponent(component, i);
+        if (component.size() > 0)
+        {
+            _fillComponent(component, i, imageIndex);
+        }
     }
 }
 

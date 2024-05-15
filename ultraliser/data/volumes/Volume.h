@@ -489,24 +489,6 @@ public:
     size_t getNumberBytes(void) const;
 
     /**
-     * @brief getSurfaceVoxelizationTime
-     * @return
-     */
-    double getSurfaceVoxelizationTime(void) const;
-
-    /**
-     * @brief getSolidVoxelizationTime
-     * @return
-     */
-    double getSolidVoxelizationTime(void) const;
-
-    /**
-     * @brief getAppendingVolumePassTime
-     * @return
-     */
-    double getAppendingVolumePassTime(void) const;
-
-    /**
      * @brief printBenchmarks
      * @param mesh
      */
@@ -1117,6 +1099,15 @@ private:
                     const float &sideRatio = 1.0, const bool& verbose = false);
 
     /**
+     * @brief _rasterizeParallel
+     * @param mesh
+     * @param grid
+     * @param verbose
+     */
+    void _rasterizeParallel(Mesh* mesh, VolumeGrid* grid, const float &sideRatio = 1.0,
+                            const bool& verbose = false);
+
+    /**
      * @brief _rasterizeRegion
      * @param mesh
      * @param grid
@@ -1144,14 +1135,6 @@ private:
      * @param stepAlpha
      */
     void _rasterize(Sample* sample0, Sample* sample1, VolumeGrid* grid, float stepAlpha = 0.1f);
-
-    /**
-     * @brief _rasterizeParallel
-     * @param mesh
-     * @param grid
-     * @param verbose
-     */
-    void _rasterizeParallel(Mesh* mesh, VolumeGrid* grid, const float &sideRatio = 1.0);
 
     /**
      * @brief _floodFill2D
@@ -1186,6 +1169,15 @@ private:
      */
     void _floodFillAlongAxis(VolumeGrid* grid, const SOLID_VOXELIZATION_AXIS &axis,
                              const bool &verbose = VERBOSE);
+
+    /**
+     * @brief _floodFillAlongAxisOptimized
+     * @param grid
+     * @param axis
+     * @param verbose
+     */
+    void _floodFillAlongAxisOptimized(VolumeGrid* grid, const SOLID_VOXELIZATION_AXIS &axis,
+                                      const bool &verbose = VERBOSE);
 
 
     /**
@@ -1355,21 +1347,6 @@ private:
      * The origin of the mesh model.
      */
     // Vector3f _meshOrigin;
-
-    /**
-     * @brief _surfaceVoxelizationTime
-     */
-    double _surfaceVoxelizationTime;
-
-    /**
-     * @brief _solidVoxelizationTime
-     */
-    double _solidVoxelizationTime;
-
-    /**
-     * @brief _solidVoxelizationTime
-     */
-    double _addingVolumePassTime;
 
 public:
 

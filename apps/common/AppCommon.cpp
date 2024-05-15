@@ -387,31 +387,31 @@ Volume* reconstructVolumeFromMesh(Mesh* inputMesh, const AppOptions* options,
     // Create the volume from the mesh
     auto volume = createVolumeGrid(inputMesh, options, VERBOSE);
 
-    // Surface voxelization
-    // volume->surfaceVoxelization(inputMesh, true, true);
-
-    volume->surfaceVoxelization(inputMesh, true, false, 1.0);
-    volume->solidVoxelization(options->voxelizationAxis);
-    auto bordeVoxels = volume->searchForBorderVoxels();
-    for (size_t i = 0; i < bordeVoxels.size(); ++i)
+    if (options->useSolidVoxelization)
     {
-        for (size_t j = 0; j < bordeVoxels[i].size(); ++j)
+        volume->surfaceVoxelization(inputMesh, true, false, 1.0);
+        volume->solidVoxelization(options->voxelizationAxis);
+
+        auto bordeVoxels = volume->searchForBorderVoxels();
+        for (size_t i = 0; i < bordeVoxels.size(); ++i)
         {
-            auto voxel = bordeVoxels[i][j];
-            volume->clear(voxel.x(), voxel.y(), voxel.z());
+            for (size_t j = 0; j < bordeVoxels[i].size(); ++j)
+            {
+                auto voxel = bordeVoxels[i][j];
+                volume->clear(voxel.x(), voxel.y(), voxel.z());
+            }
+            bordeVoxels[i].clear();
         }
-        bordeVoxels[i].clear();
+        bordeVoxels.clear();
+        volume->surfaceVoxelization(inputMesh, true, false, 0.5);
     }
-    bordeVoxels.clear();
-    volume->surfaceVoxelization(inputMesh, true, false, 0.5);
+    else {
+        volume->surfaceVoxelization(inputMesh, true, false, 1.0);
+    }
 
     // Free the input mesh, if asked for
     if (releaseInputMesh)
         delete inputMesh;
-
-    // Enable solid voxelization
-    if (options->useSolidVoxelization)
-        volume->solidVoxelization(options->voxelizationAxis);
 
     return volume;
 }

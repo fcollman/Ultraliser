@@ -429,6 +429,17 @@ public:
     void floodFillSliceAlongAxis(const int64_t &x, const AXIS &axis, const size_t &padding = 0);
 
     /**
+     * @brief getFilledPixelsAfterFloodFillSliceAlongAxis
+     * @param x
+     * @param axis
+     * @param padding
+     * @return
+     */
+    Pixels2 getFilledPixelsAfterFloodFillSliceAlongAxis(const int64_t &x,
+                                                        const AXIS &axis,
+                                                        const size_t &padding = 0);
+
+    /**
      * @brief floodFillSliceAlongAxisROI
      * @param sliceIndex
      * @param axis
