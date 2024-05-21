@@ -25,6 +25,7 @@
 #include <math/Vector.h>
 #include <utilities/Utilities.h>
 #include <data/images/Pixel2.h>
+#include <data/images/ImagePixel.h>
 
 namespace Ultraliser
 {
@@ -42,33 +43,6 @@ enum PIXEL_COLOR
 class Image
 {
 public:
-
-    struct ImagePixel
-    {
-        /**
-         * @brief Point
-         * @param xx
-         * @param yy
-         */
-        ImagePixel(int64_t xx, int64_t yy) : x(xx), y(yy) { }
-
-        /**
-         * @brief x
-         */
-        int64_t x = -1;
-
-        /**
-         * @brief y
-         */
-        int64_t y = -1;
-
-        /**
-         * @brief operator +
-         * @param rhs
-         * @return
-         */
-        ImagePixel operator +(ImagePixel rhs) { return ImagePixel(x + rhs.x, y + rhs.y); }
-    };
 
     /**
      * @brief Image
@@ -190,6 +164,17 @@ public:
     }
 
     /**
+     * @brief setPixelColorWOBC
+     * @param x
+     * @param y
+     * @param color
+     */
+    void setPixelColorWOBC(const int64_t &x, const int64_t &y, const PIXEL_COLOR& color)
+    {
+        setPixelColor(mapTo1DIndexWOBC(x, y), color);
+    }
+
+    /**
      * @brief getPixelColor
      * Gets the color of a pixel specified by 1D index.
      * @param index
@@ -215,6 +200,17 @@ public:
     PIXEL_COLOR getPixelColor(const size_t &x, const size_t &y)
     {
         return getPixelColor(mapTo1DIndex(x, y));
+    }
+
+    /**
+     * @brief getPixelColorWOBC
+     * @param x
+     * @param y
+     * @return
+     */
+    PIXEL_COLOR getPixelColorWOBC(const size_t &x, const size_t &y)
+    {
+        return getPixelColor(mapTo1DIndexWOBC(x, y));
     }
 
     /**

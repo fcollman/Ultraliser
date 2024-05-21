@@ -40,6 +40,7 @@ Volume* createNeuronVolume(Mesh* neuronMesh, const AppOptions* options, const bo
     neuronVolume->surfaceVoxelization(neuronMesh, VERBOSE, false, 1.0);
     neuronVolume->solidVoxelization(options->voxelizationAxis, VERBOSE);
 
+    // Conservative rasterization is ignore here becuase the volume will be used for skeletonization
     // Remove the border voxels that span less than half the voxel
     auto bordeVoxels = neuronVolume->searchForBorderVoxels(verbose);
     for (size_t i = 0; i < bordeVoxels.size(); ++i)
@@ -73,7 +74,7 @@ Mesh* reconstructNeuronMeshFromVolume(Volume* neuronVolume, AppOptions* options,
     return reconstructedNeuronMesh;
 }
 
-Mesh* createHighResolutionMesh(Mesh* inputMesh, float voxelsPerMicron)
+Mesh* createHighResolutionNeuronMesh(Mesh* inputMesh, float voxelsPerMicron)
 {
     // Get relaxed bounding box to build the volume
     Vector3f pMinInput, pMaxInput;
@@ -94,21 +95,7 @@ Mesh* createHighResolutionMesh(Mesh* inputMesh, float voxelsPerMicron)
 
     // Adaptive and conservative Voxelization
     volume->surfaceVoxelization(inputMesh, VERBOSE, false, 1.0);
-    volume->solidVoxelization(Volume::SOLID_VOXELIZATION_AXIS::XYZ, VERBOSE);
-
-    // Remove the border voxels that span less than half the voxel
-    auto bordeVoxels = volume->searchForBorderVoxels(true);
-    for (size_t i = 0; i < bordeVoxels.size(); ++i)
-    {
-        for (size_t j = 0; j < bordeVoxels[i].size(); ++j)
-        {
-            auto voxel = bordeVoxels[i][j];
-            volume->clear(voxel.x(), voxel.y(), voxel.z());
-        }
-        bordeVoxels[i].clear();
-    }
-    bordeVoxels.clear();
-    volume->surfaceVoxelization(inputMesh, VERBOSE, false, 0.5);
+    volume->solidVoxelization(AXIS::XYZ, VERBOSE);
 
     // Construct the mesh using the DMC technique
     auto reconstructedNeuronMesh = DualMarchingCubes::generateMeshFromVolume(volume);
@@ -116,6 +103,7 @@ Mesh* createHighResolutionMesh(Mesh* inputMesh, float voxelsPerMicron)
     // Smooth the resulting surface mesh
     reconstructedNeuronMesh->smoothSurface(NEURON_SMOOTHING_ITERATIONS, true);
 
+    // Adaptive optimization
     reconstructedNeuronMesh->optimizeAdaptively(5, 5, 0.05, 5.0, SILENT);
 
     // Return a pointer to the resulting neuron
@@ -223,6 +211,38 @@ void runNeuronSkeletonizationOperations(const AppOptions* options,
 
     // Export the morphology of the neuron
     exportNeuronMorphology(options, skeletonizer);
+}
+
+void runHighQualityMeshGeneration(const AppOptions* options,
+                                  NeuronSkeletonizer* skeletonizer,
+                                  Mesh* inputNeuronMesh)
+{
+    if (options->exportHighQualityNeuronMesh)
+    {
+        TIMER_SET;
+        // Get the brancehs
+        auto sections = skeletonizer->getValidSections();
+
+        // Construct mesh from sections
+        auto validSectionsMesh = createMeshFromSections(sections, options);
+        sections.clear();
+
+        // Append the valid sections mesh to the input mesh
+        inputNeuronMesh->append(validSectionsMesh);
+        validSectionsMesh->~Mesh();
+
+        // Create a new big mesh from the input neuron mesh
+        auto hqNeuronMesh = createHighResolutionNeuronMesh(inputNeuronMesh,
+                                                           options->highQualityVPM);
+
+        // Export the resulting mesh
+        hqNeuronMesh->exportMesh(options->meshPrefix + "-high-resolution",
+                                       options->exportOBJ, options->exportPLY,
+                                       options->exportOFF, options->exportSTL);
+        // Clear
+        hqNeuronMesh->~Mesh();
+        LOG_STATS(GET_TIME_SECONDS);
+    }
 }
 
 }

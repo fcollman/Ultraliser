@@ -21,26 +21,22 @@
 
 #pragma once
 
-#include <common/Headers.hh>
+#include <common/Common.h>
 
 namespace Ultraliser
 {
 
 /**
- * @brief The Pixel2 struct
+ * @brief The ImagePixel struct
  */
-struct Pixel2
+struct ImagePixel
 {
-public:
-
     /**
-     * @brief Pixel2
-     * @param i
-     * @param j
+     * @brief Point
+     * @param xx
+     * @param yy
      */
-    Pixel2(int64_t i, int64_t j) : x(i), y(j) { }
-
-public:
+    ImagePixel(int64_t xx, int64_t yy) : x(xx), y(yy) { }
 
     /**
      * @brief x
@@ -57,12 +53,7 @@ public:
      * @param rhs
      * @return
      */
-    Pixel2 operator +(Pixel2 rhs) { return Pixel2(x + rhs.x, y + rhs.y); }
+    ImagePixel operator +(ImagePixel rhs) { return ImagePixel(x + rhs.x, y + rhs.y); }
 };
-
-/**
- * @brief Pixels2
- */
-typedef std::vector< Pixel2 > Pixels2;
 
 }

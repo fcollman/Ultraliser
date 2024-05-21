@@ -135,7 +135,7 @@ void run(int argc , const char** argv)
 //    Mesh* somaMesh = skeletonizer->getSomaMesh();
 //    solidVolume->clear();
 //    solidVolume->surfaceVoxelization(somaMesh);
-//    solidVolume->solidVoxelization(Volume::SOLID_VOXELIZATION_AXIS::XYZ);
+//    solidVolume->solidVoxelization(AXIS::XYZ);
 //    solidVolume->project(prefix + "_somasegmented",
 //                    options->projectXY, options->projectXZ, options->projectZY,
 //                    options->projectColorCoded);

@@ -460,7 +460,7 @@ void NeuronSkeletonizer::_identifySomaticNodes(const bool verbose)
         // Apply the solid voxelization only to the selected ROI to avoid flood-filling large slices
         TIMER_RESET;
         VERBOSE_LOG(LOOP_STARTS("Solid Voxelization ROI *"), verbose);
-        _volume->solidVoxelizationROI(Volume::SOLID_VOXELIZATION_AXIS::X, x1, x2, y1, y2, z1, z2,
+        _volume->solidVoxelizationROI(AXIS::X, x1, x2, y1, y2, z1, z2,
                                       false);
         VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
@@ -490,7 +490,7 @@ void NeuronSkeletonizer::_identifySomaticNodes(const bool verbose)
         // Apply solid voxelization on the entire slice
         TIMER_RESET;
         VERBOSE_LOG(LOOP_STARTS("Solid Voxelization"), verbose);
-        _volume->solidVoxelization(Volume::SOLID_VOXELIZATION_AXIS::X);
+        _volume->solidVoxelization(AXIS::X);
         VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
         // Compute the voxels that are inside the soma
@@ -539,7 +539,7 @@ void NeuronSkeletonizer::_reconstructSomaMeshFromProxy(const bool verbose)
 
     // Voxelize the proxy mesh
     somaVolume->surfaceVoxelization(_somaProxyMesh, SILENT, false, 1.0);
-    somaVolume->solidVoxelization(Volume::SOLID_VOXELIZATION_AXIS::XYZ, verbose);
+    somaVolume->solidVoxelization(AXIS::XYZ, verbose);
 
     // Use DMC to reconstruct a mesh
     _somaMesh = DualMarchingCubes::generateMeshFromVolume(somaVolume, verbose);
@@ -548,7 +548,7 @@ void NeuronSkeletonizer::_reconstructSomaMeshFromProxy(const bool verbose)
     delete somaVolume;
 
     // Optimize the mesh
-    _somaMesh->smoothSurface(10, verbose);
+    _somaMesh->smoothSurface(25, verbose);
     _somaMesh->optimizeAdaptively(5, 5, 0.05, 5.0, verbose);
 }
 

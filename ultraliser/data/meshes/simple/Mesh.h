@@ -476,7 +476,7 @@ public:
      */
     void optimize(const size_t &optimizationIterations,
                   const int64_t &smoothingIterations,
-                  const float& denseFactor);
+                  const float& denseFactor, bool verbose = VERBOSE);
 
     /**
      * @brief optimizeAdaptively

@@ -244,14 +244,14 @@ void Image::writePPM(const std::string &prefix) const
     // LOG_INFO("Count : %d", count);
 }
 
-std::vector< std::vector< Image::ImagePixel > > Image::_getComponents()
+std::vector< std::vector< ImagePixel > > Image::_getComponents()
 {
     size_t* labels = new size_t[_width * _height]();
 
     int labelCount = 1;
 
     // Define 8-connectivity offsets
-    std::vector<ImagePixel> neighbors = {
+    std::vector< ImagePixel > neighbors = {
         ImagePixel(-1, -1), ImagePixel(-1, 0), ImagePixel(-1, 1),
         ImagePixel( 0, -1),                    ImagePixel( 0, 1),
         ImagePixel( 1, -1), ImagePixel( 1, 0), ImagePixel( 1, 1) };
@@ -339,7 +339,7 @@ void Image::_fillComponent(const std::vector< ImagePixel >& component,
     // If the component is composed of a single pixel, return, there is nothing to be filled
     if (component.size() == 1)
     {
-        setPixelColor(component[0].x, component[0].y, WHITE);
+        setPixelColorWOBC(component[0].x, component[0].y, WHITE);
         return;
     }
 
@@ -372,7 +372,7 @@ void Image::_fillComponent(const std::vector< ImagePixel >& component,
     {
         for (size_t j = 0; j < componentHeight; ++j)
         {
-            componentImage.setPixelColor(gap - 1, j, GRAY);
+            componentImage.setPixelColorWOBC(gap - 1, j, GRAY);
         }
 
         xStart = gap;
@@ -382,7 +382,7 @@ void Image::_fillComponent(const std::vector< ImagePixel >& component,
     {
         for (size_t j = 0; j < componentHeight; ++j)
         {
-            componentImage.setPixelColor(componentWidth - gap - 1, j, GRAY);
+            componentImage.setPixelColorWOBC(componentWidth - gap - 1, j, GRAY);
         }
     }
 
@@ -390,7 +390,7 @@ void Image::_fillComponent(const std::vector< ImagePixel >& component,
     {
         for (size_t i = 0; i < componentWidth; ++i)
         {
-            componentImage.setPixelColor(i, gap - 1, GRAY);
+            componentImage.setPixelColorWOBC(i, gap - 1, GRAY);
         }
 
         yStart = gap;
@@ -400,7 +400,7 @@ void Image::_fillComponent(const std::vector< ImagePixel >& component,
     {
         for (size_t i = 0; i < componentWidth; ++i)
         {
-            componentImage.setPixelColor(i, componentHeight - gap - 1, GRAY);
+            componentImage.setPixelColorWOBC(i, componentHeight - gap - 1, GRAY);
         }
     }
 
@@ -409,14 +409,15 @@ void Image::_fillComponent(const std::vector< ImagePixel >& component,
     {
         int xComponent = p.x - xMin;
         int yComponent = p.y - yMin;
-        componentImage.setPixelColor(gap + xComponent , gap + yComponent , PIXEL_COLOR::GRAY);
+        componentImage.setPixelColorWOBC(gap + xComponent , gap + yComponent , PIXEL_COLOR::GRAY);
     }
 
     // Flood Filler
     PIXEL_COLOR newColor = WHITE;
     PIXEL_COLOR oldColor = BLACK;
 
-    FloodFiller::fill(&componentImage, componentImage.getWidth(),componentImage.getHeight(), xStart, yStart, newColor, oldColor);
+    FloodFiller::fill(&componentImage, componentImage.getWidth(),componentImage.getHeight(),
+                      xStart, yStart, newColor, oldColor);
 
     for (int64_t i = 0; i < width; ++i)
     {
@@ -433,7 +434,7 @@ void Image::_fillComponent(const std::vector< ImagePixel >& component,
             {
                 if (filled)
                 {
-                    setPixelColor(xPixel, yPixel, PIXEL_COLOR::WHITE);
+                    setPixelColorWOBC(xPixel, yPixel, PIXEL_COLOR::WHITE);
                 }
             }
         }
@@ -482,7 +483,7 @@ Pixels2 Image::_getFilledPixelsAfterFloodFilling(const std::vector< ImagePixel >
     {
         for (size_t j = 0; j < componentHeight; ++j)
         {
-            componentImage.setPixelColor(gap - 1, j, GRAY);
+            componentImage.setPixelColorWOBC(gap - 1, j, GRAY);
         }
 
         xStart = gap;
@@ -492,7 +493,7 @@ Pixels2 Image::_getFilledPixelsAfterFloodFilling(const std::vector< ImagePixel >
     {
         for (size_t j = 0; j < componentHeight; ++j)
         {
-            componentImage.setPixelColor(componentWidth - gap - 1, j, GRAY);
+            componentImage.setPixelColorWOBC(componentWidth - gap - 1, j, GRAY);
         }
     }
 
@@ -500,7 +501,7 @@ Pixels2 Image::_getFilledPixelsAfterFloodFilling(const std::vector< ImagePixel >
     {
         for (size_t i = 0; i < componentWidth; ++i)
         {
-            componentImage.setPixelColor(i, gap - 1, GRAY);
+            componentImage.setPixelColorWOBC(i, gap - 1, GRAY);
         }
 
         yStart = gap;
@@ -510,7 +511,7 @@ Pixels2 Image::_getFilledPixelsAfterFloodFilling(const std::vector< ImagePixel >
     {
         for (size_t i = 0; i < componentWidth; ++i)
         {
-            componentImage.setPixelColor(i, componentHeight - gap - 1, GRAY);
+            componentImage.setPixelColorWOBC(i, componentHeight - gap - 1, GRAY);
         }
     }
 
@@ -519,7 +520,7 @@ Pixels2 Image::_getFilledPixelsAfterFloodFilling(const std::vector< ImagePixel >
     {
         int xComponent = p.x - xMin;
         int yComponent = p.y - yMin;
-        componentImage.setPixelColor(gap + xComponent , gap + yComponent , PIXEL_COLOR::GRAY);
+        componentImage.setPixelColorWOBC(gap + xComponent , gap + yComponent , PIXEL_COLOR::GRAY);
     }
 
     // Flood Filler

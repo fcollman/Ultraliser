@@ -38,6 +38,7 @@
 #include <algorithms/skeletonization/Skeletonization.h>
 #include <data/meshes/simple/TriangleOperations.h>
 #include <data/volumes/voxels/Voxel3.h>
+#include <common/Enums.h>
 
 #ifdef ULTRALISER_USE_NRRD
 #include <nrrdloader/NRRDLoader.h>
@@ -1326,10 +1327,8 @@ void Volume::_rasterizeParallel(Mesh* mesh, VolumeGrid* grid,
         PROGRESS_UPDATE;
     }
     VERBOSE_LOG(LOOP_DONE, verbose);
-    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
     VERBOSE_LOG(LOOP_STARTS("Updating Volume *"), verbose);
-    PROGRESS_RESET;
     for (size_t i = 0; i < voxels.size(); ++i)
     {
         for (size_t j = 0; j < voxels[i].size(); ++j)
@@ -1484,7 +1483,7 @@ void Volume::_rasterize(AdvancedMesh* mesh, VolumeGrid* grid)
     LOOP_DONE;
 }
 
-void Volume::solidVoxelization(const SOLID_VOXELIZATION_AXIS& axis, const bool& verbose)
+void Volume::solidVoxelization(const AXIS& axis, const bool& verbose)
 {
     VERBOSE_LOG(LOG_TITLE("Solid Voxelization"), verbose);
     TIMER_SET;
@@ -1497,7 +1496,7 @@ void Volume::solidVoxelization(const SOLID_VOXELIZATION_AXIS& axis, const bool& 
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 }
 
-void Volume::solidVoxelizationROI(const SOLID_VOXELIZATION_AXIS& axis,
+void Volume::solidVoxelizationROI(const AXIS& axis,
                                   const size_t& x1, const size_t x2,
                                   const size_t& y1, const size_t y2,
                                   const size_t& z1, const size_t z2,
@@ -1515,20 +1514,20 @@ void Volume::solidVoxelizationROI(const SOLID_VOXELIZATION_AXIS& axis,
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 }
 
-void Volume::_floodFill2D(const SOLID_VOXELIZATION_AXIS &axis, const bool &verbose)
+void Volume::_floodFill2D(const AXIS &axis, const bool &verbose)
 {
     // Start the timer
     TIMER_SET;
 
     switch (axis)
     {
-    case X: _floodFillAlongAxisOptimized(_grid, SOLID_VOXELIZATION_AXIS::X, verbose);
+    case X: _floodFillAlongAxisOptimized(_grid, AXIS::X, verbose);
         break;
 
-    case Y: _floodFillAlongAxisOptimized(_grid, SOLID_VOXELIZATION_AXIS::Y, verbose);
+    case Y: _floodFillAlongAxisOptimized(_grid, AXIS::Y, verbose);
         break;
 
-    case Z: _floodFillAlongAxisOptimized(_grid, SOLID_VOXELIZATION_AXIS::Z, verbose);
+    case Z: _floodFillAlongAxisOptimized(_grid, AXIS::Z, verbose);
         break;
 
     case XYZ:_floodFillAlongXYZ(_grid, verbose);
@@ -1536,7 +1535,7 @@ void Volume::_floodFill2D(const SOLID_VOXELIZATION_AXIS &axis, const bool &verbo
     }
 }
 
-void Volume::_floodFill2DROI(const SOLID_VOXELIZATION_AXIS &axis,
+void Volume::_floodFill2DROI(const AXIS &axis,
                              const size_t& x1, const size_t x2,
                              const size_t& y1, const size_t y2,
                              const size_t& z1, const size_t z2,
@@ -1547,15 +1546,15 @@ void Volume::_floodFill2DROI(const SOLID_VOXELIZATION_AXIS &axis,
 
     switch (axis)
     {
-    case X: _floodFillAlongAxisROI(_grid, SOLID_VOXELIZATION_AXIS::X,
+    case X: _floodFillAlongAxisROI(_grid, AXIS::X,
                                    x1, x2, y1, y2, z1, z2, verbose);
         break;
 
-    case Y: _floodFillAlongAxisROI(_grid, SOLID_VOXELIZATION_AXIS::Y,
+    case Y: _floodFillAlongAxisROI(_grid, AXIS::Y,
                                    x1, x2, y1, y2, z1, z2, verbose);
         break;
 
-    case Z: _floodFillAlongAxisROI(_grid, SOLID_VOXELIZATION_AXIS::Z,
+    case Z: _floodFillAlongAxisROI(_grid, AXIS::Z,
                                    x1, x2, y1, y2, z1, z2, verbose);
         break;
 
@@ -1565,42 +1564,48 @@ void Volume::_floodFill2DROI(const SOLID_VOXELIZATION_AXIS &axis,
 }
 
 Volume::FloodFillingData Volume::_getCaseSpecificFloodFillingData(
-        const SOLID_VOXELIZATION_AXIS &axis)
+        const AXIS &axis)
 {
     FloodFillingData data;
 
     switch (axis)
     {
-    case SOLID_VOXELIZATION_AXIS::X:
+    case AXIS::X:
     {
         data.dimension = getWidth();
         data.floodFillingAxis = AXIS::X;
         data.floodFillingString = "2D Slice Flood-filling (X-axis)";
+        data.width = getHeight();
+        data.height = getDepth();
     } break;
 
-    case SOLID_VOXELIZATION_AXIS::Y:
+    case AXIS::Y:
     {
         data.dimension = getHeight();
         data.floodFillingAxis = AXIS::Y;
         data.floodFillingString = "2D Slice Flood-filling (Y-axis)";
+        data.width = getWidth();
+        data.height = getDepth();
     } break;
 
-    case SOLID_VOXELIZATION_AXIS::Z:
+    case AXIS::Z:
     {
         data.dimension = getDepth();
         data.floodFillingAxis = AXIS::Z;
         data.floodFillingString = "2D Slice Flood-filling (Z-axis)";
+        data.width = getWidth();
+        data.height = getHeight();
     } break;
 
     // XYZ voxelization will be handled
-    case SOLID_VOXELIZATION_AXIS::XYZ:
+    case AXIS::XYZ:
         break;
     }
 
     return data;
 }
 
-void Volume::_floodFillAlongAxis(VolumeGrid* grid, const SOLID_VOXELIZATION_AXIS &axis,
+void Volume::_floodFillAlongAxis(VolumeGrid* grid, const AXIS &axis,
                                  const bool &verbose)
 {
     // Disable buffering
@@ -1615,7 +1620,7 @@ void Volume::_floodFillAlongAxis(VolumeGrid* grid, const SOLID_VOXELIZATION_AXIS
         LOOP_STARTS(floodFillingData.floodFillingString.c_str());
         PROGRESS_SET;
         OMP_PARALLEL_FOR
-        for (int64_t i = 0 ; i <floodFillingData.dimension; ++i)
+        for (int64_t i = 0 ; i < floodFillingData.dimension; ++i)
         {
             grid->floodFillSliceAlongAxis(i, floodFillingData.floodFillingAxis);
 
@@ -1636,9 +1641,7 @@ void Volume::_floodFillAlongAxis(VolumeGrid* grid, const SOLID_VOXELIZATION_AXIS
     }
 }
 
-void Volume::_floodFillAlongAxisOptimized(VolumeGrid *grid,
-                                          const SOLID_VOXELIZATION_AXIS &axis,
-                                          const bool &verbose)
+void Volume::_floodFillAlongAxisOptimized(VolumeGrid *grid, const AXIS &axis, const bool &verbose)
 {
     // Disable buffering
     setbuf(stdout, nullptr);
@@ -1658,21 +1661,19 @@ void Volume::_floodFillAlongAxisOptimized(VolumeGrid *grid,
         for (int64_t i = 0 ; i <floodFillingData.dimension; ++i)
         {
             filledPixels[i] = grid->getFilledPixelsAfterFloodFillSliceAlongAxis(
-                        i, floodFillingData.floodFillingAxis);
+                        i, axis, floodFillingData.width, floodFillingData.height);
 
             // Update the progress bar
             LOOP_PROGRESS(PROGRESS, floodFillingData.dimension);
             PROGRESS_UPDATE;
         }
         LOOP_DONE;
-        LOG_STATS(GET_TIME_SECONDS);
 
         // Update the volume
-        TIMER_RESET;
         LOOP_STARTS("Updating Volume");
         switch (axis)
         {
-        case SOLID_VOXELIZATION_AXIS::X:
+        case AXIS::X:
             for (size_t i = 0; i < filledPixels.size(); ++i)
             {
                 for (size_t j = 0; j < filledPixels[i].size(); ++j)
@@ -1684,7 +1685,7 @@ void Volume::_floodFillAlongAxisOptimized(VolumeGrid *grid,
             }
             break;
 
-        case SOLID_VOXELIZATION_AXIS::Y:
+        case AXIS::Y:
             for (size_t i = 0; i < filledPixels.size(); ++i)
             {
                 for (size_t j = 0; j < filledPixels[i].size(); ++j)
@@ -1697,7 +1698,7 @@ void Volume::_floodFillAlongAxisOptimized(VolumeGrid *grid,
             break;
 
 
-        case SOLID_VOXELIZATION_AXIS::Z:
+        case AXIS::Z:
             for (size_t i = 0; i < filledPixels.size(); ++i)
             {
                 for (size_t j = 0; j < filledPixels[i].size(); ++j)
@@ -1722,12 +1723,12 @@ void Volume::_floodFillAlongAxisOptimized(VolumeGrid *grid,
         for (int64_t i = 0 ; i < floodFillingData.dimension; ++i)
         {
             filledPixels[i] = grid->getFilledPixelsAfterFloodFillSliceAlongAxis(
-                        i, floodFillingData.floodFillingAxis);
+                        i, axis, floodFillingData.width, floodFillingData.height);
         }
 
         switch (axis)
         {
-        case SOLID_VOXELIZATION_AXIS::X:
+        case AXIS::X:
             for (size_t i = 0; i < filledPixels.size(); ++i)
             {
                 for (size_t j = 0; j < filledPixels[i].size(); ++j)
@@ -1738,7 +1739,7 @@ void Volume::_floodFillAlongAxisOptimized(VolumeGrid *grid,
             }
             break;
 
-        case SOLID_VOXELIZATION_AXIS::Y:
+        case AXIS::Y:
             for (size_t i = 0; i < filledPixels.size(); ++i)
             {
                 for (size_t j = 0; j < filledPixels[i].size(); ++j)
@@ -1750,7 +1751,7 @@ void Volume::_floodFillAlongAxisOptimized(VolumeGrid *grid,
             break;
 
 
-        case SOLID_VOXELIZATION_AXIS::Z:
+        case AXIS::Z:
             for (size_t i = 0; i < filledPixels.size(); ++i)
             {
                 for (size_t j = 0; j < filledPixels[i].size(); ++j)
@@ -1769,7 +1770,7 @@ void Volume::_floodFillAlongAxisOptimized(VolumeGrid *grid,
 }
 
 void Volume::_floodFillAlongAxisWithOpenMPLocks(VolumeGrid* grid,
-                                                const SOLID_VOXELIZATION_AXIS &axis,
+                                                const AXIS &axis,
                                                 const bool &verbose)
 {
     // Disable buffering
@@ -1843,7 +1844,7 @@ void Volume::_floodFillAlongAxisWithOpenMPLocks(VolumeGrid* grid,
 }
 
 void Volume::_floodFillAlongAxisROI(VolumeGrid* grid,
-                                    const SOLID_VOXELIZATION_AXIS &axis,
+                                    const AXIS &axis,
                                     const size_t& x1, const size_t x2,
                                     const size_t& y1, const size_t y2,
                                     const size_t& z1, const size_t z2,
@@ -1866,7 +1867,7 @@ void Volume::_floodFillAlongAxisROI(VolumeGrid* grid,
 
     switch (axis)
     {
-    case SOLID_VOXELIZATION_AXIS::X:
+    case AXIS::X:
     {
         // Set the boundaries
         lower = x1; upper = x2;
@@ -1875,7 +1876,7 @@ void Volume::_floodFillAlongAxisROI(VolumeGrid* grid,
         floodFillingString = "2D Slice Flood-filling (X-axis)";
     } break;
 
-    case SOLID_VOXELIZATION_AXIS::Y:
+    case AXIS::Y:
     {
         // Set the boundaries
         lower = y1; upper = y2;
@@ -1884,7 +1885,7 @@ void Volume::_floodFillAlongAxisROI(VolumeGrid* grid,
         floodFillingString = "2D Slice Flood-filling (Y-axis)";
     } break;
 
-    case SOLID_VOXELIZATION_AXIS::Z:
+    case AXIS::Z:
     {
         // Set the boundaries
         lower = z1; upper = z2;
@@ -1894,7 +1895,7 @@ void Volume::_floodFillAlongAxisROI(VolumeGrid* grid,
     } break;
 
     // XYZ voxelization will be handled
-    case SOLID_VOXELIZATION_AXIS::XYZ:
+    case AXIS::XYZ:
         break;
     }
 
@@ -1988,9 +1989,9 @@ void Volume::_floodFillAlongXYZ(VolumeGrid *grid, const bool &verbose)
     }
 
     // Flood fill along the three axes
-    _floodFillAlongAxisOptimized(xGrid, SOLID_VOXELIZATION_AXIS::X, verbose);
-    _floodFillAlongAxisOptimized(yGrid, SOLID_VOXELIZATION_AXIS::Y, verbose);
-    _floodFillAlongAxisOptimized(zGrid, SOLID_VOXELIZATION_AXIS::Z, verbose);
+    _floodFillAlongAxisOptimized(xGrid, AXIS::X, verbose);
+    _floodFillAlongAxisOptimized(yGrid, AXIS::Y, verbose);
+    _floodFillAlongAxisOptimized(zGrid, AXIS::Z, verbose);
 
     // Blend the three grids using AND operation and store the final result in the xGrid
     xGrid->andWithAnotherGrid(yGrid);
@@ -2073,9 +2074,9 @@ void Volume::_floodFillAlongXYZROI(VolumeGrid *grid,
     }
 
     // Flood fill along the three axes
-    _floodFillAlongAxisROI(xGrid, SOLID_VOXELIZATION_AXIS::X, x1, x2, y1, y2, z1, z2, verbose);
-    _floodFillAlongAxisROI(yGrid, SOLID_VOXELIZATION_AXIS::Y, x1, x2, y1, y2, z1, z2, verbose);
-    _floodFillAlongAxisROI(zGrid, SOLID_VOXELIZATION_AXIS::Z, x1, x2, y1, y2, z1, z2, verbose);
+    _floodFillAlongAxisROI(xGrid, AXIS::X, x1, x2, y1, y2, z1, z2, verbose);
+    _floodFillAlongAxisROI(yGrid, AXIS::Y, x1, x2, y1, y2, z1, z2, verbose);
+    _floodFillAlongAxisROI(zGrid, AXIS::Z, x1, x2, y1, y2, z1, z2, verbose);
 
     // Blend the three grids using AND operation and store the final result in the xGrid
     xGrid->andWithAnotherGrid(yGrid);
@@ -3745,23 +3746,23 @@ Volume* Volume::constructFromTiffMask(
 #endif
 }
 
-Volume::SOLID_VOXELIZATION_AXIS Volume::getSolidvoxelizationAxis(const std::string &argumentString)
+AXIS Volume::getSolidvoxelizationAxis(const std::string &argumentString)
 {
     if (argumentString == "x")
     {
-        return SOLID_VOXELIZATION_AXIS::X;
+        return AXIS::X;
     }
     else if (argumentString == "y")
     {
-        return SOLID_VOXELIZATION_AXIS::Y;
+        return AXIS::Y;
     }
     else if (argumentString == "z")
     {
-        return SOLID_VOXELIZATION_AXIS::Z;
+        return AXIS::Z;
     }
     else if (argumentString == "xyz")
     {
-        return SOLID_VOXELIZATION_AXIS::XYZ;
+        return AXIS::XYZ;
     }
     else
     {
@@ -3770,7 +3771,7 @@ Volume::SOLID_VOXELIZATION_AXIS Volume::getSolidvoxelizationAxis(const std::stri
                   "Please use one of the following [x, y, z, xyz].", argumentString.c_str());
 
         // For the sake of compilation only.
-        return SOLID_VOXELIZATION_AXIS::XYZ;
+        return AXIS::XYZ;
     }
 }
 

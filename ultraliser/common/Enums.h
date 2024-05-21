@@ -36,7 +36,10 @@ enum AXIS
     Y,
 
     // Z-axis, corresponds to XY_PROJECTION
-    Z
+    Z,
+
+    // X, Y, then Z axis
+    XYZ = 3
 };
 
 }

@@ -29,7 +29,7 @@
 namespace Ultraliser
 {
 
-Mesh* createMeshFromSections(Sections& sections, AppOptions* options)
+Mesh* createMeshFromSections(Sections& sections, const AppOptions* options)
 {
     Vector3f pMinInput, pMaxInput;
     computeSectionsBoundingBox(sections, pMinInput, pMaxInput);
