@@ -227,6 +227,20 @@ void runHighQualityMeshGeneration(const AppOptions* options,
         auto validSectionsMesh = createMeshFromSections(sections, options);
         sections.clear();
 
+        // Construct a point cloud for the neuron mesh to map the reconstructed soma to the neuron mesh
+        LOG_STATUS("Mapping Initial Soma Profile to Neuron Mesh");
+        std::vector< Vector3f > neuronMeshCloud;
+        neuronMeshCloud.resize(inputNeuronMesh->getNumberVertices());
+
+        OMP_PARALLEL_FOR
+        for (size_t i = 0; i < inputNeuronMesh->getNumberVertices(); ++i)
+        {
+            neuronMeshCloud[i] = inputNeuronMesh->_vertices[i];
+        }
+
+        validSectionsMesh->kdTreeMapping(neuronMeshCloud);
+        neuronMeshCloud.clear();
+
         // Append the valid sections mesh to the input mesh
         inputNeuronMesh->append(validSectionsMesh);
         validSectionsMesh->~Mesh();

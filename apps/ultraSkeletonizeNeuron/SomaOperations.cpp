@@ -53,6 +53,7 @@ void runFixSomaSlicingArtifactsOperations(const AppOptions* options, Mesh* neuro
 
         // Map the source mesh to the destination mesh
         somaMesh->kdTreeMapping(neuronMeshCloud, SILENT);
+        neuronMeshCloud.clear();
         LOG_STATS(GET_TIME_SECONDS);
 
         // Append this soma mesh to the given neuron mesh to fill the slices in the soma
