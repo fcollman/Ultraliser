@@ -2537,7 +2537,7 @@ void Volume::projectXY(const std::string& prefix, const bool &projectColorCoded)
         {
             for (int64_t k = 0; k < depth; k++)
             {
-                if (isFilledWithoutBoundCheck(i, j, k))
+                if (isFilled(i, j, k))
                 {
                     projectionImage[i + width * j] += 1;
                 }
@@ -2716,8 +2716,6 @@ void Volume::writeStackXZ(const std::string &outputDirectory,
 
                 if (_grid->isFilled(index) && !outlier)
                     slice->setPixelColor(i , k, WHITE);
-                else
-                    slice->setPixelColor(i , k, BLACK);
             }
         }
 
