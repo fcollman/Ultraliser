@@ -2202,9 +2202,10 @@ bool Volume::_testTriangleCubeIntersection(Mesh* mesh, size_t triangleIdx,
         }
     }
 
-    voxelHalfSize[0] *= sideRatio;
-    voxelHalfSize[1] *= sideRatio;
-    voxelHalfSize[2] *= sideRatio;
+    const double _sideRatio = static_cast< double >(sideRatio);
+    voxelHalfSize[0] *= _sideRatio;
+    voxelHalfSize[1] *= _sideRatio;
+    voxelHalfSize[2] *= _sideRatio;
 
     return checkTriangleBoxIntersection(voxelCenter, voxelHalfSize, triangle);
 }

@@ -244,7 +244,6 @@ int checkTriangleBoxIntersection(double boxcenter[3], double boxhalfsize[3], dou
    AXISTEST_Y02(e1[Z], e1[X], fez, fex);
    AXISTEST_Z0(e1[Y], e1[X], fey, fex);
 
-
    fex = fabs(e2[X]);
    fey = fabs(e2[Y]);
    fez = fabs(e2[Z]);
