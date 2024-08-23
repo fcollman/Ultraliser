@@ -563,13 +563,15 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
         auto& lastNode = branch->nodes.back();
 
         // If the first and last nodes of the branch are inside the soma, then it is invalid
+        // becuase it it totally located inside the soma
         if (branch->nodes.front()->insideSoma && branch->nodes.back()->insideSoma)
         {
-            // TODO: What could be other possible cases!
             branch->setInvalid();
             branch->setInsideSoma();
             branch->unsetRoot();
         }
+
+        // If at least one node is located inside the soma and the other is located outside the soma
         else
         {
             // Count the number of samples inside the soma
@@ -599,7 +601,7 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
             else
             {
                 // If the first node is inside the soma, then annotate the branch
-                if (firstNode->insideSoma)
+                if (firstNode->insideSoma && !lastNode->insideSoma)
                 {
                     SkeletonNodes newNodes;
                     newNodes.push_back(_somaNode);
@@ -623,7 +625,7 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
                 }
 
                 // If the last node is inside the soma, then annotate the branch
-                else if (lastNode->insideSoma)
+                else if (lastNode->insideSoma && !firstNode->insideSoma)
                 {
                     SkeletonNodes newNodes;
                     for (size_t k = 0; k < branch->nodes.size(); ++k)
@@ -647,6 +649,18 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
 
                     // Add this branch to the roots
                     _roots.push_back(branch);
+                }
+                else if (firstNode->insideSoma && lastNode->insideSoma)
+                {
+                    LOG_WARNING("Undefined case for the branch identification: Branch [%d]! "
+                                "Terminal nodes inside soma."
+                                "Possible Errors!", branch->index);
+                }
+                else if (!firstNode->insideSoma && !lastNode->insideSoma)
+                {
+                    LOG_WARNING("Undefined case for the branch identification: Branch [%d]! "
+                                "Terminal nodes outside soma."
+                                "Possible Errors!", branch->index);
                 }
                 else
                 {
