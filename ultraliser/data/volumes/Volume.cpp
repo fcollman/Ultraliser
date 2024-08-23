@@ -1310,6 +1310,64 @@ void Volume::_rasterize(Mesh* mesh, VolumeGrid* grid, const float& sideRatio, co
     if (verbose) LOOP_DONE;
 }
 
+void Volume::_rasterizeParallel(Mesh* mesh, VolumeGrid* grid, const float& sideRatio)
+{
+    // Start the timer
+    TIMER_SET;
+
+    VoxelBucket filledVoxels;
+    filledVoxels.resize(mesh->getNumberTriangles());
+
+    LOOP_STARTS("Rasterization* ");
+    PROGRESS_SET;
+    OMP_PARALLEL_FOR
+    for (size_t tIdx = 0; tIdx < mesh->getNumberTriangles(); tIdx++)
+    {
+        auto& filledVoxelsPerTriangle = filledVoxels[tIdx];
+
+        // Get the pMin and pMax of the triangle within the grid
+        int64_t pMinTriangle[3], pMaxTriangle[3];
+        _getBoundingBox(mesh, tIdx, pMinTriangle, pMaxTriangle);
+
+        for (int64_t ix = pMinTriangle[0]; ix <= pMaxTriangle[0]; ix++)
+        {
+            for (int64_t iy = pMinTriangle[1]; iy <= pMaxTriangle[1]; iy++)
+            {
+                for (int64_t iz = pMinTriangle[2]; iz <= pMaxTriangle[2]; iz++)
+                {
+                    GridIndex gi(I2I64(ix), I2I64(iy), I2I64(iz));
+                    if (_testTriangleCubeIntersection(mesh, tIdx, gi, sideRatio))
+                    {
+                        // grid->fillVoxel(I2I64(ix), I2I64(iy), I2I64(iz));
+                        filledVoxelsPerTriangle.push_back(Voxel(ix, iy, iz));
+                    }
+                }
+            }
+        }
+
+        // Update the progress bar
+        LOOP_PROGRESS(PROGRESS, mesh->getNumberTriangles());
+        PROGRESS_UPDATE;
+    }
+    LOOP_DONE;
+    LOG_STATS(GET_TIME_SECONDS);
+
+    LOOP_STARTS("Updating Volume");
+    PROGRESS_RESET;
+    for (const auto& voxelList : filledVoxels)
+    {
+        for (const auto& voxel : voxelList)
+        {
+            grid->fillVoxel(voxel.x, voxel.y, voxel.z);
+        }
+
+        LOOP_PROGRESS(PROGRESS, mesh->getNumberTriangles());
+        PROGRESS_UPDATE;
+    }
+    LOOP_DONE;
+    LOG_STATS(GET_TIME_SECONDS);
+}
+
 void Volume::_rasterizeRegion(Mesh* mesh, VolumeGrid* grid,
                               const Vector3f& pMinRegion,
                               const Vector3f& pMaxRegion,
@@ -1412,41 +1470,6 @@ void Volume::_rasterize(Sample* sample0, Sample* sample1, VolumeGrid* grid, floa
                       radius0 + radiusIncrement * i, 0);
         _rasterize(&sample, grid);
     }
-}
-
-void Volume::_rasterizeParallel(Mesh* mesh, VolumeGrid* grid, const float& sideRatio)
-{
-    // Start the timer
-    TIMER_SET;
-
-    LOOP_STARTS("Rasterization");
-    PROGRESS_SET;
-    #pragma omp parallel for schedule(dynamic)
-    for (size_t tIdx = 0; tIdx < mesh->getNumberTriangles(); tIdx++)
-    {
-        // Get the pMin and pMax of the triangle within the grid
-        int64_t pMinTriangle[3], pMaxTriangle[3];
-        _getBoundingBox(mesh, tIdx, pMinTriangle, pMaxTriangle);
-
-        for (int64_t ix = pMinTriangle[0]; ix <= pMaxTriangle[0]; ix++)
-        {
-            for (int64_t iy = pMinTriangle[1]; iy <= pMaxTriangle[1]; iy++)
-            {
-                for (int64_t iz = pMinTriangle[2]; iz <= pMaxTriangle[2]; iz++)
-                {
-                    GridIndex gi(I2I64(ix), I2I64(iy), I2I64(iz));
-                    if (_testTriangleCubeIntersection(mesh, tIdx, gi, sideRatio))
-                        grid->fillVoxel(I2I64(ix), I2I64(iy), I2I64(iz));
-                }
-            }
-        }
-
-        // Update the progress bar
-         LOOP_PROGRESS(PROGRESS, mesh->getNumberTriangles());
-         PROGRESS_UPDATE;
-    }
-    LOOP_DONE;
-    LOG_STATS(GET_TIME_SECONDS);
 }
 
 void Volume::_rasterize(AdvancedMesh* mesh, VolumeGrid* grid)

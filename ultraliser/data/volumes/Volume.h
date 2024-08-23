@@ -56,6 +56,26 @@ public:
         XYZ = 3
     };
 
+    /**
+     * @brief The Voxel class
+     */
+    struct Voxel {
+        Voxel(size_t _x, size_t _y, size_t _z) : x(_x), y(_y), z(_z) { }
+        size_t x;
+        size_t y;
+        size_t z;
+    };
+
+    /**
+     * @brief Voxels
+     */
+    typedef std::vector< Voxel > Voxels;
+
+    /**
+     * @brief VoxelBucket
+     */
+    typedef std::vector< Voxels > VoxelBucket;
+
 private:
 
     /**

@@ -390,7 +390,7 @@ Volume* reconstructVolumeFromMesh(Mesh* inputMesh, const AppOptions* options,
     // Surface voxelization
     // volume->surfaceVoxelization(inputMesh, true, true);
 
-    volume->surfaceVoxelization(inputMesh, true, false, 1.0);
+    volume->surfaceVoxelization(inputMesh, true, true, 1.0);
     volume->solidVoxelization(options->voxelizationAxis);
     auto bordeVoxels = volume->searchForBorderVoxels();
     for (size_t i = 0; i < bordeVoxels.size(); ++i)
@@ -403,7 +403,7 @@ Volume* reconstructVolumeFromMesh(Mesh* inputMesh, const AppOptions* options,
         bordeVoxels[i].clear();
     }
     bordeVoxels.clear();
-    volume->surfaceVoxelization(inputMesh, true, false, 0.5);
+    volume->surfaceVoxelization(inputMesh, true, true, 0.5);
 
     // Free the input mesh, if asked for
     if (releaseInputMesh)
