@@ -1261,12 +1261,12 @@ void Volume::_rasterize(Mesh* mesh, VolumeGrid* grid, const float& sideRatio, co
 {
     TIMER_SET;
     VERBOSE_LOG(LOOP_STARTS("Rasterization"), verbose);
-    size_t progress = 0;
+
+    size_t count = 0;
 
     for (size_t triangleIdx = 0; triangleIdx < mesh->getNumberTriangles(); ++triangleIdx)
     {
-        ++progress;
-        VERBOSE_LOG(LOOP_PROGRESS(progress, mesh->getNumberTriangles()), verbose);
+        VERBOSE_LOG(LOOP_PROGRESS(triangleIdx, mesh->getNumberTriangles()), verbose);
 
         // Get the pMin and pMax of the triangle within the grid
         int64_t pMinTriangle[3], pMaxTriangle[3];
@@ -1280,13 +1280,18 @@ void Volume::_rasterize(Mesh* mesh, VolumeGrid* grid, const float& sideRatio, co
                 {
                     GridIndex gi(I2I64(ix), I2I64(iy), I2I64(iz));
                     if (_testTriangleCubeIntersection(mesh, triangleIdx, gi, sideRatio))
+                    {
                         grid->fillVoxel(I2I64(ix), I2I64(iy), I2I64(iz));
+                        count++;
+                    }
                 }
             }
         }
     }
     VERBOSE_LOG(LOOP_DONE, verbose);
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
+
+    LOG_WARNING("Count: %ld", count);
 }
 
 void Volume::_rasterizeParallel(Mesh* mesh, VolumeGrid* grid,
