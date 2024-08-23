@@ -44,7 +44,7 @@ void SomaSegmenter::_verifyVolume(const bool verbose)
         _neuronVolume->surfaceVoxelization(_neuronMesh, SILENT, false, 1.0);
         _neuronVolume->solidVoxelization(AXIS::XYZ, SILENT);
 
-        LOG_INFO("The volume has [%ld] filled voxels", _neuronVolume->computeNumberNonZeroVoxels());
+        LOG_SUCCESS("The volume has [%ld] filled voxels", _neuronVolume->computeNumberNonZeroVoxels());
     }
 }
 
