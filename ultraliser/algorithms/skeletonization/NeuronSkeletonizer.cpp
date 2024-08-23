@@ -672,6 +672,8 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
                     LOG_WARNING("Undefined case for the branch identification: Branch [%d]! "
                                 "Terminal nodes outside soma."
                                 "Possible Errors!", branch->index);
+                    firstNode->point.print();
+                    lastNode->point.print();
                 }
                 else
                 {
