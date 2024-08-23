@@ -429,6 +429,12 @@ public:
     bool useSolidVoxelization = false;
 
     /**
+     * @brief useConservativeRasterization
+     * Use conservative rasterization.
+     */
+    bool useConservativeRasterization = false;
+
+    /**
      * @brief useAccelerationStructures
      * Use acceleration structures to improve the performance of the skeletonization.
      */
@@ -444,7 +450,7 @@ public:
      * @brief voxelizationAxis
      * The axis where the solid voxelization operation will be performed.
      */
-    Ultraliser::Volume::SOLID_VOXELIZATION_AXIS voxelizationAxis;
+    Ultraliser::AXIS voxelizationAxis;
 
     /**
      * @brief volumeType
@@ -660,6 +666,11 @@ public:
      */
     bool exportSWCNeuron = false;
 
+    /**
+     * @brief exportHighQualityNeuronMesh
+     */
+    bool exportHighQualityNeuronMesh = false;
+
     /// Spines /////////////////////////////////////////////////////////////////////////////////////
 
     /**
@@ -732,6 +743,11 @@ public:
      * even if the input neuron mesh has slicing artifacts. Default value is 5.
      */
     float somaSegmenterVPM = 5;
+
+    /**
+     * @brief highQualityVPM
+     */
+    float highQualityVPM = 20;
 
     /**
      * @brief somaSegmentationRadiusThreshold

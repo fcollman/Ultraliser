@@ -30,30 +30,36 @@ namespace Ultraliser
 void run(int argc , const char** argv)
 {
     // Read the image
-    std::string maskPath = "/home/abdellah/testing-components/shapes.mask";
-    std::string outputPath = "/home/abdellah/testing-components/shapes_output";
+    // std::string inputPath = "/home/abdellah/testing-components/slice_9_before.ppm";
+    std::string maskPathI = "/home/abdellah/testing-components/slice_9_before.mask";
+    std::string outputPathI = "/home/abdellah/testing-components/slice_9_mask";
 
-    Image* image = new Image(maskPath, true);
 
-    TIMER_SET;
-    image->fillComponents();
-    LOG_STATUS_IMPORTANT("Algorithm  fillComponents Stats.");
-    LOG_STATS(GET_TIME_SECONDS);
+    for (int i = 1; i < 180; ++i)
+    {
+        std::stringstream mP, oP;
+        mP << "/home/abdellah/testing-components/slice_" << i << "_before.mask";
+        Image* image = new Image(mP.str(), true);
 
-    image->writePPM(outputPath + "-fillComponents");
-    delete image;
-    image = nullptr;
+        TIMER_SET;
+        image->fillComponents(i);
+        // LOG_STATUS_IMPORTANT("Algorithm  fillComponents Stats.");
+        // LOG_STATS(GET_TIME_SECONDS);
 
-    image = new Image(maskPath, true);
+        oP << "/home/abdellah/testing-components/slice_" << i << "_mask";
+        image->writePPM(oP.str() + "-fillComponents");
+        delete image;
 
-    TIMER_RESET;
-    image->floodFill();
-    LOG_STATUS_IMPORTANT("Algorithm  floodFill Stats.");
-    LOG_STATS(GET_TIME_SECONDS);
+        Image* image2 = new Image(mP.str(), true);
 
-    image->writePPM(outputPath + "-floodFill");
-    delete image;
-    image = nullptr;
+        TIMER_RESET;
+        image2->floodFill();
+        // LOG_STATUS_IMPORTANT("Algorithm  floodFill Stats.");
+        // LOG_STATS(GET_TIME_SECONDS);
+
+        image2->writePPM(oP.str() + "-floodFill");
+        delete image2;
+    }
 }
 }
 

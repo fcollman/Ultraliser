@@ -52,7 +52,7 @@ Mesh* remeshSpine(Mesh* spineMesh, const float voxelsPerMicron = 50,
 
     // Apply surface and solid voxelization to the input neuron mesh
     volume->surfaceVoxelization(spineMesh, SILENT, false, 1.0);
-    volume->solidVoxelization(Volume::SOLID_VOXELIZATION_AXIS::XYZ, SILENT);
+    volume->solidVoxelization(AXIS::XYZ, SILENT);
     // volume->surfaceVoxelization(inputSpineMesh, SILENT, false, 0.5);
 
     // Construct the mesh using the DMC technique

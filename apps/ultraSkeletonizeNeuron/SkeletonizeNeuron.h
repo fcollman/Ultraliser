@@ -118,8 +118,24 @@ void runSpineSegmentationOperations(const AppOptions* options,
  * @param options
  * @return
  */
-Mesh* createMeshFromSections(Sections& sections, AppOptions* options);
+Mesh* createMeshFromSections(Sections& sections, const AppOptions *options);
 
-Mesh* createHighResolutionMesh(Mesh* inputMesh, float voxelsPerMicron);
+/**
+ * @brief createHighResolutionNeuronMesh
+ * @param inputMesh
+ * @param voxelsPerMicron
+ * @return
+ */
+Mesh* createHighResolutionNeuronMesh(Mesh* inputMesh, float voxelsPerMicron);
+
+/**
+ * @brief runHighQualityMeshGeneration
+ * @param options
+ * @param skeletonizer
+ * @param inputNeuronMesh
+ */
+void runHighQualityMeshGeneration(const AppOptions* options,
+                                  NeuronSkeletonizer* skeletonizer,
+                                  Mesh* inputNeuronMesh);
 
 }

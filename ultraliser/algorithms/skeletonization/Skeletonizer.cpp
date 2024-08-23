@@ -180,6 +180,7 @@ Sections Skeletonizer::getValidSections() const
             for (size_t j = 0; j < _branches[i]->nodes.size(); ++j)
             {
                 auto node = _branches[i]->nodes[j];
+                if (node->isSoma) { continue; }
                 section->addSample(new Sample(node->point, node->radius, j));
             }
             sections.push_back(section);

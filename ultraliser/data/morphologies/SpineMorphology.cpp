@@ -266,7 +266,7 @@ Volume* SpineMorphology::generateVolumeWithoutDenderiticExtent(const float& voxe
 
     // Rasterize the morphologies into the volume
     volume->surfaceVoxelizeSections(nonDendriticSections, verbose);
-    volume->solidVoxelization(Volume::SOLID_VOXELIZATION_AXIS::XYZ, verbose);
+    volume->solidVoxelization(AXIS::XYZ, verbose);
 
     // Return the volume
     return volume;
@@ -294,7 +294,7 @@ Volume* SpineMorphology::generateVolume(const float& voxelsPerMicron,
 
     // Rasterize the morphologies into the volume
     volume->surfaceVoxelizeSpineMorphology(this, POLYLINE_SPHERE_PACKING);
-    volume->solidVoxelization(Volume::SOLID_VOXELIZATION_AXIS::XYZ, verbose);
+    volume->solidVoxelization(AXIS::XYZ, verbose);
 
     // Return the volume
     return volume;

@@ -26,6 +26,7 @@
 #include <data/images/Image.h>
 #include <data/volumes/utilities/VolumeType.hh>
 #include <data/volumes/voxels/ThinningVoxel.h>
+#include <common/Enums.h>
 
 namespace Ultraliser
 {
@@ -427,6 +428,22 @@ public:
      * @param padding
      */
     void floodFillSliceAlongAxis(const int64_t &x, const AXIS &axis, const size_t &padding = 0);
+    Pixels2 getFilledPixelsFloodFillSliceAlongAxis(const int64_t &sliceIndex,
+                                             const AXIS &axis,
+                                             const size_t &padding);
+    void floodFillSliceAlongAxisUsingComponents(const int64_t &x, const AXIS &axis, const size_t &padding = 0);
+
+    /**
+     * @brief getFilledPixelsAfterFloodFillSliceAlongAxis
+     * @param x
+     * @param width
+     * @param height
+     * @return
+     */
+    Pixels2 getFilledPixelsAfterFloodFillSliceAlongAxis(const int64_t &sliceIndex,
+                                                        const AXIS &axis,
+                                                        const size_t &width,
+                                                        const size_t &height);
 
     /**
      * @brief floodFillSliceAlongAxisROI
@@ -543,6 +560,12 @@ private:
      */
     void _clearThinningVoxels();
 
+    std::vector< Pixels2 > _getComponentsContoursX(const int64_t &sliceIndex);
+    std::vector< Pixels2 > _getComponentsContoursY(const int64_t &sliceIndex);
+    std::vector< Pixels2 > _getComponentsContoursZ(const int64_t &sliceIndex);
+
+    std::vector< Pixels2 > _getComponentsContours(const AXIS &axis, const int64_t &sliceIndex);
+
 protected:
 
     /**
@@ -550,8 +573,6 @@ protected:
      * @param verbose
      */
     void _buildThinningVoxelsList(const bool verbose = VERBOSE);
-
-
 
     void _floodFillAlongX(const int64_t &sliceIndex,
                           const size_t &padding = 2);
@@ -587,6 +608,20 @@ protected:
      * @brief ThinningVoxelsUI16List
      */
     ThinningVoxelsUI16List _thinningVoxels;
+
+public:
+    friend bool isFilledX(VolumeGrid* grid,
+                          const int64_t &x, const int64_t &y, const int64_t &slice);
+
+    friend bool isFilledY(VolumeGrid* grid,
+                          const int64_t &x, const int64_t &y, const int64_t &slice);
+
+    friend bool isFilledZ(VolumeGrid* grid,
+                          const int64_t &x, const int64_t &y, const int64_t &slice);
 };
+
+bool isFilledX(VolumeGrid* grid, const int64_t &x, const int64_t &y, const int64_t &slice);
+bool isFilledY(VolumeGrid* grid, const int64_t &x, const int64_t &y, const int64_t &slice);
+bool isFilledZ(VolumeGrid* grid, const int64_t &x, const int64_t &y, const int64_t &slice);
 
 }

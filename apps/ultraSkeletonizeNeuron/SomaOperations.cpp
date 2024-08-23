@@ -37,7 +37,7 @@ void runFixSomaSlicingArtifactsOperations(const AppOptions* options, Mesh* neuro
         LOG_STATUS("Coarse Skeletonization to Segment Initial Soma Profile");
         std::unique_ptr< SomaSegmenter > somaSegmenter =
                 std::make_unique< SomaSegmenter >(neuronMesh, options->somaSegmenterVPM);
-        auto somaMesh = somaSegmenter->segmentSomaMesh(SILENT);
+        auto somaMesh = somaSegmenter->segmentSomaMesh(VERBOSE);
         LOG_STATS(GET_TIME_SECONDS);
 
         // Construct a point cloud for the neuron mesh to map the reconstructed soma to the neuron mesh
@@ -46,13 +46,14 @@ void runFixSomaSlicingArtifactsOperations(const AppOptions* options, Mesh* neuro
         neuronMeshCloud.resize(neuronMesh->getNumberVertices());
 
         OMP_PARALLEL_FOR
-                for (size_t i = 0; i < neuronMesh->getNumberVertices(); ++i)
+        for (size_t i = 0; i < neuronMesh->getNumberVertices(); ++i)
         {
             neuronMeshCloud[i] = neuronMesh->_vertices[i];
         }
 
         // Map the source mesh to the destination mesh
         somaMesh->kdTreeMapping(neuronMeshCloud, SILENT);
+        neuronMeshCloud.clear();
         LOG_STATS(GET_TIME_SECONDS);
 
         // Append this soma mesh to the given neuron mesh to fill the slices in the soma

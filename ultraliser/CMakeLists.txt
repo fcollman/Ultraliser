@@ -29,14 +29,14 @@ set(ULTRALISER_LIBRARY "ultraliser")
 # Removing the include directory from the build one
 file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/include)
 
-# Get all the cource files
+# Get all the source files
 FILE(GLOB_RECURSE ULTRALISER_SOURCE_FILES *.cpp *.c)
 FILE(GLOB_RECURSE ULTRALISER_HEADER_FILES_FP *.h *.hh *.hpp)
 
-#file(GLOB V_GLOB LIST_DIRECTORIES true "*")
-#foreach(item ${V_GLOB})
-#    message(${item})
-#endforeach()
+# file(GLOB V_GLOB LIST_DIRECTORIES true "*")
+# foreach(item ${ULTRALISER_SOURCE_FILES})
+#     message(${item})
+# endforeach()
 
 # Get the correct paths of the header files
 foreach(HEADER_FILE ${ULTRALISER_HEADER_FILES_FP})
@@ -59,8 +59,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Ultraliser.h
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 # Create a shared library
-add_library(ultraliser ${ULTRALISER_SOURCE_FILES} ${ULTRALISER_HEADER_FILES}
-    algorithms/skeletonization/SpineSkeletonizer.h algorithms/skeletonization/SpineSkeletonizer.cpp)
+add_library(ultraliser ${ULTRALISER_SOURCE_FILES} ${ULTRALISER_HEADER_FILES})
 
 # Link against nrrdlib, if compiled
 if(${ULTRALISER_USE_NRRD})

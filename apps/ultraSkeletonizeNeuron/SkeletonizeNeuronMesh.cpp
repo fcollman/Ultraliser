@@ -95,40 +95,14 @@ void run(int argc , const char** argv)
     // Run the skeletonization operations
     runNeuronSkeletonizationOperations(options, skeletonizer);
 
-//    // Run cross-sectional variations detection along the arbors
-//    skeletonizer->exportCrossSectionalProfiles(options->morphologyPrefix,
-//                                               inputNeuronMesh,
-//                                               true,
-//                                               false);
-
     // Run the soma export operations
     runSomaExportOperations(options, skeletonizer);
 
     // Run the spine segmentation operations
     runSpineSegmentationOperations(options, skeletonizer, inputNeuronMesh);
 
-
-
-    // Get the brancehs
-    auto sections = skeletonizer->getValidSections();
-
-    // Construct mesh from sections
-    auto validSectionsMesh = createMeshFromSections(sections, options);
-
-    // Append the valid sections mesh to the input mesh
-    inputNeuronMesh->append(validSectionsMesh);
-
-    // Create a new big mesh from the input neuron mesh
-    auto highResolutionMesh = createHighResolutionMesh(inputNeuronMesh, 20);
-
-    highResolutionMesh->exportMesh(options->meshPrefix + "-high-resolution", true);
-
-    // Run cross-sectional variations detection along the arbors
-    skeletonizer->exportCrossSectionalProfiles(options->morphologyPrefix,
-                                               highResolutionMesh,
-                                               true,
-                                               false);
-
+    // Create high quality mesh
+    runHighQualityMeshGeneration(options, skeletonizer, inputNeuronMesh);
 }
 
 }

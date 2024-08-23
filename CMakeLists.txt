@@ -73,7 +73,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 \
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DULTRALISER_RELEASE")
 
-OPTION(ENABLE_PROGRESS_BAR "Disable the progress bar to gain performance" ON)
+OPTION(ENABLE_PROGRESS_BAR "Disable the progress bar to gain performance" OFF)
 if(ENABLE_PROGRESS_BAR)
     add_definitions(-DENABLE_PROGRESS_BAR)
 endif()

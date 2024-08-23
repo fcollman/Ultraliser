@@ -35,20 +35,9 @@
  * @param barLength
  * The total langth of the progress bar.
  */
-static inline void printProgressBar(const size_t& current,
-                                    const size_t& total,
-                                    const size_t barLength = 50)
-{
-    float percentage = ((100.f * current) / (1.f * total));
-    float starts = std::floor((percentage * barLength) / 100.f);
-    float spaces = std::floor(barLength - starts);
-    std::string bar = "* Progress │";
-    for(int _i_ = 0; _i_ < int(starts); _i_++) bar += "▒";
-    for(int _i_ = 0; _i_ < int(spaces); _i_++) bar += " "; bar+= "│";
-    printf("\r\t%s (%2.2f %%)", bar.c_str(), percentage);
-    fflush(stdout);
-
-}
+void printProgressBar(const size_t& current,
+                      const size_t& total,
+                      const size_t barLength = 50);
 
 /**
  * @brief printFractionProgressBar
@@ -61,22 +50,9 @@ static inline void printProgressBar(const size_t& current,
  * @param barLength
  * The total langth of the progress bar.
  */
-static inline void printFractionProgressBar(const size_t& current,
-                                            const size_t& total,
-                                            const size_t barLength = 50)
-{
-    float percentage = ((100.f * current) / (1.f * total));
-    if (static_cast< size_t >(percentage) % 10 == 0)
-    {
-        float starts = std::floor((percentage * barLength) / 100.f);
-        float spaces = std::floor(barLength - starts);
-        std::string bar = "* Progress │";
-        for(int i = 0; i < int(starts); i++) bar += "▒";
-        for(int i = 0; i < int(spaces); i++) bar += " "; bar+= "│";
-        printf("\r\t%s (%2.2f %%)", bar.c_str(), percentage);
-        fflush(stdout);
-    }
-}
+void printFractionProgressBar(const size_t& current,
+                              const size_t& total,
+                              const size_t barLength = 50);
 
 /**
  * @brief progressUpdate
@@ -85,13 +61,7 @@ static inline void printFractionProgressBar(const size_t& current,
  * @param progressValue
  * The progress value to be updated.
  */
-static void inline progressUpdate(size_t& progressValue)
-{
-#ifdef ULTRALISER_USE_OPENMP
-#pragma omp atomic
-#endif
-    ++progressValue;
-}
+void progressUpdate(size_t& progressValue);
 
 // Setting a counter
 #define LOOP_COUNTER_SET size_t COUNTER = 0
@@ -101,25 +71,58 @@ static void inline progressUpdate(size_t& progressValue)
 #define LOOP_STARTS(MESSAGE) (printf("\t%s \n", MESSAGE));
 
 // Print the progress in a loop
+#ifdef ENABLE_PROGRESS_BAR
 #define LOOP_PROGRESS(PROGRESS, TOTAL) (printProgressBar(PROGRESS, TOTAL))
+#else
+#define LOOP_PROGRESS(PROGRESS, TOTAL) { }
+#endif
 
 // Print the progress in a loop only in fractions
+#ifdef ENABLE_PROGRESS_BAR
 #define LOOP_PROGRESS_FRACTION(PROGRESS, TOTAL) (printFractionProgressBar(PROGRESS, TOTAL))
+#else
+#define LOOP_PROGRESS_FRACTION(PROGRESS, TOTAL) {}
+#endif
 
 // Print the status after the loop is done
+#ifdef ENABLE_PROGRESS_BAR
 #define LOOP_DONE { LOOP_PROGRESS(100, 100); printf(" \n"); }
+#else
+#define LOOP_DONE { }
+#endif
 
 // The progress variable itself
+#ifdef ENABLE_PROGRESS_BAR
 #define PROGRESS ULTRALISER_PROGRESS
+#else
+#define PROGRESS
+#endif
 
 // Set the progress to zero
+#ifdef ENABLE_PROGRESS_BAR
 #define PROGRESS_SET size_t ULTRALISER_PROGRESS = 0
+#else
+#define PROGRESS_SET
+#endif
 
 // Set the progress at a specific starting value
+#ifdef ENABLE_PROGRESS_BAR
 #define PROGRESS_SET_AT_VALUE( VALUE ) size_t ULTRALISER_PROGRESS = VALUE;
+#else
+#define PROGRESS_SET_AT_VALUE( VALUE ) { }
+#endif
 
 // Reset the progress
+#ifdef ENABLE_PROGRESS_BAR
 #define PROGRESS_RESET (ULTRALISER_PROGRESS = 0)
+#else
+#define PROGRESS_RESET { }
+#endif
 
 // Update the progress bar
+#ifdef ENABLE_PROGRESS_BAR
 #define PROGRESS_UPDATE (progressUpdate(ULTRALISER_PROGRESS))
+#else
+#define PROGRESS_UPDATE { }
+#endif
+

@@ -63,7 +63,7 @@ public:
          * @brief voxelizationAxis
          * The solid voxelization axis of the Skeletonizer.
          */
-        Volume::SOLID_VOXELIZATION_AXIS voxelizationAxis = Volume::SOLID_VOXELIZATION_AXIS::X;
+        AXIS voxelizationAxis = AXIS::X;
 
         /**
          * @brief volumeType

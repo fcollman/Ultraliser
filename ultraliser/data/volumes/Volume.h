@@ -100,6 +100,16 @@ private:
          * Flood-filling axis.
          */
         AXIS floodFillingAxis;
+
+        /**
+         * @brief width
+         */
+        size_t width;
+
+        /**
+         * @brief height
+         */
+        size_t height;
     };
 
     /**
@@ -107,7 +117,7 @@ private:
      * @param axis
      * @return
      */
-    FloodFillingData _getCaseSpecificFloodFillingData(const SOLID_VOXELIZATION_AXIS &axis);
+    FloodFillingData _getCaseSpecificFloodFillingData(const AXIS &axis);
 
 public:
 
@@ -127,11 +137,8 @@ public:
     /**
      * @brief Volume
      * Constructor
-     *
      * @param pMin
-     *
      * @param pMax
-
      * @param baseResolution
      * The base resolution of the volume.
      * By default, this resolution is set to 512.
@@ -331,7 +338,7 @@ public:
      * @param axis
      * @param verbose
      */
-    void solidVoxelization(const SOLID_VOXELIZATION_AXIS& axis=X, const bool &verbose = VERBOSE);
+    void solidVoxelization(const AXIS& axis=AXIS::X, const bool &verbose = VERBOSE);
 
     /**
      * @brief solidVoxelizationROI
@@ -351,11 +358,11 @@ public:
      * The upper bound along the Z-axis.
      * @param verbose
      */
-    void solidVoxelizationROI(const SOLID_VOXELIZATION_AXIS& axis,
-                                      const size_t& x1, const size_t x2,
-                                      const size_t& y1, const size_t y2,
-                                      const size_t& z1, const size_t z2,
-                                      const bool& verbose = true);
+    void solidVoxelizationROI(const AXIS& axis,
+                              const size_t& x1, const size_t x2,
+                              const size_t& y1, const size_t y2,
+                              const size_t& z1, const size_t z2,
+                              const bool& verbose = true);
 
     /**
      * @brief exportToMesh
@@ -509,30 +516,6 @@ public:
     size_t getNumberBytes(void) const;
 
     /**
-     * @brief getSurfaceVoxelizationTime
-     * @return
-     */
-    double getSurfaceVoxelizationTime(void) const;
-
-    /**
-     * @brief getSolidVoxelizationTime
-     * @return
-     */
-    double getSolidVoxelizationTime(void) const;
-
-    /**
-     * @brief getAppendingVolumePassTime
-     * @return
-     */
-    double getAppendingVolumePassTime(void) const;
-
-    /**
-     * @brief printBenchmarks
-     * @param mesh
-     */
-    //void printBenchmarks(OriginalMesh* mesh) const;
-
-    /**
      * @brief addVolume
      * Adds volume with the same dimensions to the current one from a file.
      * @param volumePrefix
@@ -592,8 +575,19 @@ public:
     size_t deleteCandidateVoxels(std::unique_ptr< Thinning6Iterations > &thinning,
                                  const bool& displayProgress = true);
 
+    /**
+     * @brief deleteCandidateVoxelsParallel
+     * @param thinning
+     * @return
+     */
     size_t deleteCandidateVoxelsParallel(std::unique_ptr< Thinning6Iterations > &thinning);
 
+    /**
+     * @brief deleteBorderVoxelsUsingThinningVoxels
+     * @param thinning
+     * @param thinningVoxels
+     * @return
+     */
     size_t deleteBorderVoxelsUsingThinningVoxels(std::unique_ptr< Thinning6Iterations > &thinning,
             ThinningVoxelsUI16List &thinningVoxels);
 
@@ -604,7 +598,8 @@ public:
      * @param direction
      * @return
      */
-    std::vector< Vec3ui_64 > searchForDeletableVoxels(std::vector< std::vector< Vec3ui_64> > &perSliceBorderVoxels,
+    std::vector< Vec3ui_64 > searchForDeletableVoxels(
+            std::vector< std::vector< Vec3ui_64> > &perSliceBorderVoxels,
             std::unique_ptr<Thinning6Iterations> &thinning,
             int direction) const;
 
@@ -719,19 +714,39 @@ public:
                      const size_t& z1, const size_t& z2,
                      const size_t emptyShellThickness = 1);
 
+    /**
+     * @brief addBrickToVolume
+     * @param brick
+     * @param xMin
+     * @param xMax
+     * @param yMin
+     * @param yMax
+     * @param zMin
+     * @param zMax
+     * @param emptyShellThickness
+     */
     void addBrickToVolume(const Volume* brick,
                                   const size_t& xMin, const size_t& xMax,
                                   const size_t& yMin, const size_t& yMax,
                                   const size_t& zMin, const size_t& zMax,
                                   const size_t emptyShellThickness);
 
+    /**
+     * @brief andBrickToVolume
+     * @param brick
+     * @param xMin
+     * @param xMax
+     * @param yMin
+     * @param yMax
+     * @param zMin
+     * @param zMax
+     * @param emptyShellThickness
+     */
     void andBrickToVolume(const Volume* brick,
                           const size_t& xMin, const size_t& xMax,
                           const size_t& yMin, const size_t& yMax,
                           const size_t& zMin, const size_t& zMax,
                           const size_t emptyShellThickness);
-
-
 
     /**
      * @brief extractBrickFromVolume
@@ -756,8 +771,18 @@ public:
                                    const size_t& zVolumeStart, const size_t& zVolumeEnd,
                                    const bool& displayProgress = true);
 
-
-
+    /**
+     * @brief extractBoundedBrickFromVolume
+     * @param xVolumeStart
+     * @param xVolumeEnd
+     * @param yVolumeStart
+     * @param yVolumeEnd
+     * @param zVolumeStart
+     * @param zVolumeEnd
+     * @param numberBoundaryVoxels
+     * @param displayProgress
+     * @return
+     */
     Volume* extractBoundedBrickFromVolume(const size_t& xVolumeStart, const size_t& xVolumeEnd,
                                           const size_t& yVolumeStart, const size_t& yVolumeEnd,
                                           const size_t& zVolumeStart, const size_t& zVolumeEnd,
@@ -810,6 +835,22 @@ public:
                                     const size_t& numberBoundaryVoxels,
                                     const bool &displayProgress = true);
 
+    /**
+     * @brief insertOverlappingBoundedBrickToVolume
+     * @param brick
+     * @param xVolumeStart
+     * @param xVolumeEnd
+     * @param yVolumeStart
+     * @param yVolumeEnd
+     * @param zVolumeStart
+     * @param zVolumeEnd
+     * @param xOverlappingVoxels
+     * @param yOverlappingVoxels
+     * @param zOverlappingVoxels
+     * @param numberBoundaryVoxels
+     * @param displayProgress
+     * @return
+     */
     bool insertOverlappingBoundedBrickToVolume(const Volume* brick,
                                                const size_t& xVolumeStart, const size_t& xVolumeEnd,
                                                const size_t& yVolumeStart, const size_t& yVolumeEnd,
@@ -887,8 +928,6 @@ public:
                                                const size_t& minIsoValue,
                                                const size_t& maxIsoValue);
 
-
-
     /**
      * @brief constructNonZeroVolume
      * Constructs a binary volume (1 bit per voxel) from a byte volume (1 byte
@@ -941,8 +980,16 @@ public:
     void getVoxelBoundingBox(const int64_t& x, const int64_t& y, const int64_t& z,
                              Vector3f& pMin, Vector3f& pMax) const;
 
+    /**
+     * @brief getGrid
+     * @return
+     */
     VolumeGrid* getGrid() const { return _grid; }
 
+    /**
+     * @brief getVolumeType
+     * @return
+     */
     VOLUME_TYPE getVolumeType() const { return _gridType; }
 
     /**
@@ -1009,8 +1056,6 @@ public:
      */
     void surfaceVoxelizeSections(const Sections &section, const bool& verbose = VERBOSE);
 
-
-
     /**
      * @brief surfaceVoxelizationRegion
      * @param mesh
@@ -1023,34 +1068,69 @@ public:
                                    const Vector3f& pMaxRegion,
                                    const bool& verbose = false);
 
-
+    /**
+     * @brief getExpansionRatio
+     * @return
+     */
     float getExpansionRatio() const { return _expansionRatio; }
 
+    /**
+     * @brief getROIBounds
+     * @param pMin
+     * @param pMax
+     * @return
+     */
     Bounds3D_ui64 getROIBounds(const Vector3f& pMin, const Vector3f& pMax);
 
+    /**
+     * @brief getActiveRegionBounds
+     * @return
+     */
     Bounds3D_ui64 getActiveRegionBounds();
 
-
+    /**
+     * @brief projectXY
+     * @param prefix
+     * @param projectColorCoded
+     */
     void projectXY(const std::string& prefix, const bool &projectColorCoded = false);
+
+    /**
+     * @brief projectYZ
+     * @param prefix
+     * @param projectColorCoded
+     */
     void projectYZ(const std::string& prefix, const bool &projectColorCoded = false) const;
+
+    /**
+     * @brief projectXZ
+     * @param prefix
+     * @param projectColorCoded
+     */
     void projectXZ(const std::string& prefix, const bool &projectColorCoded = false) const;
 
+    /**
+     * @brief getThinningVoxelsList
+     * @param rebuild
+     * @param verbose
+     * @return
+     */
     ThinningVoxelsUI16List& getThinningVoxelsList(const bool &rebuild = false,
                                                   const bool verbose = VERBOSE)
     {
         return _grid->getThinningVoxelsList(rebuild, verbose);
     }
 
+    /**
+     * @brief getBaseResolution
+     * @return
+     */
     size_t getBaseResolution() const
     {
         return _baseResolution;
     }
 
 private:
-
-    void _buildOccupancyRanges();
-
-    void _buildVolumeOccupancy();
 
     /**
      * @brief _allocateGrid
@@ -1137,6 +1217,15 @@ private:
                     const float &sideRatio = 1.0, const bool& verbose = false);
 
     /**
+     * @brief _rasterizeParallel
+     * @param mesh
+     * @param grid
+     * @param verbose
+     */
+    void _rasterizeParallel(Mesh* mesh, VolumeGrid* grid, const float &sideRatio = 1.0,
+                            const bool& verbose = false);
+
+    /**
      * @brief _rasterizeRegion
      * @param mesh
      * @param grid
@@ -1166,20 +1255,12 @@ private:
     void _rasterize(Sample* sample0, Sample* sample1, VolumeGrid* grid, float stepAlpha = 0.1f);
 
     /**
-     * @brief _rasterizeParallel
-     * @param mesh
-     * @param grid
-     * @param verbose
-     */
-    void _rasterizeParallel(Mesh* mesh, VolumeGrid* grid, const float &sideRatio = 1.0);
-
-    /**
      * @brief _floodFill2D
      * Performs a 2D flood-filling operation.
      * @param axis
      * @param verbose
      */
-    void _floodFill2D(const SOLID_VOXELIZATION_AXIS& axis, const bool &verbose = true);
+    void _floodFill2D(const AXIS& axis, const bool &verbose = true);
 
     /**
      * @brief _floodFill2DROI
@@ -1192,7 +1273,7 @@ private:
      * @param z2
      * @param verbose
      */
-    void _floodFill2DROI(const SOLID_VOXELIZATION_AXIS& axis,
+    void _floodFill2DROI(const AXIS& axis,
                          const size_t& x1, const size_t x2,
                          const size_t& y1, const size_t y2,
                          const size_t& z1, const size_t z2,
@@ -1204,8 +1285,17 @@ private:
      * @param axis
      * @param verbose
      */
-    void _floodFillAlongAxis(VolumeGrid* grid, const SOLID_VOXELIZATION_AXIS &axis,
+    void _floodFillAlongAxis(VolumeGrid* grid, const AXIS &axis,
                              const bool &verbose = VERBOSE);
+
+    /**
+     * @brief _floodFillAlongAxisOptimized
+     * @param grid
+     * @param axis
+     * @param verbose
+     */
+    void _floodFillAlongAxisOptimized(VolumeGrid* grid, const AXIS &axis,
+                                      const bool &verbose = VERBOSE);
 
 
     /**
@@ -1215,10 +1305,22 @@ private:
      * @param verbose
      */
     void _floodFillAlongAxisWithOpenMPLocks(VolumeGrid* grid,
-                                            const SOLID_VOXELIZATION_AXIS &axis,
+                                            const AXIS &axis,
                                             const bool &verbose = VERBOSE);
 
-    void _floodFillAlongAxisROI(VolumeGrid* grid, const SOLID_VOXELIZATION_AXIS &axis,
+    /**
+     * @brief _floodFillAlongAxisROI
+     * @param grid
+     * @param axis
+     * @param x1
+     * @param x2
+     * @param y1
+     * @param y2
+     * @param z1
+     * @param z2
+     * @param verbose
+     */
+    void _floodFillAlongAxisROI(VolumeGrid* grid, const AXIS &axis,
                                 const size_t& x1, const size_t x2,
                                 const size_t& y1, const size_t y2,
                                 const size_t& z1, const size_t z2,
@@ -1376,21 +1478,6 @@ private:
      */
     // Vector3f _meshOrigin;
 
-    /**
-     * @brief _surfaceVoxelizationTime
-     */
-    double _surfaceVoxelizationTime;
-
-    /**
-     * @brief _solidVoxelizationTime
-     */
-    double _solidVoxelizationTime;
-
-    /**
-     * @brief _solidVoxelizationTime
-     */
-    double _addingVolumePassTime;
-
 public:
 
     /**
@@ -1398,6 +1485,6 @@ public:
      * @param argumentString
      * @return
      */
-    static SOLID_VOXELIZATION_AXIS getSolidvoxelizationAxis(const std::string &argumentString);
+    static AXIS getSolidvoxelizationAxis(const std::string &argumentString);
 };
 }

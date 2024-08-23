@@ -1,5 +1,5 @@
 /***************************************************************************************************
- * Copyright (c) 2016 - 2021
+ * Copyright (c) 2016 - 2023
  * Blue Brain Project (BBP) / Ecole Polytechnique Federale de Lausanne (EPFL)
  *
  * Author(s)
@@ -21,25 +21,48 @@
 
 #pragma once
 
+#include <common/Headers.hh>
+
 namespace Ultraliser
 {
 
 /**
- * @brief The AXIS enum
+ * @brief The Voxel3 struct
  */
-enum AXIS
+struct Voxel3
 {
-    // X-axis, corresponds to ZY_PROJECTION
-    X,
+    /**
+     * @brief Voxel3
+     * @param i
+     * @param j
+     * @param k
+     */
+    Voxel3(size_t i, size_t j, size_t k) : x(i), y(j), z(k) { }
 
-    // Y-axis, corresponds to XZ_PROJECTION
-    Y,
+    /**
+     * @brief x
+     */
+    size_t x;
 
-    // Z-axis, corresponds to XY_PROJECTION
-    Z,
+    /**
+     * @brief y
+     */
+    size_t y;
 
-    // X, Y, then Z axis
-    XYZ = 3
+    /**
+     * @brief z
+     */
+    size_t z;
 };
+
+/**
+ * @brief Voxels3
+ */
+typedef std::vector< Voxel3 > Voxels3;
+
+/**
+ * @brief Voxel3Bucket
+ */
+typedef std::vector< Voxels3 > Voxel3Bucket;
 
 }

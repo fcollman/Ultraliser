@@ -21,25 +21,39 @@
 
 #pragma once
 
+#include <common/Common.h>
+
 namespace Ultraliser
 {
 
 /**
- * @brief The AXIS enum
+ * @brief The ImagePixel struct
  */
-enum AXIS
+struct ImagePixel
 {
-    // X-axis, corresponds to ZY_PROJECTION
-    X,
+    /**
+     * @brief Point
+     * @param xx
+     * @param yy
+     */
+    ImagePixel(int64_t xx, int64_t yy) : x(xx), y(yy) { }
 
-    // Y-axis, corresponds to XZ_PROJECTION
-    Y,
+    /**
+     * @brief x
+     */
+    int64_t x = -1;
 
-    // Z-axis, corresponds to XY_PROJECTION
-    Z,
+    /**
+     * @brief y
+     */
+    int64_t y = -1;
 
-    // X, Y, then Z axis
-    XYZ = 3
+    /**
+     * @brief operator +
+     * @param rhs
+     * @return
+     */
+    ImagePixel operator +(ImagePixel rhs) { return ImagePixel(x + rhs.x, y + rhs.y); }
 };
 
 }

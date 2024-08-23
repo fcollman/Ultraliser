@@ -3156,31 +3156,31 @@ void Mesh::optimizeAdaptively(const size_t &optimizationIterations,
 
 void Mesh::optimize(const size_t &optimizationIterations,
                     const int64_t &smoothingIterations,
-                    const float& denseFactor)
+                    const float& denseFactor, bool verbose)
 {
-    LOG_TITLE("Mesh Optimization");
+    VERBOSE_LOG(LOG_TITLE("Mesh Optimization"), verbose);
 
     // Starting the timer
     TIMER_SET;
 
     // Remove the unnecessary vertices in multiple iterations
-    coarseDense(denseFactor, optimizationIterations);
+    coarseDense(denseFactor, optimizationIterations, verbose);
 
     // Smooth the normals
-    smoothNormals();
+    smoothNormals(verbose);
 
     // Smoothing the surface
-    smooth(15, 150, smoothingIterations);
+    smooth(15, 150, smoothingIterations, verbose);
 
     // Smooth the normals again
-    smoothNormals();
+    smoothNormals(verbose);
 
     // Statistics
     _optimizationTime = GET_TIME_SECONDS;
 
     // Statistics
-    LOG_STATUS_IMPORTANT("Total Optimization");
-    LOG_STATS(GET_TIME_SECONDS);
+    VERBOSE_LOG(LOG_STATUS_IMPORTANT("Total Optimization"), verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 }
 
 void Mesh::optimizeUsingDefaultParameters()

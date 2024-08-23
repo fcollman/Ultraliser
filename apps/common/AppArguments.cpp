@@ -313,6 +313,14 @@ void AppArguments::addSolidVoxelizationArguments()
     _args->addArgument(&voxelizationAxis);
     _options->voxelizationAxis = Volume::getSolidvoxelizationAxis(
                 _args->getStringValue(&voxelizationAxis));
+
+    Argument useConservativeRasterization(
+                "--conservative",
+                ARGUMENT_TYPE::BOOL,
+                "Use conservative rasterizationto to ensure that all the voxels that are touched "
+                "by triangles are rasterized.");
+    _args->addArgument(&useSolidVoxelization);
+    _options->useConservativeRasterization = _args->getBoolValue(&useConservativeRasterization);
 }
 
 void AppArguments::addVoxelizationArguments()
@@ -691,6 +699,16 @@ void AppArguments::addNeuronalMorphologyExportArguments()
     _args->addArgument(&somaSegmenterVPM);
     _options->somaSegmenterVPM = _args->getFloatValue(&somaSegmenterVPM);
 
+    Argument highQualityVPM(
+                "--hq-vpm",
+                ARGUMENT_TYPE::FLOAT,
+                "Number of voxels per micron for the the high quality resolution reconstructions. "
+                "Default value is 20.",
+                ARGUMENT_PRESENCE::OPTIONAL,
+                "20.0");
+    _args->addArgument(&highQualityVPM);
+    _options->highQualityVPM = _args->getFloatValue(&highQualityVPM);
+
     Argument exportOptimizedNeuronMesh(
                 "--export-optimized-neuron-mesh",
                 ARGUMENT_TYPE::BOOL,
@@ -777,6 +795,13 @@ void AppArguments::addNeuronalMorphologyExportArguments()
                 "Exports the morphologies of the spines to .SWC files.");
     _args->addArgument(&exportSpineMorphologies);
     _options->exportSpinesSWCMorphologies= _args->getBoolValue(&exportSpineMorphologies);
+
+    Argument exportHighQualityNeuronMesh(
+                "--export-hq-neuron-mesh",
+                ARGUMENT_TYPE::BOOL,
+                "Exports a high quality mesh.");
+    _args->addArgument(&exportHighQualityNeuronMesh);
+    _options->exportHighQualityNeuronMesh = _args->getBoolValue(&exportHighQualityNeuronMesh);
 }
 
 void AppArguments::addMeshExportArguments()

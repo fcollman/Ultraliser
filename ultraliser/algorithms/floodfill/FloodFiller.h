@@ -22,6 +22,7 @@
 #pragma once
 
 #include <data/images/Image.h>
+#include <data/volumes/voxels/Voxel3.h>
 
 namespace Ultraliser
 {
@@ -33,33 +34,7 @@ class FloodFiller
 {
 public:
 
-    /**
-     * @brief isSameColor
-     * This function checks if the colors of two pixels match or not.
-     *
-     * @param c1
-     * The color of the first pixel.
-     * @param c2
-     * The color of the second pixel.
-     * @return
-     * True if they match and false otherwise.
-     */
-    static bool isSameColor(const PIXEL_COLOR c1, const PIXEL_COLOR c2);
-
-    /**
-     * @brief isSameColor
-     * This function checks if the filling of two pixels match or not.
-     *
-     * @param c1
-     * The value of the pixel, either true or false.
-     * @param c2
-     * The value of the pixel, either true or false.
-     * @return
-     * True if they match and false otherwise.
-     */
-    static bool isSameColor(const bool c1, const bool c2);
-
-    /**
+     /**
      * @brief fill
      * Flood-fill the image.
      *
@@ -81,6 +56,32 @@ public:
     static void fill(Image* image, const int64_t &nx, const int64_t &ny,
                      const int64_t &x, const int64_t &y,
                      PIXEL_COLOR background, PIXEL_COLOR fillColor);
+
+    /**
+     * @brief fill
+     * @param image
+     * @param filledPixels
+     * @param nx
+     * @param ny
+     * @param x
+     * @param y
+     * @param background
+     * @param fillColor
+     */
+    static void fill(Image* image, Pixels2& filledPixels,
+                     const int64_t &nx, const int64_t &ny,
+                     const int64_t &x, const int64_t &y,
+                     PIXEL_COLOR background, PIXEL_COLOR fillColor);
+
+    /**
+     * @brief fillComponent
+     * @param component
+     * @param sliceWidth
+     * @param sliceHeight
+     * @return
+     */
+    static Pixels2 fillComponent(const std::vector< Pixel2 >& component,
+                                 const size_t& sliceWidth, const size_t& sliceHeight);
 };
 
 }

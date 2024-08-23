@@ -21,25 +21,48 @@
 
 #pragma once
 
+#include <common/Headers.hh>
+
 namespace Ultraliser
 {
 
 /**
- * @brief The AXIS enum
+ * @brief The Pixel2 struct
  */
-enum AXIS
+struct Pixel2
 {
-    // X-axis, corresponds to ZY_PROJECTION
-    X,
+public:
 
-    // Y-axis, corresponds to XZ_PROJECTION
-    Y,
+    /**
+     * @brief Pixel2
+     * @param i
+     * @param j
+     */
+    Pixel2(int64_t i, int64_t j) : x(i), y(j) { }
 
-    // Z-axis, corresponds to XY_PROJECTION
-    Z,
+public:
 
-    // X, Y, then Z axis
-    XYZ = 3
+    /**
+     * @brief x
+     */
+    int64_t x = -1;
+
+    /**
+     * @brief y
+     */
+    int64_t y = -1;
+
+    /**
+     * @brief operator +
+     * @param rhs
+     * @return
+     */
+    Pixel2 operator +(Pixel2 rhs) { return Pixel2(x + rhs.x, y + rhs.y); }
 };
+
+/**
+ * @brief Pixels2
+ */
+typedef std::vector< Pixel2 > Pixels2;
 
 }

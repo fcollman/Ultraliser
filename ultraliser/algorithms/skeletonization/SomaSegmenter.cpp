@@ -42,7 +42,7 @@ void SomaSegmenter::_verifyVolume(const bool verbose)
 
         // Adaptive and conservative Voxelization
         _neuronVolume->surfaceVoxelization(_neuronMesh, SILENT, false, 1.0);
-        _neuronVolume->solidVoxelization(Volume::SOLID_VOXELIZATION_AXIS::XYZ, SILENT);
+        _neuronVolume->solidVoxelization(AXIS::XYZ, SILENT);
     }
 }
 
