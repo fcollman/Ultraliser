@@ -386,7 +386,7 @@ void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
 
     if (numberSamples == 0)
     {
-        LOG_WARNING("Zero Somatic Nodes Detected!");
+        LOG_ERROR("Zero Somatic Nodes Detected! Incomplete neuron! Terminating!");
     }
     else
     {
