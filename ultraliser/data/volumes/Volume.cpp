@@ -573,10 +573,8 @@ void Volume::surfaceVoxelization(Mesh* mesh,
     VERBOSE_LOG(LOG_STATUS("Creating Volume Shell [%zu x %zu x %zu]",
                            _grid->getWidth(), _grid->getHeight(), _grid->getDepth()), verbose);
 
-    std::cout << mesh->getNumberTriangles() << std::endl;
-
     _rasterize(mesh , _grid, sideRatio, false);
-    // _rasterizeParallel(mesh, _grid, sideRatio, verbose);
+    _rasterizeParallel(mesh, _grid, sideRatio, verbose);
 
     // Statistics
     VERBOSE_LOG(LOG_STATUS_IMPORTANT("Rasterization Stats."), verbose);
@@ -1262,8 +1260,6 @@ void Volume::_rasterize(Mesh* mesh, VolumeGrid* grid, const float& sideRatio, co
     TIMER_SET;
     VERBOSE_LOG(LOOP_STARTS("Rasterization"), verbose);
 
-    size_t count = 0;
-
     for (size_t triangleIdx = 0; triangleIdx < mesh->getNumberTriangles(); ++triangleIdx)
     {
         VERBOSE_LOG(LOOP_PROGRESS(triangleIdx, mesh->getNumberTriangles()), verbose);
@@ -1282,7 +1278,6 @@ void Volume::_rasterize(Mesh* mesh, VolumeGrid* grid, const float& sideRatio, co
                     if (_testTriangleCubeIntersection(mesh, triangleIdx, gi, sideRatio))
                     {
                         grid->fillVoxel(I2I64(ix), I2I64(iy), I2I64(iz));
-                        count++;
                     }
                 }
             }
@@ -1290,8 +1285,6 @@ void Volume::_rasterize(Mesh* mesh, VolumeGrid* grid, const float& sideRatio, co
     }
     VERBOSE_LOG(LOOP_DONE, verbose);
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
-
-    LOG_WARNING("Count: %ld", count);
 }
 
 void Volume::_rasterizeParallel(Mesh* mesh, VolumeGrid* grid,
@@ -2202,10 +2195,9 @@ bool Volume::_testTriangleCubeIntersection(Mesh* mesh, size_t triangleIdx,
         }
     }
 
-    const double _sideRatio = static_cast< double >(sideRatio);
-    voxelHalfSize[0] *= _sideRatio;
-    voxelHalfSize[1] *= _sideRatio;
-    voxelHalfSize[2] *= _sideRatio;
+    voxelHalfSize[0] *= sideRatio;
+    voxelHalfSize[1] *= sideRatio;
+    voxelHalfSize[2] *= sideRatio;
 
     return checkTriangleBoxIntersection(voxelCenter, voxelHalfSize, triangle);
 }

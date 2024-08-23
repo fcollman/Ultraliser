@@ -40,18 +40,9 @@ void SomaSegmenter::_verifyVolume(const bool verbose)
         // Create the _neuronVolume from the _neuronMesh;
         _neuronVolume = new Volume(pMinInput, pMaxInput, resolution, 0.1, VOLUME_TYPE::UI8, SILENT);
 
-        LOG_SUCCESS("The volume has [%ld] voxels", _neuronVolume->getNumberVoxels());
-
-
         // Adaptive and conservative Voxelization
         _neuronVolume->surfaceVoxelization(_neuronMesh, SILENT, false, 1.0);
-
-        LOG_SUCCESS("The volume has [%ld] filled voxels (1)", _neuronVolume->computeNumberNonZeroVoxels());
-
-
         _neuronVolume->solidVoxelization(AXIS::XYZ, SILENT);
-
-        LOG_SUCCESS("The volume has [%ld] filled voxels", _neuronVolume->computeNumberNonZeroVoxels());
     }
 }
 
