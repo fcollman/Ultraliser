@@ -650,7 +650,8 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
                 }
                 else
                 {
-                    LOG_WARNING("Undefined case for the branch identification! Possible Errors!");
+                    LOG_WARNING("Undefined case for the branch identification: Branch [%d]! "
+                                "Possible Errors!", branch->index);
                 }
             }
         }
