@@ -522,6 +522,17 @@ void NeuronSkeletonizer::_identifySomaticNodes(const bool verbose)
     }
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
+    size_t numberNodeInsideSoma = 0;
+    for (size_t i = 0; i < _nodes.size(); ++i)
+    {
+        if (_nodes[i]->insideSoma)
+        {
+            numberNodeInsideSoma++;
+        }
+    }
+
+    LOG_WARNING("[%ld] somatic nodes");
+
     /// TODO: The volume is safe to be deallocated
     _volume->~Volume();
     _volume = nullptr;
