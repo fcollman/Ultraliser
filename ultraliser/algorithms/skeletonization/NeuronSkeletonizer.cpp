@@ -87,7 +87,7 @@ void NeuronSkeletonizer::constructGraph(const bool verbose)
 
     /// In the old approach, we needed to remove the triangle loops, but thanks to Foni's algorithm
     /// these loops are removed automatically during the path construction phase
-    _removeTriangleLoops();
+    // _removeTriangleLoops();
 
     // Reconstruct the sections "or branches" from the nodes using the edges data
     _buildBranchesFromNodes(_nodes);
@@ -230,7 +230,13 @@ void NeuronSkeletonizer::_verifySomaticBranches()
     _numberSomaticBranches = 0;
 
     // Count the number of somatic branches.
-    for(const auto& branch: _branches) { if (branch->isInsideSoma()) { _numberSomaticBranches++; } }
+    for (const auto& branch: _branches)
+    {
+        if (branch->isInsideSoma())
+        {
+            _numberSomaticBranches++;
+        }
+    }
 
     // If the count of the somatic branches is Zero, report the error
     if (_numberSomaticBranches == 0)
