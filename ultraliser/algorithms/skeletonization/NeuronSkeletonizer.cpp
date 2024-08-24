@@ -397,7 +397,6 @@ void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
     else
     {
         VERBOSE_LOG(LOG_SUCCESS("[%ld] Somatic Nodes Detected. OK.", numberSamples), verbose);
-
     }
 
     // Normalize
@@ -533,9 +532,11 @@ void NeuronSkeletonizer::_identifySomaticNodes(const bool verbose)
     {
         if (_nodes[i]->insideSoma)
         {
+            std::cout << _nodes[i]->index << " ";
             numberNodeInsideSoma++;
         }
     }
+    std::cout << std::endl;
 
     LOG_WARNING("[%ld] somatic nodes");
 
@@ -581,7 +582,7 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
 
         // If the first and last nodes of the branch are inside the soma, then it is invalid
         // becuase it it totally located inside the soma
-        if (branch->nodes.front()->insideSoma && branch->nodes.back()->insideSoma)
+        if (firstNode->insideSoma && lastNode->insideSoma)
         {
             branch->setInvalid();
             branch->setInsideSoma();
@@ -670,16 +671,18 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
                 else if (firstNode->insideSoma && lastNode->insideSoma)
                 {
                     LOG_WARNING("Undefined case for the branch identification: Branch [%d]! "
-                                "Terminal nodes inside soma."
+                                "Terminal nodes inside soma. "
                                 "Possible Errors!", branch->index);
                 }
                 else if (!firstNode->insideSoma && !lastNode->insideSoma)
                 {
                     LOG_WARNING("Undefined case for the branch identification: Branch [%d]! "
-                                "Terminal nodes outside soma."
+                                "Terminal nodes outside soma. "
                                 "Possible Errors!", branch->index);
                     firstNode->point.print();
                     lastNode->point.print();
+
+                    std::cout << firstNode->index << ", " << lastNode->index << std::endl;
                 }
                 else
                 {
