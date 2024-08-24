@@ -511,7 +511,7 @@ void NeuronSkeletonizer::_identifySomaticNodes(const bool verbose)
     // Find out the nodes that are inside the soma
     TIMER_RESET;
     VERBOSE_LOG(LOOP_STARTS("Mapping Voxels to Nodes"), verbose);
-    OMP_PARALLEL_FOR
+    // OMP_PARALLEL_FOR
     for (size_t i = 0; i < _nodes.size(); ++i)
     {
         auto& node = _nodes[i];
