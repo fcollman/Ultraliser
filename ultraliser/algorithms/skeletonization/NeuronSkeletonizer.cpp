@@ -87,7 +87,7 @@ void NeuronSkeletonizer::constructGraph(const bool verbose)
 
     /// In the old approach, we needed to remove the triangle loops, but thanks to Foni's algorithm
     /// these loops are removed automatically during the path construction phase
-    // _removeTriangleLoops();
+    _removeTriangleLoops();
 
     // Reconstruct the sections "or branches" from the nodes using the edges data
     _buildBranchesFromNodes(_nodes);
