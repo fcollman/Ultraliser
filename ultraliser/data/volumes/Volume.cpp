@@ -1903,7 +1903,6 @@ void Volume::_floodFillAlongAxisROI(VolumeGrid* grid,
     {
         LOOP_STARTS(floodFillingString.c_str());
         PROGRESS_SET_AT_VALUE(lower);
-        OMP_PARALLEL_FOR
         for (int64_t i = lower ; i < upper + 1; ++i)
         {
             grid->floodFillSliceAlongAxisROI(i, floodFillingAxis, x1, x2, y1, y2, z1, z2);
@@ -1917,7 +1916,6 @@ void Volume::_floodFillAlongAxisROI(VolumeGrid* grid,
     }
     else
     {
-        OMP_PARALLEL_FOR
         for (int64_t i = lower ; i < upper + 1; ++i)
         {
             grid->floodFillSliceAlongAxisROI(i, floodFillingAxis, x1, x2, y1, y2, z1, z2);
