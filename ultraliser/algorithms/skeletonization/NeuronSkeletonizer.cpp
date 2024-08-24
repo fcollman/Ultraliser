@@ -340,7 +340,6 @@ void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
     // For every node in the skeleton, if the radius is greater than 2.0, then this is a candidate
     // for the soma sample
     Vector3f estimatedSomaCenter(0.f);
-    size_t numberSamples = 0;
 
     // Collecting a subset of the samples, not all of them are needed
     std::map <size_t, float> interSomaticNodes;
@@ -369,6 +368,7 @@ void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
     size_t numberSelectedNodes = interSomaticNodesCount;
 
     TIMER_SET;
+    size_t numberSomaticNodes = 0;
     VERBOSE_LOG(LOOP_STARTS("Detecting Soma Nodes"), verbose);
     for (size_t i = 0; i < numberSelectedNodes; ++i)
     {
@@ -383,24 +383,24 @@ void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
         sample->~Mesh();
 
         estimatedSomaCenter += node0->point;
-        numberSamples++;
+        numberSomaticNodes++;
 
        VERBOSE_LOG(LOOP_PROGRESS(i, numberSelectedNodes), verbose);
     }
     VERBOSE_LOG(LOOP_DONE, verbose);
     VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
 
-    if (numberSamples == 0)
+    if (numberSomaticNodes == 0)
     {
         LOG_ERROR("Zero Somatic Nodes Detected! Incomplete neuron! Terminating!");
     }
     else
     {
-        VERBOSE_LOG(LOG_SUCCESS("[%ld] Somatic Nodes Detected. OK.", numberSamples), verbose);
+        VERBOSE_LOG(LOG_SUCCESS("[%ld] Somatic Nodes Detected. OK.", numberSomaticNodes), verbose);
     }
 
     // Normalize
-    estimatedSomaCenter /= numberSamples;
+    estimatedSomaCenter /= numberSomaticNodes;
 
     // Update the location of the soma point, the radius will be updated after detecting root arbors
     // TODO: Fix me
@@ -530,15 +530,10 @@ void NeuronSkeletonizer::_identifySomaticNodes(const bool verbose)
     size_t numberNodeInsideSoma = 0;
     for (size_t i = 0; i < _nodes.size(); ++i)
     {
-        if (_nodes[i]->insideSoma)
-        {
-            std::cout << _nodes[i]->index << " ";
-            numberNodeInsideSoma++;
-        }
+        if (_nodes[i]->insideSoma) { numberNodeInsideSoma++; }
     }
-    std::cout << std::endl;
 
-    LOG_WARNING("[%ld] somatic nodes", numberNodeInsideSoma);
+    LOG_WARNING("The graph has [%ld] Somatic Nodes", numberNodeInsideSoma);
 
     /// TODO: The volume is safe to be deallocated
     _volume->~Volume();
@@ -671,18 +666,14 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
                 else if (firstNode->insideSoma && lastNode->insideSoma)
                 {
                     LOG_WARNING("Undefined case for the branch identification: Branch [%d]! "
-                                "Terminal nodes inside soma. "
+                                "Terminal nodes are inside soma. "
                                 "Possible Errors!", branch->index);
                 }
                 else if (!firstNode->insideSoma && !lastNode->insideSoma)
                 {
                     LOG_WARNING("Undefined case for the branch identification: Branch [%d]! "
-                                "Terminal nodes outside soma. "
+                                "Terminal nodes are outside soma. "
                                 "Possible Errors!", branch->index);
-                    firstNode->point.print();
-                    lastNode->point.print();
-
-                    std::cout << firstNode->index << ", " << lastNode->index << std::endl;
                 }
                 else
                 {
