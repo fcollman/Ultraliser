@@ -536,6 +536,16 @@ void AppArguments::addSkeletonizationAccelerationArgument()
     _options->useAccelerationStructures = _args->getBoolValue(&useAccelerationStructures);
 }
 
+void AppArguments::addGenericSkeletonizationArguments()
+{
+    Argument writeSkeletonizationStatistics(
+                "--skeletonization-stats",
+                ARGUMENT_TYPE::BOOL,
+                "Write the statistics of the skeletonization process.");
+    _args->addArgument(&writeSkeletonizationStatistics);
+    _options->writeSkeletonizationStatistics = _args->getBoolValue(&writeSkeletonizationStatistics);
+}
+
 void AppArguments::addMeshJoiningArguments()
 {
     Argument simpleMeshJoin(

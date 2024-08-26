@@ -97,6 +97,13 @@ public:
                        const bool &resampleSkeleton = false,
                        const bool verbose = VERBOSE) override;
 
+    /**
+     * @brief writeStatistics
+     * @param prefix
+     */
+    void writeStatistics(const std::string& prefix) const override;
+
+
 private:
 
     /**

@@ -33,7 +33,7 @@ void VasculatureSkeletonizer::segmentComponents(const bool verbose)
     // Currently, vasculature datasets have only branches with fluctuating diameters. Therefore,
     // branches are only the available components to be segmented from the graph. This is indeed
     // unlike neurons that can have somata, branches and spines.
-    _buildBranchesFromNodes(_nodes);
+    _buildBranchesFromNodes();
 
      LOG_STATS(GET_TIME_SECONDS);
 }
@@ -155,6 +155,11 @@ void VasculatureSkeletonizer::exportSkeletonVMV5(const std::string& filePrefix)
 
     // Close the file
     file.close();
+}
+
+void VasculatureSkeletonizer::writeStatistics(const std::string& prefix) const
+{
+
 }
 
 VasculatureSkeletonizer::~VasculatureSkeletonizer()

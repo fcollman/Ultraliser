@@ -1521,16 +1521,16 @@ void Volume::_floodFill2D(const AXIS &axis, const bool &verbose)
 
     switch (axis)
     {
-    case X: _floodFillAlongAxisOptimized(_grid, AXIS::X, verbose);
+    case AXIS::X: _floodFillAlongAxisOptimized(_grid, AXIS::X, verbose);
         break;
 
-    case Y: _floodFillAlongAxisOptimized(_grid, AXIS::Y, verbose);
+    case AXIS::Y: _floodFillAlongAxisOptimized(_grid, AXIS::Y, verbose);
         break;
 
-    case Z: _floodFillAlongAxisOptimized(_grid, AXIS::Z, verbose);
+    case AXIS::Z: _floodFillAlongAxisOptimized(_grid, AXIS::Z, verbose);
         break;
 
-    case XYZ:_floodFillAlongXYZ(_grid, verbose);
+    case AXIS::XYZ: _floodFillAlongXYZ(_grid, verbose);
         break;
     }
 }
@@ -1546,19 +1546,16 @@ void Volume::_floodFill2DROI(const AXIS &axis,
 
     switch (axis)
     {
-    case X: _floodFillAlongAxisROI(_grid, AXIS::X,
-                                   x1, x2, y1, y2, z1, z2, verbose);
+    case AXIS::X: _floodFillAlongAxisROI(_grid, AXIS::X, x1, x2, y1, y2, z1, z2, verbose);
         break;
 
-    case Y: _floodFillAlongAxisROI(_grid, AXIS::Y,
-                                   x1, x2, y1, y2, z1, z2, verbose);
+    case AXIS::Y: _floodFillAlongAxisROI(_grid, AXIS::Y, x1, x2, y1, y2, z1, z2, verbose);
         break;
 
-    case Z: _floodFillAlongAxisROI(_grid, AXIS::Z,
-                                   x1, x2, y1, y2, z1, z2, verbose);
+    case AXIS::Z: _floodFillAlongAxisROI(_grid, AXIS::Z, x1, x2, y1, y2, z1, z2, verbose);
         break;
 
-    case XYZ:_floodFillAlongXYZROI(_grid, x1, x2, y1, y2, z1, z2, verbose);
+    case AXIS::XYZ: _floodFillAlongXYZROI(_grid, x1, x2, y1, y2, z1, z2, verbose);
         break;
     }
 }

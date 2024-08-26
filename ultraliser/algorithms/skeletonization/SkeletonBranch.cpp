@@ -28,6 +28,7 @@
 #define DUPLICATE_BIT_INDEX     4
 #define SPINE_BIT_INDEX         5
 #define INSIDE_SOMA_BIT_INDEX   6
+#define FILOPODIA               7
 
 #include "SkeletonBranch.h"
 
@@ -159,6 +160,22 @@ bool SkeletonBranch::isDuplicate() const
 {
     return _flags->bit(DUPLICATE_BIT_INDEX);
 }
+
+void SkeletonBranch::setFilopodia()
+{
+    _flags->setBit(FILOPODIA);
+}
+
+void SkeletonBranch::unsetFilopodia()
+{
+    _flags->clearBit(FILOPODIA);
+}
+
+bool SkeletonBranch::isFilopodia() const
+{
+    return _flags->bit(FILOPODIA);
+}
+
 
 float SkeletonBranch::getMinimumRadius() const
 {

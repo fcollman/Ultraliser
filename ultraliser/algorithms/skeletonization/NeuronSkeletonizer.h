@@ -203,6 +203,13 @@ public:
                                       const Mesh* neuronMesh,
                                       const bool& resampleSkeleton,
                                       const bool verbose);
+
+    /**
+     * @brief writeStatistics
+     * @param prefix
+     */
+    void writeStatistics(const std::string& prefix) const override;
+
 private:
 
     /**
@@ -244,6 +251,11 @@ private:
      * @brief _connectBranches
      */
     void _connectBranches();
+
+    /**
+     * @brief _removeFilopodia
+     */
+    void _removeFilopodia();
 
     /**
      * @brief _filterLoopsBetweenTwoBranchingPoints
@@ -472,7 +484,8 @@ private:
      */
     SkeletonBranches _spineRoots;
 
-private:
+
+
 
     /**
      * @brief _totalNumberBranches
@@ -486,6 +499,16 @@ private:
      * value must be greater than one to have a successful reconstruction.
      */
     size_t _numberSomaticBranches;
+
+    /**
+     * @brief _numberFilopodia
+     */
+    size_t _numberFilopodia = 0;
+
+
+
+    size_t _numberVoxelsInsideSoma;
+    size_t _numberNodesInsideSoma;
 };
 
 }

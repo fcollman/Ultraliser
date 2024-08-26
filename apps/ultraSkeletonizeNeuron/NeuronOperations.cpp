@@ -213,6 +213,14 @@ void runNeuronSkeletonizationOperations(const AppOptions* options,
     exportNeuronMorphology(options, skeletonizer);
 }
 
+void runStatisticsGenerator(const AppOptions* options, NeuronSkeletonizer* skeletonizer)
+{
+    if (options->writeSkeletonizationStatistics)
+    {
+        skeletonizer->writeStatistics(options->skeletonizationStatsPrefix);
+    }
+}
+
 void runHighQualityMeshGeneration(const AppOptions* options,
                                   NeuronSkeletonizer* skeletonizer,
                                   Mesh* inputNeuronMesh)

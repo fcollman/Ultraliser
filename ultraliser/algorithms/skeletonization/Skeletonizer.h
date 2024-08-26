@@ -191,6 +191,12 @@ public:
                         const SkeletonBranch::BRANCH_STATE state,
                         const bool verbose = VERBOSE);
 
+    /**
+     * @brief writeStatistics
+     * @param prefix
+     */
+    virtual void writeStatistics(const std::string& prefix) const = 0;
+
 protected:
 
     /**
@@ -251,9 +257,13 @@ protected:
 
     /**
      * @brief _extractNodesFromVoxels
-     * Extract the graph nodes from the centerline voxels remaining in the volume.
+     * Extract the graph nodes from the centerline voxels remaining in the volume after the
+     * skeletonization process.
+     *
      * @param verbose
      * @return
+     * Return a mapper that maps the indices of the voxels in the volume and the nodes in
+     * the graph skeleton.
      */
     std::map< size_t, size_t > _extractNodesFromVoxels(const bool verbose = VERBOSE);
 
@@ -363,7 +373,11 @@ protected:
 
     void _removeTriangleLoops(const bool verbose = VERBOSE);
 
-    void _buildBranchesFromNodes(const SkeletonNodes& nodes);
+    /**
+     * @brief _buildBranchesFromNodes
+     * Construct the branches between two branching nodes.
+     */
+    void _buildBranchesFromNodes();
 
     /**
      * @brief _constructGraphNodesFromSkeletonNodes
@@ -557,6 +571,24 @@ protected:
      * Total number of edges in the detected skeleton.
      */
     size_t _totalNumberEdges;
+
+    /**
+     * @brief _volumeWidth
+     * The width of the volume used in the skeletonization process.
+     */
+    size_t _volumeWidth = 0;
+
+    /**
+     * @brief _volumeHeight
+     * The height of the volume used in the skeletonization process.
+     */
+    size_t _volumeHeight = 0;
+
+    /**
+     * @brief _volumeDepth
+     * The depth of the volume used in the skeletonization process.
+     */
+    size_t _volumeDepth = 0;
 };
 
 }

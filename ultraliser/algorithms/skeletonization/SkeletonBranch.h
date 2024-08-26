@@ -195,6 +195,25 @@ public:
     bool isDuplicate() const;
 
     /**
+     * @brief setFilopodia
+     * Sets the branch to be filopodia.
+     */
+    void setFilopodia();
+
+    /**
+     * @brief unsetFilopodia
+     * Unsets the branch to be non filopodia.
+     */
+    void unsetFilopodia();
+
+    /**
+     * @brief isFilopodia
+     * Checks if the branch is filopodia or not.
+     * @return
+     */
+    bool isFilopodia() const;
+
+    /**
      * @brief printTree
      * @param order
      */

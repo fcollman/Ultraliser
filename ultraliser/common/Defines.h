@@ -93,6 +93,7 @@
 #define EXTENTS_EXTENSION                       STRING(".extents")
 #define POINT_EXTENSION                         STRING(".point")
 #define ANGLE_EXTENSION                         STRING(".angle")
+#define STATISTICS_EXTENSION                    STRING(".stats")
 
 // Volume formats
 #define FORMAT_BIT                              STRING("bit")
@@ -169,6 +170,7 @@
 #define SPINES_MESHES_DIRECTORY                 STRING("spine-meshes")
 #define SPINES_MORPHOLOGIES_DIRECTORY           STRING("spine-morphologies")
 #define SKELETONIZATION_DIRECTORY               STRING("skeletonization-artifacts")
+#define SKELETONIZATION_STATS_DIRECTORY         STRING("skeletonization-stats")
 #define NEURON_MORPHOLOGY_DIRECTORY             STRING("neuron-morphology")
 
 // Distributions stats
@@ -245,6 +247,8 @@
 #define DOUBLE_BACK_SLASH                       STRING("//")
 #define SPACE                                   STRING(" ")
 #define NEW_LINE                                STRING("\n")
+#define TAB                                     STRING("    ")
+#define DOUBLE_TAB                              STRING("        ")
 #define C_SPACE                                 CHAR(' ')
 #define C_BACK_SLASH                            CHAR('/')
 

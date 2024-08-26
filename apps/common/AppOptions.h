@@ -297,6 +297,12 @@ public:
     std::string debugPrefix;
 
     /**
+     * @brief skeletonizationStatsPrefix
+     * The prefix of the skeletonization statistics process.
+     */
+    std::string skeletonizationStatsPrefix;
+
+    /**
      * @brief maskWidth
      */
     size_t maskWidth;
@@ -765,6 +771,12 @@ public:
      * Resamples the skeleton adaptively to remove the useless samples.
      */
     bool resampleSkeleton = false;
+
+    /**
+     * @brief writeSkeletonizationStatistics
+     * Write statistics relevant to the skeletonization process.
+     */
+    bool writeSkeletonizationStatistics = false;
 
     /**
      * @brief preservePartitions

@@ -811,4 +811,9 @@ void SpineSkeletonizer::exportSWCFile(const std::string& prefix,
     stream.close();
 }
 
+void SpineSkeletonizer::writeStatistics(const std::string& prefix) const
+{
+
+}
+
 }

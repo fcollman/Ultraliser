@@ -74,6 +74,13 @@ public:
      * File prefix.
      */
     void exportSkeletonVMV5(const std::string& prefix);
+
+    /**
+     * @brief writeStatistics
+     * @param prefix
+     */
+    void writeStatistics(const std::string& prefix) const override;
+
 };
 
 }

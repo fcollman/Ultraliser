@@ -63,6 +63,11 @@ Skeletonizer::Skeletonizer(Volume* volume,
 
     // Mesh to volume scale factor
     _scaleFactor = _boundsMesh / _boundsVolume;
+
+    // Stats.
+    _volumeWidth = _volume->getWidth();
+    _volumeHeight = _volume->getHeight();
+    _volumeDepth = _volume->getDepth();
 }
 
 Skeletonizer::Skeletonizer(Mesh* mesh,
@@ -865,15 +870,15 @@ void Skeletonizer::constructGraph(const bool verbose)
     OMP_PARALLEL_FOR for (size_t i = 1; i <= _nodes.size(); ++i) { _nodes[i - 1]->index = i; }
 }
 
-void Skeletonizer::_buildBranchesFromNodes(const SkeletonNodes& nodes)
+void Skeletonizer::_buildBranchesFromNodes()
 {
     // Used to index the branch
     size_t branchIndex = 0;
 
     // Construct the hierarchy to the terminal
-    for (size_t i = 0; i < nodes.size(); ++i)
+    for (size_t i = 0; i < _nodes.size(); ++i)
     {
-        auto& node = nodes[i];
+        auto& node = _nodes[i];
 
         // The node must be branching
         if (node->branching)
@@ -1466,7 +1471,8 @@ void Skeletonizer::_verifySkeletonNodes(const bool verbose)
     _totalNumberNodes = _nodes.size();
     if (_totalNumberNodes == 0)
     {
-        LOG_WARNING("The skeleton has [ %ld ] centerline connected nodes!");
+        LOG_ERROR("The skeleton has [ %ld ] centerline connected nodes! "
+                  "Cannot complete the process.");
     }
     else
     {

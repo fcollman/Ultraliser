@@ -138,4 +138,12 @@ void runHighQualityMeshGeneration(const AppOptions* options,
                                   NeuronSkeletonizer* skeletonizer,
                                   Mesh* inputNeuronMesh);
 
+/**
+ * @brief runStatisticsGenerator
+ * @param options
+ * @param skeletonizer
+ */
+void runStatisticsGenerator(const AppOptions* options,
+                            NeuronSkeletonizer* skeletonizer);
+
 }

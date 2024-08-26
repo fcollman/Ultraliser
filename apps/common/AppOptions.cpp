@@ -403,7 +403,9 @@ void AppOptions::createRespectiveDirectories()
         mkdir(path.str().c_str(), 0777);
     }
 
-    if (removeSpinesFromSkeleton)
+    // Spines must be removed and exported to create this directory
+    if (removeSpinesFromSkeleton && (exportDenditicSpinesProxyMeshes ||
+        exportDendriticSpinesMeshes || exportSpinesMeshes || exportSpinesSWCMorphologies))
     {
         // Spines directory (where all the spine srtifacts will be generated)
         std::stringstream path;
@@ -459,6 +461,14 @@ void AppOptions::createRespectiveDirectories()
         path << "/" << prefix;
         mkdir(path.str().c_str(), 0777);
     }
+
+    if (writeSkeletonizationStatistics)
+    {
+        // Spine morphologies directory
+        std::stringstream path;
+        path << outputDirectory << "/" << SKELETONIZATION_STATS_DIRECTORY;
+        mkdir(path.str().c_str(), 0777);
+    }
 }
 
 void AppOptions::initializeContext()
@@ -482,6 +492,10 @@ void AppOptions::initializeContext()
     // Skeletonization debugging directory
     debugPrefix =
             outputDirectory + "/" +  SKELETONIZATION_DIRECTORY +  "/" + prefix + "/" + prefix;
+
+    // Statistics directory for the skeletonization
+    skeletonizationStatsPrefix =
+            outputDirectory + "/" + SKELETONIZATION_STATS_DIRECTORY + "/" + prefix;
 
     // Spines directories
     std::string spinesDirectory =

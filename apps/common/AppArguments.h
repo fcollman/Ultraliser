@@ -142,6 +142,11 @@ public:
     void addSkeletonizationAccelerationArgument();
 
     /**
+     * @brief addGenericSkeletonizationArguments
+     */
+    void addGenericSkeletonizationArguments();
+
+    /**
      * @brief addMeshJoiningArguments
      */
     void addMeshJoiningArguments();

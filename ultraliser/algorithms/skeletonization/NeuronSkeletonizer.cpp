@@ -53,10 +53,10 @@ void NeuronSkeletonizer::constructGraph(const bool verbose)
     // Verify the count of the skeleton nodes
     _verifySkeletonNodes();
 
-    // Export skeleton nodes
+    // Export skeleton nodes in case of debugging
     DEBUG_STEP(_exportGraphNodes(_debugPrefix, verbose), _debug);
 
-    /// Building edges
+    /// Building edges from the nodes
     // Connect the nodes of the skeleton to construct its edges. This operation will not connect
     // any gaps, it will just connect the nodes extracted from the voxels.
     _connectNodesToBuildEdges(indicesMapper, verbose);
@@ -67,10 +67,10 @@ void NeuronSkeletonizer::constructGraph(const bool verbose)
     /// Inflate the nodes, i.e. adjust their radii
     _inflateNodes(verbose);
 
-    // Export the inflated nodes file
+    // Export the inflated nodes file in case of debugging
     DEBUG_STEP(_exportGraphNodes(_debugPrefix + "-inflated", verbose), _debug);
 
-    // Add a virtual soma node to the graph, until the soma is reconstructed later
+    // Add a virtual soma node to the graph, until the soma is faithfully reconstructed later
     _addSomaNode();
 
     // Segmentthe soma mesh from the branches
@@ -90,7 +90,7 @@ void NeuronSkeletonizer::constructGraph(const bool verbose)
     _removeTriangleLoops();
 
     // Reconstruct the sections "or branches" from the nodes using the edges data
-    _buildBranchesFromNodes(_nodes);
+    _buildBranchesFromNodes();
 
     // Export all the branches
     DEBUG_STEP(exportBranches(_debugPrefix, SkeletonBranch::ALL, verbose), _debug);
@@ -171,8 +171,45 @@ void NeuronSkeletonizer::segmentComponents(const bool verbose)
     // Update all the parents
     _updateParents(verbose);
 
+    // Remove the filopodia from the graph
+    _removeFilopodia();
+
     // Remove the spines from the skeleton
     if (_removeSpinesFromSkeleton) { _detachSpinesFromSkeleton(verbose); }
+}
+
+void NeuronSkeletonizer::_removeFilopodia()
+{
+    SkeletonBranches verifiedRoots;
+    for (auto& root : _roots)
+    {
+        // If this root does not have any children
+        if (root->children.size() == 0)
+        {
+            // If this root has a smaller length
+            if (root->computeLength() < 20)
+            {
+                _numberFilopodia++;
+                root->setFilopodia();
+                root->setInvalid();
+            }
+            else
+            {
+                verifiedRoots.push_back(root);
+            }
+        }
+        else
+        {
+            verifiedRoots.push_back(root);
+        }
+    }
+    _roots.clear();
+    _roots.shrink_to_fit();
+
+    for (auto& root: verifiedRoots)
+    {
+        _roots.push_back(root);
+    }
 }
 
 Mesh* NeuronSkeletonizer::constructSomaProxyMeshFromGraph(const bool verbose)
@@ -325,20 +362,23 @@ void NeuronSkeletonizer::_addSomaNode()
     _somaNode->insideSoma = true;
 
     // Initially, we set the soma node to some value that does not make any conflict
+    // This value must be updated later
     _somaNode->radius = 0.1;
+
+    // Add the somatic node to the list of nodes to keep the graph consistent
     _nodes.push_back(_somaNode);
 }
 
 void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
 {
-    VERBOSE_LOG(LOG_STATUS("Segmenting Soma Mesh"), verbose);
+    VERBOSE_LOG(LOG_STATUS("Segmenting Soma Proxy Mesh: Cutoff [%f]", _somaRadiusCutoff), verbose);
 
-    // The _somaProxyMesh should be a complex geometry containing overlapping spheres that would define
-    // its structure
+    // The _somaProxyMesh should be a complex geometry containing overlapping spheres that
+    // would define its structure
     _somaProxyMesh = new Mesh();
 
-    // For every node in the skeleton, if the radius is greater than 2.0, then this is a candidate
-    // for the soma sample
+    // For every node in the skeleton, if the radius is greater than a given threshold, then this
+    // is a candidate for the soma sample
     Vector3f estimatedSomaCenter(0.f);
 
     // Collecting a subset of the samples, not all of them are needed
@@ -349,8 +389,7 @@ void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
     {
         auto& node = _nodes[i];
 
-        /// TODO: This is a magic value, it works now, but we need to find an optimum value based
-        /// on some statistical analysis.
+        // The cutoff radius varies depending on the type of neuron
         if (node->radius >= _somaRadiusCutoff)
         {
             interSomaticNodes.insert({node->index, node->radius});
@@ -364,7 +403,7 @@ void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
     // Reverse
     std::reverse(pairsVector.begin(), pairsVector.end());
 
-    /// TODO: Fix me
+    /// TODO: Use a subset to increase the performance in case a high resolution is used
     size_t numberSelectedNodes = interSomaticNodesCount;
 
     TIMER_SET;
@@ -372,17 +411,17 @@ void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
     VERBOSE_LOG(LOOP_STARTS("Detecting Soma Nodes"), verbose);
     for (size_t i = 0; i < numberSelectedNodes; ++i)
     {
-        auto& node0 = _nodes[pairsVector[i].first];
+        auto& node = _nodes[pairsVector[i].first];
 
         Mesh* sample = new IcoSphere(3);
-        sample->scale(node0->radius, node0->radius, node0->radius);
-        sample->translate(node0->point);
+        sample->scale(node->radius, node->radius, node->radius);
+        sample->translate(node->point);
         sample->map(_shellPoints, false);
 
         _somaProxyMesh->append(sample);
         sample->~Mesh();
 
-        estimatedSomaCenter += node0->point;
+        estimatedSomaCenter += node->point;
         numberSomaticNodes++;
 
        VERBOSE_LOG(LOOP_PROGRESS(i, numberSelectedNodes), verbose);
@@ -392,7 +431,7 @@ void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
 
     if (numberSomaticNodes == 0)
     {
-        LOG_ERROR("Zero Somatic Nodes Detected! Incomplete neuron! Terminating!");
+        LOG_ERROR("No Somatic Nodes Detected! Probably Incomplete neuron! Terminating!");
     }
     else
     {
@@ -403,8 +442,9 @@ void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
     estimatedSomaCenter /= numberSomaticNodes;
 
     // Update the location of the soma point, the radius will be updated after detecting root arbors
-    // TODO: Fix me
     _somaNode->point = estimatedSomaCenter;
+
+
     _somaNode->radius = 0.5;
 }
 
@@ -565,6 +605,7 @@ void NeuronSkeletonizer::_reconstructSomaMeshFromProxy(const bool verbose)
     _somaMesh->optimizeAdaptively(5, 5, 0.05, 5.0, verbose);
 }
 
+
 void NeuronSkeletonizer::_removeBranchesInsideSoma()
 {
     for (size_t i = 0; i < _branches.size(); ++i)
@@ -662,6 +703,7 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
 
                     // Add this branch to the roots
                     _roots.push_back(branch);
+
                 }
                 else if (firstNode->insideSoma && lastNode->insideSoma)
                 {
@@ -1786,6 +1828,50 @@ void NeuronSkeletonizer::_exportEdges(const std::string prefix, const bool verbo
 
     // Close the file
     stream.close();
+}
+
+void NeuronSkeletonizer::writeStatistics(const std::string& prefix) const
+{
+
+    // Construct the file path
+    std::string filePath = prefix + STATISTICS_EXTENSION;
+
+    std::fstream statsStream;
+    std::stringstream statsString;
+    statsStream.open(filePath, std::ios::out);
+
+    statsString << TAB << "Volume Stats." << NEW_LINE;
+    statsString << DOUBLE_TAB << "Neuron Volume Width: " << _volumeWidth << NEW_LINE;
+    statsString << DOUBLE_TAB << "Neuron Volume Height: " << _volumeHeight << NEW_LINE;
+    statsString << DOUBLE_TAB << "Neuron Volume Depth: " << _volumeDepth << NEW_LINE;
+    statsString << NEW_LINE;
+
+    statsString << TAB << "Graph Stats." << NEW_LINE;
+    statsString << DOUBLE_TAB << "Total Number of Nodes: " << _totalNumberNodes << NEW_LINE;
+    statsString << DOUBLE_TAB << "Total Number of Edges: " << _totalNumberEdges << NEW_LINE;
+    statsString << DOUBLE_TAB << "Total Number of Branches: " << _totalNumberBranches << NEW_LINE;
+    statsString << NEW_LINE;
+
+    size_t numberInvalidBranches = 0;
+    for (const auto& branch: _branches) { if (!branch->isValid()) numberInvalidBranches++; }
+    statsString << DOUBLE_TAB << "Number of Invalid Branches: " << numberInvalidBranches << NEW_LINE;
+    statsString << DOUBLE_TAB << "Number Nodes Inside Soma: " << _numberNodesInsideSoma << NEW_LINE;
+
+    statsString << TAB << "Morphology Stats." << NEW_LINE;
+    statsString << DOUBLE_TAB << "Number of Valid Roots: " << _roots.size() << NEW_LINE;
+    statsString << DOUBLE_TAB << "Number Filopodias: " << _numberFilopodia << NEW_LINE;
+    statsString << NEW_LINE;
+
+    // Print the stats. to the console
+    LOG_SUCCESS("Skeletonization Stats.");
+    std::cout << statsString.str();
+
+    // Write the string to the file
+    statsStream << statsString.str();
+
+    // Close the file
+    statsStream.close();
+
 }
 
 NeuronSkeletonizer::~NeuronSkeletonizer()

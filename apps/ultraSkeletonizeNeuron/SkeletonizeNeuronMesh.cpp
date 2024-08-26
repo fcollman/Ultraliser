@@ -48,6 +48,7 @@ AppOptions* parseArguments(const int& argc , const char** argv)
     args->addSuppressionArguments();
     args->addDataArguments();
     args->addProcessingArguments();
+    args->addGenericSkeletonizationArguments();
     args->addSkeletonizationAccelerationArgument();
 
     // Get all the options
@@ -103,6 +104,9 @@ void run(int argc , const char** argv)
 
     // Create high quality mesh
     runHighQualityMeshGeneration(options, skeletonizer, inputNeuronMesh);
+
+    // Write the statistics
+    runStatisticsGenerator(options, skeletonizer);
 }
 
 }
