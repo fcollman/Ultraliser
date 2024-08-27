@@ -411,6 +411,7 @@ void NeuronSkeletonizer::_estimateSomaExtent(const bool verbose)
     VERBOSE_LOG(LOOP_STARTS("Detecting Soma Nodes"), verbose);
     for (size_t i = 0; i < numberSelectedNodes; ++i)
     {
+        // Nodes
         auto& node = _nodes[pairsVector[i].first];
 
         Mesh* sample = new IcoSphere(3);
