@@ -74,7 +74,7 @@ void NeuronSkeletonizer::constructGraph(const bool verbose)
     _addSomaNode();
 
     // Segmentthe soma mesh from the branches
-    _segmentSomaMesh(verbose);
+    _estimateSomaExtent(verbose);
 
     // Identify the somatic nodes in the skeleton
     _identifySomaticNodes(verbose);
@@ -243,7 +243,7 @@ Mesh* NeuronSkeletonizer::constructSomaProxyMeshFromGraph(const bool verbose)
     _addSomaNode();
 
     // Segmentthe soma mesh from the branches
-    _segmentSomaMesh(verbose);
+    _estimateSomaExtent(verbose);
 
     // Return the soma mesh
     return _somaProxyMesh;
@@ -369,9 +369,9 @@ void NeuronSkeletonizer::_addSomaNode()
     _nodes.push_back(_somaNode);
 }
 
-void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
+void NeuronSkeletonizer::_estimateSomaExtent(const bool verbose)
 {
-    VERBOSE_LOG(LOG_STATUS("Segmenting Soma Proxy Mesh: Cutoff [%f]", _somaRadiusCutoff), verbose);
+    VERBOSE_LOG(LOG_STATUS("Estimating Soma Proxy Mesh: Cutoff [%f]", _somaRadiusCutoff), verbose);
 
     // The _somaProxyMesh should be a complex geometry containing overlapping spheres that
     // would define its structure
@@ -431,11 +431,12 @@ void NeuronSkeletonizer::_segmentSomaMesh(const bool verbose)
 
     if (numberSomaticNodes == 0)
     {
-        LOG_ERROR("No Somatic Nodes Detected! Probably Incomplete neuron! Terminating!");
+        LOG_ERROR("No Somatic Nodes Detected in the Graph! Probably Incomplete neuron! Terminating!");
     }
     else
     {
-        VERBOSE_LOG(LOG_SUCCESS("[%ld] Somatic Nodes Detected. OK.", numberSomaticNodes), verbose);
+        VERBOSE_LOG(LOG_SUCCESS("[%ld] Somatic Nodes Estimated in the Graph. OK.",
+                                numberSomaticNodes), verbose);
     }
 
     // Normalize
@@ -551,7 +552,7 @@ void NeuronSkeletonizer::_identifySomaticNodes(const bool verbose)
     // Find out the nodes that are inside the soma
     TIMER_RESET;
     VERBOSE_LOG(LOOP_STARTS("Mapping Voxels to Nodes"), verbose);
-    // OMP_PARALLEL_FOR
+    OMP_PARALLEL_FOR
     for (size_t i = 0; i < _nodes.size(); ++i)
     {
         auto& node = _nodes[i];
@@ -605,7 +606,6 @@ void NeuronSkeletonizer::_reconstructSomaMeshFromProxy(const bool verbose)
     _somaMesh->optimizeAdaptively(5, 5, 0.05, 5.0, verbose);
 }
 
-
 void NeuronSkeletonizer::_removeBranchesInsideSoma()
 {
     for (size_t i = 0; i < _branches.size(); ++i)
@@ -617,12 +617,13 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
         auto& lastNode = branch->nodes.back();
 
         // If the first and last nodes of the branch are inside the soma, then it is invalid
-        // becuase it it totally located inside the soma
+        // becuase it it totally located inside the soma and somata cannot have branches inside.
+        // These branches are just a result of the thinning process.
         if (firstNode->insideSoma && lastNode->insideSoma)
         {
-            branch->setInvalid();
-            branch->setInsideSoma();
-            branch->unsetRoot();
+            branch->setInvalid();       // Invalid branch
+            branch->setInsideSoma();    // It is inside the soma
+            branch->unsetRoot();        // It is not a root branch
         }
 
         // If at least one node is located inside the soma and the other is located outside the soma
@@ -716,6 +717,8 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
                     LOG_WARNING("Undefined case for the branch identification: Branch [%d]! "
                                 "Terminal nodes are outside soma. "
                                 "Possible Errors!", branch->index);
+
+                    std::cout << "Number of samples inside soma : " << countSamplesInsideSoma << std::endl;
                 }
                 else
                 {

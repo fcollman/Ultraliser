@@ -225,10 +225,10 @@ private:
     void _addSomaNode();
 
     /**
-     * @brief _segmentSomaMesh
+     * @brief _estimateSomaExtent
      * @param verbose
      */
-    void _segmentSomaMesh(const bool verbose = VERBOSE);
+    void _estimateSomaExtent(const bool verbose = VERBOSE);
 
     /**
      * @brief _segmentSpinesSkeletons
