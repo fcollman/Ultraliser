@@ -723,9 +723,15 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
 
                     for (size_t j = 0; j < branch->nodes.size(); ++j)
                     {
+                        branch->nodes[j]->point.print();
                         if (branch->nodes[j]->insideSoma)
                         {
                             printf("Sample %ld / %ld", j, branch->nodes.size());
+
+                            if (branch->nodes[j]->branching)
+                            {
+                                std::cout << "BNranching \n";
+                            } else {std::cout << "not branching \n";}
                         }
                     }
                 }
