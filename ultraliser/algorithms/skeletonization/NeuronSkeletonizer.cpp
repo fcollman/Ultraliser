@@ -612,6 +612,24 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
     {
         auto& branch = _branches[i];
 
+        if (branch->index == 4192)
+        {
+            if (branch->nodes.front()->insideSoma) { std::cout << "4192 front inside\n"; }
+            else  { std::cout << "4192 front not inside\n"; }
+
+            if (branch->nodes.back()->insideSoma) { std::cout << "4192 back inside\n"; }
+            else  { std::cout << "4192 back not inside\n"; }
+        }
+
+        if (branch->index == 4194)
+        {
+            if (branch->nodes.front()->insideSoma) { std::cout << "4194 front inside\n"; }
+            else  { std::cout << "4194 front not inside\n"; }
+
+            if (branch->nodes.back()->insideSoma) { std::cout << "4194 back inside\n"; }
+            else  { std::cout << "4194 back not inside\n"; }
+        }
+
         // Get the first and last nodes
         auto& firstNode = branch->nodes.front();
         auto& lastNode = branch->nodes.back();
