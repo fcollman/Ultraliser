@@ -92,6 +92,7 @@
 #define BRANCHES_EXTENSION                      STRING(".branches")
 #define EXTENTS_EXTENSION                       STRING(".extents")
 #define POINT_EXTENSION                         STRING(".point")
+#define DISTANCES_EXTENSION                     STRING(".distances")
 #define ANGLE_EXTENSION                         STRING(".angle")
 #define STATISTICS_EXTENSION                    STRING(".stats")
 

@@ -205,6 +205,16 @@ public:
                                       const bool verbose);
 
     /**
+     * @brief exportSpinesPathDistancesToSoma
+     * @param spineProxyMorphologies
+     * @param prefix
+     * @param verbose
+     */
+    void exportSpinesPathDistancesToSoma(const SpineMorphologies &spineProxyMorphologies,
+                                         const std::string prefix,
+                                         const bool verbose) const;
+
+    /**
      * @brief writeStatistics
      * @param prefix
      */

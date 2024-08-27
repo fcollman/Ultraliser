@@ -74,6 +74,12 @@ public:
     Vector3f getBasePoint() const { return _basePoint; }
 
     /**
+     * @brief getBaseNode
+     * @return
+     */
+    SkeletonNode* getBaseNode() const { return _baseNode; }
+
+    /**
      * @brief getDirection
      * @return
      */
@@ -195,6 +201,12 @@ private:
      * @brief _basePoint
      */
     Vector3f _basePoint;
+
+    /**
+     * @brief _baseNode
+     * The base node of the spine.
+     */
+    SkeletonNode* _baseNode;
 
     /**
      * @brief _direction

@@ -55,6 +55,9 @@ void SpineMorphology::_constructTreeFromLogicalBranches(SkeletonBranch* root,
 
 SpineMorphology::SpineMorphology(SkeletonBranch* root, const size_t &spineIndex)
 {
+    // Update the base node
+    _baseNode = root->nodes.front();
+
     // Update the base point
     _basePoint = root->nodes[0]->point;
 

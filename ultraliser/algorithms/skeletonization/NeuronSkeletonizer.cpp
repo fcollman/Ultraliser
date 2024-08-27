@@ -267,22 +267,16 @@ void NeuronSkeletonizer::_verifySomaticBranches()
     _numberSomaticBranches = 0;
 
     // Count the number of somatic branches.
-    for (const auto& branch: _branches)
-    {
-        if (branch->isInsideSoma())
-        {
-            _numberSomaticBranches++;
-        }
-    }
+    for (const auto& branch: _branches){ if (branch->isInsideSoma()) { _numberSomaticBranches++; } }
 
     // If the count of the somatic branches is Zero, report the error
     if (_numberSomaticBranches == 0)
     {
-        LOG_ERROR("No somatic segments were detected! Terminating!");
+        LOG_ERROR("No Somatic Segments were Detected! Terminating!");
     }
     else
     {
-        LOG_SUCCESS("The skeleton has [ %ld ] somatic segments. OK.", _numberSomaticBranches);
+        LOG_SUCCESS("Skeleton Somatic Segments: [ %ld ]. OK.", _numberSomaticBranches);
     }
 }
 
@@ -431,11 +425,12 @@ void NeuronSkeletonizer::_estimateSomaExtent(const bool verbose)
 
     if (numberSomaticNodes == 0)
     {
-        LOG_ERROR("No Somatic Nodes Detected in the Graph! Probably Incomplete neuron! Terminating!");
+        LOG_ERROR("No Somatic Nodes Detected in the Graph! "
+                  "Probably Incomplete neuron! Terminating!");
     }
     else
     {
-        VERBOSE_LOG(LOG_SUCCESS("[%ld] Somatic Nodes Estimated in the Graph. OK.",
+        VERBOSE_LOG(LOG_SUCCESS("Somatic Nodes Estimated in the Graph: [%ld]. OK.",
                                 numberSomaticNodes), verbose);
     }
 
@@ -574,7 +569,7 @@ void NeuronSkeletonizer::_identifySomaticNodes(const bool verbose)
         if (_nodes[i]->insideSoma) { numberNodeInsideSoma++; }
     }
 
-    LOG_WARNING("The graph has [%ld] Somatic Nodes", numberNodeInsideSoma);
+    LOG_SUCCESS("Graph Somatic Nodes: [%ld]. OK.", numberNodeInsideSoma);
 
     /// TODO: The volume is safe to be deallocated
     _volume->~Volume();
@@ -680,7 +675,7 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
                 _roots.push_back(branch);
             }
 
-            // If the last node is inside the soma, then annotate the branch
+            // If the last node is inside the soma, then annotate the branch and reverse the nodes
             else if (lastNode->insideSoma && !firstNode->insideSoma)
             {
                 SkeletonNodes newNodes;
@@ -1291,8 +1286,6 @@ Meshes NeuronSkeletonizer::reconstructSpineMeshes(const Mesh* neuronMesh,
     auto neuronKdTree = KdTree::from(neuronPointCloud);
     LOG_STATS(GET_TIME_SECONDS);
 
-    // spineMeshes.resize(_spineRoots.size());
-
     auto spineProxyMorphologies = reconstructSpineProxyMorphologies();
 
     spineMeshes.resize(_spineRoots.size());
@@ -1714,6 +1707,54 @@ void NeuronSkeletonizer::_exportSpineOrientations(const SpineMorphologies &spine
 
         stream << basePoint.x() << " " << basePoint.y() << " " << basePoint.z() << " "
                << direction.x() << " " << direction.y() << " " << direction.z() << NEW_LINE;
+
+        VERBOSE_LOG(LOOP_PROGRESS(i, spineProxyMorphologies.size()), verbose);
+    }
+    VERBOSE_LOG(LOOP_DONE, verbose);
+    VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
+
+    // Close the file
+    stream.close();
+}
+
+/// TODO: Implement me ...
+void NeuronSkeletonizer::exportSpinesPathDistancesToSoma(
+    const SpineMorphologies &spineProxyMorphologies,
+    const std::string prefix,
+    const bool verbose) const
+{
+    if (spineProxyMorphologies.size() == 0)
+    {
+        LOG_WARNING("No Spines have been Identified! Aborting Export!");
+        return;
+    }
+
+    // Construct the file path
+    std::string filePath = prefix + "-spine-path-distances" + DISTANCES_EXTENSION;
+    VERBOSE_LOG(LOG_STATUS("Exporting Spines Path Distances to Soma: [ %s ]",
+                           filePath.c_str()), verbose);
+
+    std::fstream stream;
+    stream.open(filePath, std::ios::out);
+
+
+    std::vector<float> pathDistancesToSoma;
+    pathDistancesToSoma.resize(spineProxyMorphologies.size());
+
+    OMP_PARALLEL_FOR
+    for (size_t i = 0; i < spineProxyMorphologies.size(); ++i)
+    {
+        const auto& baseNode = spineProxyMorphologies[i]->getBaseNode();
+        const float distance = 0;
+        pathDistancesToSoma[i] = distance;
+    }
+
+    TIMER_SET;
+    VERBOSE_LOG(LOOP_STARTS("Writing Path Distances to Soma (per Spine)"), verbose);
+    for (size_t i = 0; i < pathDistancesToSoma.size(); ++i)
+    {
+        stream << spineProxyMorphologies[i]->getSpineIndex() << " "
+               << pathDistancesToSoma[i] << " " << NEW_LINE;
 
         VERBOSE_LOG(LOOP_PROGRESS(i, spineProxyMorphologies.size()), verbose);
     }

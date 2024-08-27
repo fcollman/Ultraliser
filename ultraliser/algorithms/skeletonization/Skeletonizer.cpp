@@ -1471,12 +1471,11 @@ void Skeletonizer::_verifySkeletonNodes(const bool verbose)
     _totalNumberNodes = _nodes.size();
     if (_totalNumberNodes == 0)
     {
-        LOG_ERROR("The skeleton has [ %ld ] centerline connected nodes! "
-                  "Cannot complete the process.");
+        LOG_ERROR("Reconstructed Skeleton has Zero Nodes! Cannot complete the process!");
     }
     else
     {
-        VERBOSE_LOG(LOG_SUCCESS("The skeleton has [ %ld ] centerline connected nodes. OK.",
+        VERBOSE_LOG(LOG_SUCCESS("Skeleton has [ %ld ] Centerline Nodes. OK.",
                                 _totalNumberNodes), verbose);
     }
 }
@@ -1486,11 +1485,11 @@ void Skeletonizer::_verifySkeletonEdges(const bool verbose)
     _totalNumberEdges = _edges.size();
     if (_totalNumberEdges == 0)
     {
-        LOG_WARNING("The skeleton has [ %ld ] centerline edges!");
+        LOG_WARNING("Skeleton has [ %ld ] Centerline Edges!");
     }
     else
     {
-        VERBOSE_LOG(LOG_SUCCESS("The skeleton has [ %ld ] centerline edges. OK.",
+        VERBOSE_LOG(LOG_SUCCESS("Skeleton has [ %ld ] Centerline Edges. OK.",
                                 _totalNumberEdges), verbose);
     }
 }
