@@ -610,154 +610,106 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
 {
     for (size_t i = 0; i < _branches.size(); ++i)
     {
+        // A reference to the branch
         auto& branch = _branches[i];
 
-        if (branch->index == 4192)
+        // Count the number of nodes inside the soma, to validate the branches
+        size_t numberNodesInsideSoma = 0;
+        for (size_t j = 0; j < branch->nodes.size(); ++j)
         {
-            if (branch->nodes.front()->insideSoma) { std::cout << "4192 front inside\n"; }
-            else  { std::cout << "4192 front not inside\n"; }
-
-            if (branch->nodes.back()->insideSoma) { std::cout << "4192 back inside\n"; }
-            else  { std::cout << "4192 back not inside\n"; }
+            if (branch->nodes[j]->insideSoma)
+            {
+                numberNodesInsideSoma++;
+            }
         }
 
-        if (branch->index == 4194)
+        // If the count of the samples located inside the soma is zero, then it is a valid
+        // branch, but it is not a root branch
+        if (numberNodesInsideSoma == 0)
         {
-            if (branch->nodes.front()->insideSoma) { std::cout << "4194 front inside\n"; }
-            else  { std::cout << "4194 front not inside\n"; }
-
-            if (branch->nodes.back()->insideSoma) { std::cout << "4194 back inside\n"; }
-            else  { std::cout << "4194 back not inside\n"; }
+            branch->unsetRoot();
+            branch->setValid();
         }
 
-        // Get the first and last nodes
-        auto& firstNode = branch->nodes.front();
-        auto& lastNode = branch->nodes.back();
-
-        // If the first and last nodes of the branch are inside the soma, then it is invalid
-        // becuase it it totally located inside the soma and somata cannot have branches inside.
-        // These branches are just a result of the thinning process.
-        if (firstNode->insideSoma && lastNode->insideSoma)
+        // If all the branch nodes are located inside the soma, then it is not valid branch.
+        // This branch is just an artifact from the thining process.
+        else if (numberNodesInsideSoma == branch->nodes.size())
         {
-            branch->setInvalid();       // Invalid branch
-            branch->setInsideSoma();    // It is inside the soma
-            branch->unsetRoot();        // It is not a root branch
+            branch->unsetRoot();
+            branch->setInsideSoma();
+            branch->setInvalid();
         }
 
-        // If at least one node is located inside the soma and the other is located outside the soma
+        // If the branch has at least a node located inside the soma, then it might be a root
+        // branch if any of its terminal nodes are located inside the soma
         else
         {
-            // Count the number of samples inside the soma
-            size_t countSamplesInsideSoma = 0;
-            for (size_t j = 0; j < branch->nodes.size(); ++j)
+            // Get the first and last nodes of the branch
+            auto& firstNode = branch->nodes.front();
+            auto& lastNode = branch->nodes.back();
+
+            // If the first node is inside the soma, then annotate the branch
+            if (firstNode->insideSoma && !lastNode->insideSoma)
             {
-                if (branch->nodes[j]->insideSoma) { countSamplesInsideSoma++; }
+                SkeletonNodes newNodes;
+                newNodes.push_back(_somaNode);
+                for (size_t k = 0; k < branch->nodes.size(); ++k)
+                {
+                    if (!branch->nodes[k]->insideSoma)
+                    {
+                        newNodes.push_back(branch->nodes[k]);
+                    }
+                }
+
+                branch->nodes.clear();
+                branch->nodes.shrink_to_fit();
+                branch->nodes = newNodes;
+
+                branch->setRoot();
+                branch->setValid();
+
+                // Add this branch to the roots
+                _roots.push_back(branch);
             }
 
-            // If the count of the samples located inside the soma is zero, then it is a valid
-            // branch, but it is not a root branch
-            if (countSamplesInsideSoma == 0)
+            // If the last node is inside the soma, then annotate the branch
+            else if (lastNode->insideSoma && !firstNode->insideSoma)
+            {
+                SkeletonNodes newNodes;
+                for (size_t k = 0; k < branch->nodes.size(); ++k)
+                {
+                    if (!branch->nodes[k]->insideSoma)
+                    {
+                        newNodes.push_back(branch->nodes[k]);
+                    }
+                }
+                newNodes.push_back(_somaNode);
+
+                branch->nodes.clear();
+                branch->nodes.shrink_to_fit();
+                branch->nodes = newNodes;
+
+                // Reverse the nodes, to make the first node in front
+                std::reverse(std::begin(branch->nodes), std::end(branch->nodes));
+
+                branch->setRoot();
+                branch->setValid();
+
+                // Add this branch to the roots
+                _roots.push_back(branch);
+
+            }
+
+            // The branch has at least one node that is inside the soma, but its terminals are
+            // outside the soma. Therefore, we can consider it as a normal valid branch but is
+            // not root
+            else
             {
                 branch->unsetRoot();
                 branch->setValid();
-            }
 
-            // If all the branch nodes are located inside the soma, then it is not valid
-            else if (countSamplesInsideSoma == branch->nodes.size())
-            {
-                branch->unsetRoot();
-                branch->setInsideSoma();
-                branch->setInvalid();
-            }
-
-            // Otherwise, it is a branch that is connected to the soma, partially in the soma
-            else
-            {
-                // If the first node is inside the soma, then annotate the branch
-                if (firstNode->insideSoma && !lastNode->insideSoma)
-                {
-                    SkeletonNodes newNodes;
-                    newNodes.push_back(_somaNode);
-                    for (size_t k = 0; k < branch->nodes.size(); ++k)
-                    {
-                        if (!branch->nodes[k]->insideSoma)
-                        {
-                            newNodes.push_back(branch->nodes[k]);
-                        }
-                    }
-
-                    branch->nodes.clear();
-                    branch->nodes.shrink_to_fit();
-                    branch->nodes = newNodes;
-
-                    branch->setRoot();
-                    branch->setValid();
-
-                    // Add this branch to the roots
-                    _roots.push_back(branch);
-                }
-
-                // If the last node is inside the soma, then annotate the branch
-                else if (lastNode->insideSoma && !firstNode->insideSoma)
-                {
-                    SkeletonNodes newNodes;
-                    for (size_t k = 0; k < branch->nodes.size(); ++k)
-                    {
-                        if (!branch->nodes[k]->insideSoma)
-                        {
-                            newNodes.push_back(branch->nodes[k]);
-                        }
-                    }
-                    newNodes.push_back(_somaNode);
-
-                    branch->nodes.clear();
-                    branch->nodes.shrink_to_fit();
-                    branch->nodes = newNodes;
-
-                    // Reverse the nodes, to make the first node in front
-                    std::reverse(std::begin(branch->nodes), std::end(branch->nodes));
-
-                    branch->setRoot();
-                    branch->setValid();
-
-                    // Add this branch to the roots
-                    _roots.push_back(branch);
-
-                }
-                else if (firstNode->insideSoma && lastNode->insideSoma)
-                {
-                    LOG_WARNING("Undefined case for the branch identification: Branch [%d]! "
-                                "Terminal nodes are inside soma. "
-                                "Possible Errors!", branch->index);
-                }
-                else if (!firstNode->insideSoma && !lastNode->insideSoma)
-                {
-                    LOG_WARNING("Undefined case for the branch identification: Branch [%d]! "
-                                "Terminal nodes are outside soma. "
-                                "Possible Errors!", branch->index);
-
-                    std::cout << "Number of samples inside soma : " << countSamplesInsideSoma << std::endl;
-
-
-                    for (size_t j = 0; j < branch->nodes.size(); ++j)
-                    {
-                        branch->nodes[j]->point.print();
-                        if (branch->nodes[j]->insideSoma)
-                        {
-                            printf("Sample %ld / %ld", j, branch->nodes.size());
-
-                            if (branch->nodes[j]->branching)
-                            {
-                                std::cout << "BNranching \n";
-                            } else {std::cout << "not branching \n";}
-                        }
-                    }
-                }
-                else
-                {
-                    LOG_WARNING("Undefined case for the branch identification: Branch [%d]! "
-                                "Possible Errors!", branch->index);
-                }
+                LOG_WARNING("Branch [%d]! has non terminal nodes inside the soma. "
+                            "Considering it normal branch." , branch->index);
             }
         }
     }
