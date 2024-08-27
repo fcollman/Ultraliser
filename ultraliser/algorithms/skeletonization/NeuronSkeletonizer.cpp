@@ -648,8 +648,16 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
             auto& firstNode = branch->nodes.front();
             auto& lastNode = branch->nodes.back();
 
+            // If the first and last node are inside the soma, then ignore the branch
+            if (firstNode->insideSoma && lastNode->insideSoma)
+            {
+                branch->unsetRoot();
+                branch->setInsideSoma();
+                branch->setInvalid();
+            }
+
             // If the first node is inside the soma, then annotate the branch
-            if (firstNode->insideSoma && !lastNode->insideSoma)
+            else if (firstNode->insideSoma && !lastNode->insideSoma)
             {
                 SkeletonNodes newNodes;
                 newNodes.push_back(_somaNode);
