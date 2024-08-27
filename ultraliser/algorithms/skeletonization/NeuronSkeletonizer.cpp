@@ -708,8 +708,8 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
                 branch->unsetRoot();
                 branch->setValid();
 
-                LOG_WARNING("Branch [%d]! has non terminal nodes inside the soma. "
-                            "Considering it normal branch." , branch->index);
+                LOG_WARNING("Branch [%d] has [%ld] non-terminal nodes inside the soma!"
+                            "Considering it normal branch." , branch->index, numberNodesInsideSoma);
             }
         }
     }

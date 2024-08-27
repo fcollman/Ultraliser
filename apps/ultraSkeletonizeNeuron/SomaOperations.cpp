@@ -75,13 +75,6 @@ void runFixSomaSlicingArtifactsOperations(const AppOptions* options, Mesh* neuro
 
 void runSomaExportOperations(const AppOptions* options, NeuronSkeletonizer* skeletonizer)
 {
-    // Export the somatic proxy mesh
-    if (options->exportProxySomaMesh)
-    {
-        skeletonizer->exportSomaProxyMesh(options->meshPrefix,
-            options->exportOBJ, options->exportPLY, options->exportOFF, options->exportSTL);
-    }
-
     // Export the somatic mesh
     if (options->exportSomaMesh)
     {
