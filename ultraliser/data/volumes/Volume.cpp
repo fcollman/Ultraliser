@@ -573,7 +573,7 @@ void Volume::surfaceVoxelization(Mesh* mesh,
     VERBOSE_LOG(LOG_STATUS("Creating Volume Shell [%zu x %zu x %zu]",
                            _grid->getWidth(), _grid->getHeight(), _grid->getDepth()), verbose);
 
-    _rasterize(mesh , _grid, sideRatio, false);
+    // _rasterize(mesh , _grid, sideRatio, false);
     _rasterizeParallel(mesh, _grid, sideRatio, verbose);
 
     // Statistics
