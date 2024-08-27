@@ -719,6 +719,15 @@ void NeuronSkeletonizer::_removeBranchesInsideSoma()
                                 "Possible Errors!", branch->index);
 
                     std::cout << "Number of samples inside soma : " << countSamplesInsideSoma << std::endl;
+
+
+                    for (size_t j = 0; j < branch->nodes.size(); ++j)
+                    {
+                        if (branch->nodes[j]->insideSoma)
+                        {
+                            printf("Sample %ld / %ld", j, branch->nodes.size());
+                        }
+                    }
                 }
                 else
                 {
