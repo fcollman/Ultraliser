@@ -153,6 +153,7 @@
 #define TWO_SAMPLE_INVALID_BRANCH               STRING("-two-sample-invalid")
 #define SOMATIC_BRANCH                          STRING("-somatic")
 #define SPINE_BRANCH                            STRING("-spine")
+#define FILOPODIA_BRANCH                        STRING("-filopodia")
 #define DENDRITIC_SPINE_PROXY_SUFFIX            STRING("-dendritic-proxy-spine")
 #define DENDRITIC_SPINE_SUFFIX                  STRING("-dendritic-spine")
 #define SPINE_SUFFIX                            STRING("-spine")
@@ -289,9 +290,11 @@
 #define PROGRESS_BAR_LENGTH                     50
 #define TITLE_LENGTH                            80
 
+// Skeletonization default values
 #define DEFAULT_SPINES_VOXELS_PER_MICRON        25
 #define DEFAULT_SMOOTHING_ITERATIONS            10
 #define DEFAULT_SOMA_RADIUS_CUTOFF              2.0
+#define DEFAULT_SOMA_SEG_VOXELS_PER_MICRON      1.0
 
 // Application done
 #define ULTRALISER_DONE                         printf("\n"); return EXIT_SUCCESS;

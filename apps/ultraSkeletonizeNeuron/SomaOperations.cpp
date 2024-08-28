@@ -36,7 +36,9 @@ void runFixSomaSlicingArtifactsOperations(const AppOptions* options, Mesh* neuro
         // has obvious slicing artifacts
         LOG_STATUS("Coarse Skeletonization to Segment Initial Soma Profile");
         std::unique_ptr< SomaSegmenter > somaSegmenter =
-                std::make_unique< SomaSegmenter >(neuronMesh, options->somaSegmenterVPM);
+                std::make_unique< SomaSegmenter >(neuronMesh,
+                                                  options->somaSegmenterVPM,
+                                                  options->somaSegmentationRadiusThreshold);
         auto somaMesh = somaSegmenter->segmentSomaMesh(VERBOSE);
         LOG_STATS(GET_TIME_SECONDS);
 
@@ -75,6 +77,14 @@ void runFixSomaSlicingArtifactsOperations(const AppOptions* options, Mesh* neuro
 
 void runSomaExportOperations(const AppOptions* options, NeuronSkeletonizer* skeletonizer)
 {
+
+    // Export the somatic proxy mesh, just after the graph to construction for validation.
+    if (options->exportProxySomaMesh)
+    {
+        skeletonizer->exportSomaProxyMesh(options->meshPrefix,
+            options->exportOBJ, options->exportPLY, options->exportOFF, options->exportSTL);
+    }
+
     // Export the somatic mesh
     if (options->exportSomaMesh)
     {

@@ -256,7 +256,7 @@ protected:
     void _applyVolumeThinningUsingAcceleration(const bool verbose = VERBOSE);
 
     /**
-     * @brief _extractNodesFromVoxels
+     * @brief _extractNodesFromCenterlineVoxels
      * Extract the graph nodes from the centerline voxels remaining in the volume after the
      * skeletonization process.
      *
@@ -265,27 +265,27 @@ protected:
      * Return a mapper that maps the indices of the voxels in the volume and the nodes in
      * the graph skeleton.
      */
-    std::map< size_t, size_t > _extractNodesFromVoxels(const bool verbose = VERBOSE);
+    std::map< size_t, size_t > _extractNodesFromCenterlineVoxels(const bool verbose = VERBOSE);
 
     /**
-     * @brief _extractNodesFromVoxelsNaive
+     * @brief _extractNodesFromCenterlineVoxelsNaive
      * Extract the graph nodes from the centerline voxels remaining in the volume using the
      * naive loops. Note that this function is just keep for benchmarking.
      * @return
      */
-    std::map< size_t, size_t > _extractNodesFromVoxelsNaive(const bool verbose = VERBOSE);
+    std::map< size_t, size_t > _extractNodesFromCenterlineVoxelsNaive(const bool verbose = VERBOSE);
 
     /**
-     * @brief _extractNodesFromVoxelsUsingSlicing
+     * @brief _extractNodesFromCenterlineVoxelsUsingSlicing
      * @return
      */
-    std::map< size_t, size_t > _extractNodesFromVoxelsUsingSlicing(const bool verbose = VERBOSE);
+    std::map< size_t, size_t > _extractNodesFromCenterlineVoxelsUsingSlicing(const bool verbose = VERBOSE);
 
     /**
-     * @brief _extractNodesFromVoxelsUsingAcceleration
+     * @brief _extractNodesFromCenterlineVoxelsUsingAcceleration
      * @return
      */
-    std::map< size_t, size_t > _extractNodesFromVoxelsUsingAcceleration(const bool verbose = VERBOSE);
+    std::map< size_t, size_t > _extractNodesFromCenterlineVoxelsUsingAcceleration(const bool verbose = VERBOSE);
 
     /**
      * @brief _buildBranch

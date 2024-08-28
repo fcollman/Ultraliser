@@ -660,7 +660,7 @@ bool SpineSkeletonizer::runSkeletonization(const bool verbose)
 
     // Extract the nodes of the skeleton from the center-line "thinned" voxels and return a
     // mapper that maps the indices of the voxels in the volume and the nodes in the skeleton
-    auto indicesMapper = _extractNodesFromVoxels(verbose);
+    auto indicesMapper = _extractNodesFromCenterlineVoxels(verbose);
 
     // Connect the nodes of the skeleton to construct its edges. This operation will not connect
     // any gaps, it will just connect the nodes extracted from the voxels.

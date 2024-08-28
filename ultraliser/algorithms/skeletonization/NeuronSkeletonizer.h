@@ -395,6 +395,12 @@ private:
     void _adjustSomaRadius(const bool verbose = VERBOSE);
 
     /**
+     * @brief _adjustSomaCenter
+     * @param verbose
+     */
+    void _adjustSomaCenter(const bool verbose);
+
+    /**
      * @brief _reconstructSomaMeshFromProxy
      * @param verbose
      */

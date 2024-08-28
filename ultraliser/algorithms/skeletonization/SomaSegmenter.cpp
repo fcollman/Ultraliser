@@ -3,15 +3,19 @@
 namespace Ultraliser
 {
 
-SomaSegmenter::SomaSegmenter(Mesh *neuronMesh, const float voxelizationVoxelsPerMicron)
+SomaSegmenter::SomaSegmenter(Mesh *neuronMesh,
+                             const float voxelizationVoxelsPerMicron,
+                             const float somaRadiusCuttoff)
     : _neuronMesh(neuronMesh)
     , _voxelizationVoxelsPerMicron(voxelizationVoxelsPerMicron)
+    , _somaRadiusCutoff(somaRadiusCuttoff)
 {
     /// EMPTY CONSTRUCTOR
 }
 
-SomaSegmenter::SomaSegmenter(Volume* neuronVolume)
+SomaSegmenter::SomaSegmenter(Volume* neuronVolume, const float somaRadiusCuttoff)
     : _neuronVolume(neuronVolume)
+    , _somaRadiusCutoff(somaRadiusCuttoff)
 {
     /// EMPTY CONSTRUCTOR
 }
@@ -55,8 +59,10 @@ Mesh* SomaSegmenter::segmentSomaProxyMesh(const bool verbose)
     const bool ignoreSpines = false;
     const bool useAcceleration = true;
     const bool ignoreDebugging = false;
+    const std::string debugPrefix = "";
     std::unique_ptr< NeuronSkeletonizer > skeletonizer = std::make_unique< NeuronSkeletonizer >(
-                _neuronVolume, ignoreSpines, useAcceleration, ignoreDebugging);
+                _neuronVolume, ignoreSpines, useAcceleration, ignoreDebugging, debugPrefix,
+                _somaRadiusCutoff);
 
     // Initialize the skeletonizer
     skeletonizer->initialize(verbose);
@@ -77,8 +83,10 @@ Mesh* SomaSegmenter::segmentSomaMesh(const bool verbose)
     const bool ignoreSpines = false;
     const bool useAcceleration = true;
     const bool ignoreDebugging = false;
+    const std::string debugPrefix = "";
     NeuronSkeletonizer* skeletonizer = new NeuronSkeletonizer (
-                _neuronVolume, ignoreSpines, useAcceleration, ignoreDebugging);
+                _neuronVolume, ignoreSpines, useAcceleration, ignoreDebugging, debugPrefix,
+                _somaRadiusCutoff);
 
     // Initialize the skeletonizer
     skeletonizer->initialize(verbose);

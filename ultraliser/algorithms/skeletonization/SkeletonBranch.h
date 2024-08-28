@@ -50,7 +50,8 @@ struct SkeletonBranch
         TERMINAL,
         TWO_SAMPLE,
         TWO_SAMPLE_AND_VALID,
-        TWO_SAMPLE_AND_INVALID
+        TWO_SAMPLE_AND_INVALID,
+        FILOPODIA
     };
 
 public:

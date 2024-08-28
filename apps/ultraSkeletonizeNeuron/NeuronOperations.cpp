@@ -206,13 +206,8 @@ void runNeuronSkeletonizationOperations(const AppOptions* options,
     // Construct the neuron graph from the volume
     skeletonizer->constructGraph(VERBOSE);
 
-    // Export the somatic proxy mesh, just after the graph to construction for validation.
-    if (options->exportProxySomaMesh)
-    {
-        skeletonizer->exportSomaProxyMesh(options->meshPrefix,
-                                          options->exportOBJ, options->exportPLY,
-                                          options->exportOFF, options->exportSTL);
-    }
+    // Run the soma export operations
+    runSomaExportOperations(options, skeletonizer);
 
     // Segment the different components of the graph
     skeletonizer->segmentComponents(VERBOSE);

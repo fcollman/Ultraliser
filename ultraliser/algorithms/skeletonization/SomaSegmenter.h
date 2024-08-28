@@ -41,14 +41,19 @@ public:
      * @brief SomaSegmenter
      * @param neuronMesh
      * @param voxelizationVoxelsPerMicron
+     * @param somaRadiusCuttoff
      */
-    SomaSegmenter(Mesh *neuronMesh, const float voxelizationVoxelsPerMicron = 1);
+    SomaSegmenter(Mesh *neuronMesh,
+                  const float voxelizationVoxelsPerMicron = DEFAULT_SOMA_SEG_VOXELS_PER_MICRON,
+                  const float somaRadiusCuttoff = DEFAULT_SOMA_RADIUS_CUTOFF);
 
     /**
      * @brief SomaSegmenter
      * @param neuronVolume
+     * @param somaRadiusCuttoff
      */
-    SomaSegmenter(Volume* neuronVolume);
+    SomaSegmenter(Volume* neuronVolume,
+                  const float somaRadiusCuttoff = DEFAULT_SOMA_RADIUS_CUTOFF);
     ~SomaSegmenter();
 
 public:
@@ -91,6 +96,11 @@ private:
      * @brief _voxelizationVoxelsPerMicron
      */
     float _voxelizationVoxelsPerMicron;
+
+    /**
+     * @brief _somaRadiusCutoff
+     */
+    float _somaRadiusCutoff;
 };
 
 }

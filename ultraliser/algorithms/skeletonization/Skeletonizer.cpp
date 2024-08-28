@@ -372,15 +372,15 @@ void Skeletonizer::skeletonizeVolumeToCenterLines(const bool verbose)
         _applyVolumeThinning(verbose);
 }
 
-std::map< size_t, size_t > Skeletonizer::_extractNodesFromVoxels(const bool verbose)
+std::map< size_t, size_t > Skeletonizer::_extractNodesFromCenterlineVoxels(const bool verbose)
 {
     if (_useAcceleration)
-        return _extractNodesFromVoxelsUsingAcceleration(verbose);
+        return _extractNodesFromCenterlineVoxelsUsingAcceleration(verbose);
     else
-        return _extractNodesFromVoxelsUsingSlicing(verbose);
+        return _extractNodesFromCenterlineVoxelsUsingSlicing(verbose);
 }
 
-std::map< size_t, size_t > Skeletonizer::_extractNodesFromVoxelsNaive(const bool verbose)
+std::map< size_t, size_t > Skeletonizer::_extractNodesFromCenterlineVoxelsNaive(const bool verbose)
 {
     LOG_STATUS("Mapping Voxels to Nodes");
 
@@ -466,7 +466,7 @@ std::map< size_t, size_t > Skeletonizer::_extractNodesFromVoxelsNaive(const bool
     return indicesMapper;
 }
 
-std::map< size_t, size_t > Skeletonizer::_extractNodesFromVoxelsUsingSlicing(const bool verbose)
+std::map< size_t, size_t > Skeletonizer::_extractNodesFromCenterlineVoxelsUsingSlicing(const bool verbose)
 {
     VERBOSE_LOG(LOG_STATUS("Mapping Voxels to Nodes"), verbose);
 
@@ -570,7 +570,7 @@ std::map< size_t, size_t > Skeletonizer::_extractNodesFromVoxelsUsingSlicing(con
     return indicesMapper;
 }
 
-std::map< size_t, size_t > Skeletonizer::_extractNodesFromVoxelsUsingAcceleration(const bool verbose)
+std::map< size_t, size_t > Skeletonizer::_extractNodesFromCenterlineVoxelsUsingAcceleration(const bool verbose)
 {
     VERBOSE_LOG(LOG_STATUS("Mapping Voxels to Nodes *"), verbose);
 
@@ -855,7 +855,7 @@ void Skeletonizer::_removeTriangleLoops(const bool verbose)
 
 void Skeletonizer::constructGraph(const bool verbose)
 {
-    std::map< size_t, size_t > indicesMapper = _extractNodesFromVoxels();
+    std::map< size_t, size_t > indicesMapper = _extractNodesFromCenterlineVoxels();
 
     // Assign accurate radii to the nodes of the graph, i.e. inflate the nodes
     _inflateNodes(verbose);
@@ -1609,6 +1609,11 @@ void Skeletonizer::exportBranches(const std::string& prefix,
         filePath += SPINE_BRANCH;
         branchType = "Spine";
     }
+    else if (state == SkeletonBranch::FILOPODIA)
+    {
+        filePath += FILOPODIA_BRANCH;
+        branchType = "Filopodia";
+    }
     else
     {
         /// NOTHING
@@ -1664,6 +1669,13 @@ void Skeletonizer::exportBranches(const std::string& prefix,
         for (const auto& branch : _branches)
         {
             if (branch->isSpine()) { toWrite.push_back(branch); }
+        }
+    }
+    else if (state == SkeletonBranch::FILOPODIA)
+    {
+        for (const auto& branch : _branches)
+        {
+            if (branch->isFilopodia()) { toWrite.push_back(branch); }
         }
     }
     else if (state == SkeletonBranch::VALID)

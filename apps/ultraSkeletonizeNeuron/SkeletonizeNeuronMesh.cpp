@@ -96,9 +96,6 @@ void run(int argc , const char** argv)
     // Run the skeletonization operations
     runNeuronSkeletonizationOperations(options, skeletonizer);
 
-    // Run the soma export operations
-    runSomaExportOperations(options, skeletonizer);
-
     // Run the spine segmentation operations
     runSpineSegmentationOperations(options, skeletonizer, inputNeuronMesh);
 

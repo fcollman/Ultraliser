@@ -48,7 +48,7 @@ void NeuronSkeletonizer::constructGraph(const bool verbose)
     /// Node extraction from the volume
     // Extract the nodes of the skeleton from the center-line "thinned" voxels and return a
     // mapper that maps the indices of the voxels in the volume and the nodes in the skeleton
-    auto indicesMapper = _extractNodesFromVoxels(verbose);
+    auto indicesMapper = _extractNodesFromCenterlineVoxels(verbose);
 
     // Verify the count of the skeleton nodes
     _verifySkeletonNodes();
@@ -165,7 +165,10 @@ void NeuronSkeletonizer::segmentComponents(const bool verbose)
     // Invalidate the inactive branches
     _detectInactiveBranches(weighteEdges, edgeIndices, verbose);
 
-    // Adkjust the soma radius
+    // Compute the accurate soma center based on the segmented proxy mesh
+    _adjustSomaCenter(verbose);
+
+    // Adjust the soma radius
     _adjustSomaRadius(verbose);
 
     // Update all the parents
@@ -173,6 +176,9 @@ void NeuronSkeletonizer::segmentComponents(const bool verbose)
 
     // Remove the filopodia from the graph
     _removeFilopodia();
+
+    // Export the filopodia
+    DEBUG_STEP(exportBranches(_debugPrefix, SkeletonBranch::FILOPODIA, verbose), _debug);
 
     // Remove the spines from the skeleton
     if (_removeSpinesFromSkeleton) { _detachSpinesFromSkeleton(verbose); }
@@ -217,7 +223,7 @@ Mesh* NeuronSkeletonizer::constructSomaProxyMeshFromGraph(const bool verbose)
     // Node extraction from the volume
     // Extract the nodes of the skeleton from the center-line "thinned" voxels and return a
     // mapper that maps the indices of the voxels in the volume and the nodes in the skeleton
-    auto indicesMapper = _extractNodesFromVoxels(verbose);
+    auto indicesMapper = _extractNodesFromCenterlineVoxels(verbose);
 
     // Verify the count of the skeleton nodes
     _verifySkeletonNodes(verbose);
@@ -272,7 +278,7 @@ void NeuronSkeletonizer::_verifySomaticBranches()
     // If the count of the somatic branches is Zero, report the error
     if (_numberSomaticBranches == 0)
     {
-        LOG_ERROR("No Somatic Segments were Detected! Terminating!");
+        LOG_WARNING("No Complete Somatic Segments were Detected!");
     }
     else
     {
@@ -356,7 +362,7 @@ void NeuronSkeletonizer::_addSomaNode()
     _somaNode->insideSoma = true;
 
     // Initially, we set the soma node to some value that does not make any conflict
-    // This value must be updated later
+    // This value is updated later
     _somaNode->radius = 0.1;
 
     // Add the somatic node to the list of nodes to keep the graph consistent
@@ -378,6 +384,7 @@ void NeuronSkeletonizer::_estimateSomaExtent(const bool verbose)
     // Collecting a subset of the samples, not all of them are needed
     std::map <size_t, float> interSomaticNodes;
 
+    float largestRadius = 0.0;
     size_t interSomaticNodesCount = 0;
     for (size_t i = 0; i < _nodes.size(); ++i)
     {
@@ -389,6 +396,9 @@ void NeuronSkeletonizer::_estimateSomaExtent(const bool verbose)
             interSomaticNodes.insert({node->index, node->radius});
             interSomaticNodesCount++;
         }
+
+        // Report the largest radius in all the ndoes
+        if (node->radius > largestRadius) { largestRadius = node->radius; }
     }
 
     // Sort the nodes by radius
@@ -425,8 +435,8 @@ void NeuronSkeletonizer::_estimateSomaExtent(const bool verbose)
 
     if (numberSomaticNodes == 0)
     {
-        LOG_ERROR("No Somatic Nodes Detected in the Graph! "
-                  "Probably Incomplete neuron! Terminating!");
+        LOG_ERROR("No Somatic Nodes Detected in the Graph! Largest Node Radius [%f]! "
+                  "Probably Incomplete neuron or sliced somata! Terminating!", largestRadius);
     }
     else
     {
@@ -439,8 +449,6 @@ void NeuronSkeletonizer::_estimateSomaExtent(const bool verbose)
 
     // Update the location of the soma point, the radius will be updated after detecting root arbors
     _somaNode->point = estimatedSomaCenter;
-
-
     _somaNode->radius = 0.5;
 }
 
@@ -571,7 +579,7 @@ void NeuronSkeletonizer::_identifySomaticNodes(const bool verbose)
 
     LOG_SUCCESS("Graph Somatic Nodes: [%ld]. OK.", numberNodeInsideSoma);
 
-    /// TODO: The volume is safe to be deallocated
+    // The volume is safe to be deallocated
     _volume->~Volume();
     _volume = nullptr;
 }
@@ -1095,6 +1103,47 @@ void NeuronSkeletonizer::_detectInactiveBranches(SkeletonWeightedEdges& graphEdg
     }
 }
 
+void NeuronSkeletonizer::_adjustSomaCenter(const bool verbose)
+{
+    // If the soma mesh is used, then use it
+    if (_somaMesh != nullptr)
+    {
+        TIMER_SET;
+        VERBOSE_LOG(LOG_STATUS("Computing Accurate Soma Center (Using Soma Mesh)"), verbose);
+        Vector3f computedSomaCenter(0.f);
+        for (size_t i = 0; i < _somaMesh->getNumberVertices(); ++i)
+        {
+            computedSomaCenter += _somaMesh->_vertices[i];
+            VERBOSE_LOG(LOOP_PROGRESS(i, _somaMesh->getNumberVertices()), verbose);
+        }
+        VERBOSE_LOG(LOOP_DONE, verbose);
+        VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
+
+        computedSomaCenter /= _somaMesh->getNumberVertices();
+        _somaNode->point = computedSomaCenter;
+    }
+    else if (_somaProxyMesh != nullptr)
+    {
+        TIMER_SET;
+        VERBOSE_LOG(LOG_STATUS("Computing Accurate Soma Center (Using Proxy Soma Mesh)"), verbose);
+        Vector3f computedSomaCenter(0.f);
+        for (size_t i = 0; i < _somaProxyMesh->getNumberVertices(); ++i)
+        {
+            computedSomaCenter += _somaProxyMesh->_vertices[i];
+            VERBOSE_LOG(LOOP_PROGRESS(i, _somaProxyMesh->getNumberVertices()), verbose);
+        }
+        VERBOSE_LOG(LOOP_DONE, verbose);
+        VERBOSE_LOG(LOG_STATS(GET_TIME_SECONDS), verbose);
+
+        computedSomaCenter /= _somaProxyMesh->getNumberVertices();
+        _somaNode->point = computedSomaCenter;
+    }
+    else
+    {
+        /// Use the approximation that was computed before.
+    }
+}
+
 void NeuronSkeletonizer::_adjustSomaRadius(const bool verbose)
 {
     // Only count the valid roots to normalize the size of the soma
@@ -1240,7 +1289,7 @@ SpineMorphologies NeuronSkeletonizer::reconstructSpineProxyMorphologies()
     // Export the spine terminals for visual analytics
     DEBUG_STEP(_exportSpineTerminals(spineProxyMorphologies, _debugPrefix, VERBOSE), _debug);
 
-    // TODO: Spine orientations make standard, not debugging
+    // Export the spine orientations
     DEBUG_STEP(_exportSpineOrientations(spineProxyMorphologies, _debugPrefix, VERBOSE), _debug);
 
     // Return a spine proxy morphologies
@@ -1893,10 +1942,19 @@ void NeuronSkeletonizer::writeStatistics(const std::string& prefix) const
     for (const auto& branch: _branches) { if (!branch->isValid()) numberInvalidBranches++; }
     statsString << DOUBLE_TAB << "Number of Invalid Branches: " << numberInvalidBranches << NEW_LINE;
     statsString << DOUBLE_TAB << "Number Nodes Inside Soma: " << _numberNodesInsideSoma << NEW_LINE;
+    statsString << NEW_LINE;
 
     statsString << TAB << "Morphology Stats." << NEW_LINE;
     statsString << DOUBLE_TAB << "Number of Valid Roots: " << _roots.size() << NEW_LINE;
     statsString << DOUBLE_TAB << "Number Filopodias: " << _numberFilopodia << NEW_LINE;
+    statsString << DOUBLE_TAB << "Soma Radius: " << _somaNode->radius << NEW_LINE;
+    statsString << DOUBLE_TAB << "Soma Center: " << _somaNode->point.x() << ", "
+                                                 << _somaNode->point.y() << ", "
+                                                 << _somaNode->point.z() << NEW_LINE;
+    statsString << NEW_LINE;
+
+    statsString << TAB << "Spines Stats." << NEW_LINE;
+    statsString << DOUBLE_TAB << "Number of Detected Spines: " << _spineRoots.size() << NEW_LINE;
     statsString << NEW_LINE;
 
     // Print the stats. to the console
@@ -1908,12 +1966,11 @@ void NeuronSkeletonizer::writeStatistics(const std::string& prefix) const
 
     // Close the file
     statsStream.close();
-
 }
 
 NeuronSkeletonizer::~NeuronSkeletonizer()
 {
-
+    /// EMPTY
 }
 
 }
