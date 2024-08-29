@@ -177,11 +177,72 @@ void NeuronSkeletonizer::segmentComponents(const bool verbose)
     // Remove the filopodia from the graph
     _removeFilopodia();
 
+    // Remove invalid roots
+    _removeInvalidRoots(verbose);
+
     // Export the filopodia
     DEBUG_STEP(exportBranches(_debugPrefix, SkeletonBranch::FILOPODIA, verbose), _debug);
 
     // Remove the spines from the skeleton
     if (_removeSpinesFromSkeleton) { _detachSpinesFromSkeleton(verbose); }
+}
+
+bool NeuronSkeletonizer::_isValidRoot(SkeletonBranch* root, const bool verbose)
+{
+    // Verify that the given branch is a root
+    if (root->isRoot())
+    {
+        // Get the maximum branching order
+        const size_t maxBranchingOrder = root->getMaximumBranchingOrder();
+
+        // Compute the distance from the root initial node to the most far terminal along the tree
+        const auto distance = root->computeEcluidanDistanceFromRootToTreeTermainal();
+
+        if (maxBranchingOrder < 4)
+        {
+            if (distance < 15)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    return true;
+}
+
+void NeuronSkeletonizer::_removeInvalidRoots(const bool verbose)
+{
+    // We create a new list to store the remaining valid roots after removing the invalid roots
+    SkeletonBranches validRoots;
+
+    size_t numberValidRoots = 0;
+    const size_t initialNumberRoots = _roots.size();
+    for (auto& root : _roots)
+    {
+        if (_isValidRoot(root, verbose))
+        {
+            validRoots.push_back(root);
+            numberValidRoots++;
+        }
+        else
+        {
+            root->setInvalid();
+        }
+    }
+
+    // Clear the original roots
+    _roots.clear();
+    _roots.shrink_to_fit();
+
+    // Update the new roots with the valid roots only
+    for (auto& root: validRoots)
+    {
+        _roots.push_back(root);
+    }
+
+    LOG_WARNING("Valid Roots: [%ld / %ld]", numberValidRoots, initialNumberRoots);
 }
 
 void NeuronSkeletonizer::_removeFilopodia()

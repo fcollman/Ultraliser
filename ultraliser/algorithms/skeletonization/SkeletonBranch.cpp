@@ -60,15 +60,9 @@ bool SkeletonBranch::hasTerminalNodes(const size_t& node1Index, const size_t& no
     const auto& frontNode = nodes.front();
     const auto& backNode = nodes.back();
 
-    if (node1Index == backNode->index && node2Index == frontNode->index)
-    {
-        return true;
-    }
+    if (node1Index == backNode->index && node2Index == frontNode->index) { return true; }
 
-    if (node1Index == frontNode->index && node2Index == backNode->index)
-    {
-        return true;
-    }
+    if (node1Index == frontNode->index && node2Index == backNode->index) { return true; }
 
     return false;
 }
@@ -247,6 +241,57 @@ bool SkeletonBranch::isInsideSoma()
     return _flags->bit(INSIDE_SOMA_BIT_INDEX);
 }
 
+void SkeletonBranch::setBranchingOrder(SkeletonBranch* branch, size_t currentBranchingOrder)
+{
+    // Update the branching order of the current branch
+    branch->order = currentBranchingOrder;
+
+    // If the branch has children, then the branch order is incremented
+    if (branch->children.size() > 0)
+    {
+        for (auto& child: branch->children)
+        {
+            setBranchingOrder(child, currentBranchingOrder + 1);
+        }
+    }
+}
+
+void SkeletonBranch::updateBranchingOrders()
+{
+    // The branch must be root
+    if (isRoot())
+    {
+        size_t branchingOrder = 1;
+        setBranchingOrder(this, branchingOrder);
+    }
+}
+
+void SkeletonBranch::traverseBranching(SkeletonBranch* branch, size_t& branchingOrder)
+{
+    // Set the branching order to that of the current branch
+    branchingOrder = branch->order;
+
+    // Traverse the tree, depth first
+    for (auto child: branch->children) { traverseBranching(child, branchingOrder); }
+}
+
+size_t SkeletonBranch::getMaximumBranchingOrder()
+{
+    // Setting the order to Zero, until we make sure that this branch is a root and the tree is updated
+    size_t maximumBranchingOrder = 0;
+
+    // If this is a root branch, then traverse the tree and get the maximum branching order
+    if (isRoot())
+    {
+        // Update the branching order of the tree
+        updateBranchingOrders();
+
+        // Traverse the tree to get the maximum branching order
+        traverseBranching(this, maximumBranchingOrder);
+    }
+    return maximumBranchingOrder;
+}
+
 void SkeletonBranch::resampleRootBranchAdaptively()
 {
     // Get the total number of samples in the section
@@ -395,6 +440,43 @@ void SkeletonBranch::resampleAdaptively()
     nodes = newNodes;
 }
 
+void SkeletonBranch::_getSubTreeNodes(SkeletonNodes& subTreeNodes)
+{
+    // Collet the nodes of this branch
+    for (auto node: nodes) { subTreeNodes.push_back(node); }
+
+    // Collect the nodes of the children branches
+    for (auto child: children) { child->_getSubTreeNodes(subTreeNodes); }
+}
+
+SkeletonNodes SkeletonBranch::getSubTreeNodes()
+{
+    SkeletonNodes subtreeNodes;
+    _getSubTreeNodes(subtreeNodes);
+    return subtreeNodes;
+}
+
+
+float SkeletonBranch::computeEcluidanDistanceFromRootToTreeTermainal()
+{
+    if (isRoot())
+    {
+        // Get all the nodes of the subtree
+        auto subTreeNodes = getSubTreeNodes();
+
+        float maximumDistance = 0.f;
+        for (auto node: subTreeNodes)
+        {
+            float distance = nodes[0]->point.distance(node->point);
+            if (distance > maximumDistance) { maximumDistance = distance; }
+        }
+
+        return maximumDistance;
+    }
+    return 0.f;
+}
+
+
 void SkeletonBranch::getBoundingBox(Vector3f& pMin, Vector3f& pMax,
                                     Vector3f& bounds, Vector3f &center)
 {
@@ -418,6 +500,19 @@ void SkeletonBranch::getBoundingBox(Vector3f& pMin, Vector3f& pMax,
     pMax = _pMax;
     bounds = _pMax - _pMin;
     center = _pMin + bounds * 0.5f;
+}
+
+float SkeletonBranch::computeBoundingBoxDiagonal()
+{
+    // Compute the bounding box of the branch
+    Vector3f pMin, pMax, bounds, center;
+    getBoundingBox(pMin, pMax, bounds, center);
+
+    // Compute the diagonal of the branch
+    const float diagonal = std::sqrt((bounds.x() * bounds.x()) +
+                                     (bounds.y() * bounds.y()) +
+                                     (bounds.z() * bounds.z()));
+    return diagonal;
 }
 
 }

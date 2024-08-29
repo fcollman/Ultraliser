@@ -285,6 +285,46 @@ public:
      */
     void getBoundingBox(Vector3f& pMin, Vector3f& pMax, Vector3f& bounds, Vector3f &center);
 
+    /**
+     * @brief computeBoundingBoxDiagonal
+     * Computes the diagonal of the bounding box in microns.
+     * @return
+     */
+    float computeBoundingBoxDiagonal();
+
+    SkeletonNodes getSubTreeNodes();
+
+    /**
+     * @brief setBranchingOrder
+     * @param branch
+     * @param currentBranchingOrder
+     */
+    void setBranchingOrder(SkeletonBranch* branch, size_t currentBranchingOrder);
+
+    /**
+     * @brief updateBranchingOrders
+     */
+    void updateBranchingOrders();
+
+    /**
+     * @brief traverseBranching
+     * @param branch
+     * @param branchingOrder
+     */
+    void traverseBranching(SkeletonBranch* branch, size_t& branchingOrder);
+
+    /**
+     * @brief getMaximumBranchingOrder
+     * @return
+     */
+    size_t getMaximumBranchingOrder();
+
+    /**
+     * @brief computeEcluidanDistanceFromRootToTreeTermainal
+     * @return
+     */
+    float computeEcluidanDistanceFromRootToTreeTermainal();
+
 public:
 
     /**
@@ -298,6 +338,12 @@ public:
      * The index of the branch in the skeleton.
      */
     size_t index;
+
+    /**
+     * @brief order
+     * THe branching order of the branch.
+     */
+    size_t order = 0;
 
     /**
      * @brief traversalCount
@@ -352,6 +398,14 @@ public:
      * Connecting branches at termianl 2.
      */
     std::vector< SkeletonBranch* > t2Connections;    
+
+private:
+
+    /**
+     * @brief _getSubTreeNodes
+     * @param nodes
+     */
+    void _getSubTreeNodes(SkeletonNodes& subTreeNodes);
 
 private:
 

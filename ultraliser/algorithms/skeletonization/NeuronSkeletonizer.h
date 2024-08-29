@@ -268,6 +268,19 @@ private:
     void _removeFilopodia();
 
     /**
+     * @brief _removeInvalidRoots
+     * @param verbose
+     */
+    void _removeInvalidRoots(const bool verbose);
+
+    /**
+     * @brief _isValidRoot
+     * @param verbose
+     * @return
+     */
+    bool _isValidRoot(SkeletonBranch *root, const bool verbose);
+
+    /**
      * @brief _filterLoopsBetweenTwoBranchingPoints
      */
     void _filterLoopsBetweenTwoBranchingPoints(const bool verbose = VERBOSE);
