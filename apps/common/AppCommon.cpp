@@ -391,7 +391,6 @@ Volume* reconstructVolumeFromMesh(Mesh* inputMesh, const AppOptions* options,
     volume->surfaceVoxelization(inputMesh, true, true, 1.0);
     volume->solidVoxelization(options->voxelizationAxis);
     auto bordeVoxels = volume->searchForBorderVoxels();
-    for (size_t i = 0; i < bordeVoxels.size(); ++i)
     if (options->useSolidVoxelization)
     {
         volume->surfaceVoxelization(inputMesh, true, false, 1.0);

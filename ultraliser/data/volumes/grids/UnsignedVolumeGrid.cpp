@@ -223,6 +223,13 @@ void UnsignedVolumeGrid<T>::clear()
 }
 
 template <class T>
+void UnsignedVolumeGrid<T>::set()
+{
+    for (size_t i = 0; i < _numberVoxels; ++i)
+        _data[i] = static_cast<T>(255);
+}
+
+template <class T>
 void UnsignedVolumeGrid<T>::fillVoxel(const size_t &index)
 {
     _data[index] = 255;

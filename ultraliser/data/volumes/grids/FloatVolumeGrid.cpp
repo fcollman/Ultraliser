@@ -64,8 +64,6 @@ FloatVolumeGrid<T>::FloatVolumeGrid(const FloatVolumeGrid* inputGrid)
     }
 }
 
-
-
 template <class T>
 size_t FloatVolumeGrid<T>::getNumberBytes() const
 {
@@ -141,6 +139,16 @@ void FloatVolumeGrid<T>::clear()
 #endif
     for (size_t i = 0; i < _numberVoxels; ++i)
         _data[i] = 0.f;
+}
+
+template <class T>
+void FloatVolumeGrid<T>::set()
+{
+#ifdef ULTRALISER_USE_OPENMP
+    #pragma omp parallel for
+#endif
+    for (size_t i = 0; i < _numberVoxels; ++i)
+        _data[i] = 1.f;
 }
 
 template <class T>

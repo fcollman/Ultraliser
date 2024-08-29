@@ -272,6 +272,11 @@ public:
     void clear(void);
 
     /**
+     * @brief set
+     */
+    void set(void);
+
+    /**
      * @brief surfaceVoxelization
      * Performs a surface voxelization on the input mesh.
      * @param mesh

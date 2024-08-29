@@ -170,6 +170,11 @@ public:
     void clear() override;
 
     /**
+     * @brief set
+     */
+    void set() override;
+
+    /**
      * @brief fillVoxel
      * @param index
      */

@@ -120,6 +120,11 @@ void BitVolumeGrid::clear()
     _data->clearAll();
 }
 
+void BitVolumeGrid::set()
+{
+    _data->setAll();
+}
+
 void BitVolumeGrid::fillVoxel(const size_t &index)
 {
     _data->setBit(index);

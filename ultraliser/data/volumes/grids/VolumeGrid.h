@@ -177,6 +177,12 @@ public:
     virtual void clear() = 0;
 
     /**
+     * @brief set
+     * Sets all the voxels of the volume to max.
+     */
+    virtual void set() = 0;
+
+    /**
      * @brief fillVoxel
      * Fills a given voxel in the volume specified by its three-dimensional indices.
      * @param x
@@ -245,6 +251,7 @@ public:
      * @param anotherGrid
      */
     virtual void andWithAnotherGrid(VolumeGrid *anotherGrid) = 0;
+
 
     /**
      * @brief orWithAnotherGrid
