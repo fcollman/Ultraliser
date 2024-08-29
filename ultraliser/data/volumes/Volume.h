@@ -1339,6 +1339,13 @@ private:
     void _floodFillAlongXYZ(VolumeGrid *grid, const bool &verbose = true);
 
     /**
+     * @brief _floodFillAlongXYZW
+     * @param grid
+     * @param verbose
+     */
+    void _floodFillAlongXYZW(VolumeGrid *grid, const bool &verbose = true);
+
+    /**
      * @brief _floodFillAlongXYZROI
      * @param grid
      * @param x1

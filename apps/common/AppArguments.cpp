@@ -302,7 +302,7 @@ void AppArguments::addSolidVoxelizationArguments()
                 "--voxelization-axis",
                 ARGUMENT_TYPE::STRING,
                 "The axis where the solid voxelization operation will be performed. "
-                "Use one of the following options [x, y, z, or xyz]. "
+                "Use one of the following options [x, y, z, xyz, or xyzw (using or operation not and)]. "
                 "If you use x or y or z the voxelization will happen along a single axis, "
                 "otherwise, using xyz will perform the solid voxelization along the three main "
                 "axes of the volume to avoid filling any loops in the morphology."

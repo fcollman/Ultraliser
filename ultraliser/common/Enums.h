@@ -38,8 +38,11 @@ enum AXIS
     // Z-axis, corresponds to XY_PROJECTION
     Z,
 
-    // X, Y, then Z axis
-    XYZ = 3
+    // X, Y, then Z axis, and use AND operation to merge the volumes
+    XYZ = 3,
+
+    // X, Y, then Z-axis but use OR operation instead of AND
+    XYZW
 };
 
 }

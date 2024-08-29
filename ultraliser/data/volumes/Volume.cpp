@@ -1532,6 +1532,9 @@ void Volume::_floodFill2D(const AXIS &axis, const bool &verbose)
 
     case AXIS::XYZ: _floodFillAlongXYZ(_grid, verbose);
         break;
+
+    case AXIS::XYZW: _floodFillAlongXYZW(_grid, verbose);
+        break;
     }
 }
 
@@ -1546,16 +1549,21 @@ void Volume::_floodFill2DROI(const AXIS &axis,
 
     switch (axis)
     {
-    case AXIS::X: _floodFillAlongAxisROI(_grid, AXIS::X, x1, x2, y1, y2, z1, z2, verbose);
+    case AXIS::X:
+        _floodFillAlongAxisROI(_grid, AXIS::X, x1, x2, y1, y2, z1, z2, verbose);
         break;
 
-    case AXIS::Y: _floodFillAlongAxisROI(_grid, AXIS::Y, x1, x2, y1, y2, z1, z2, verbose);
+    case AXIS::Y:
+        _floodFillAlongAxisROI(_grid, AXIS::Y, x1, x2, y1, y2, z1, z2, verbose);
         break;
 
-    case AXIS::Z: _floodFillAlongAxisROI(_grid, AXIS::Z, x1, x2, y1, y2, z1, z2, verbose);
+    case AXIS::Z:
+        _floodFillAlongAxisROI(_grid, AXIS::Z, x1, x2, y1, y2, z1, z2, verbose);
         break;
 
-    case AXIS::XYZ: _floodFillAlongXYZROI(_grid, x1, x2, y1, y2, z1, z2, verbose);
+    case AXIS::XYZ:
+    case AXIS::XYZW:
+        _floodFillAlongXYZROI(_grid, x1, x2, y1, y2, z1, z2, verbose);
         break;
     }
 }
@@ -1596,6 +1604,7 @@ Volume::FloodFillingData Volume::_getCaseSpecificFloodFillingData(
 
     // XYZ voxelization will be handled
     case AXIS::XYZ:
+    case AXIS::XYZW:
         break;
     }
 
@@ -1707,7 +1716,8 @@ void Volume::_floodFillAlongAxisOptimized(VolumeGrid *grid, const AXIS &axis, co
             }
             break;
 
-        case XYZ:
+        case AXIS::XYZ:
+        case AXIS::XYZW:
             break;
         }
         LOOP_DONE;
@@ -1759,7 +1769,8 @@ void Volume::_floodFillAlongAxisOptimized(VolumeGrid *grid, const AXIS &axis, co
             }
             break;
 
-        case XYZ:
+        case AXIS::XYZ:
+        case AXIS::XYZW:
             break;
         }
         filledPixels.clear();
@@ -1893,6 +1904,7 @@ void Volume::_floodFillAlongAxisROI(VolumeGrid* grid,
 
     // XYZ voxelization will be handled
     case AXIS::XYZ:
+    case AXIS::XYZW:
         break;
     }
 
@@ -1920,88 +1932,88 @@ void Volume::_floodFillAlongAxisROI(VolumeGrid* grid,
     }
 }
 
-//void Volume::_floodFillAlongXYZ(VolumeGrid *grid, const bool &verbose)
-//{
-//    // Volume grids per axis
-//    VolumeGrid *xGrid, *yGrid, *zGrid;
-
-//    // Create the grid
-//    switch (_gridType)
-//    {
-//    case VOLUME_TYPE::BIT:
-//    {
-//        xGrid = new BitVolumeGrid(static_cast< BitVolumeGrid* >(grid));
-//        yGrid = new BitVolumeGrid(static_cast< BitVolumeGrid* >(grid));
-//        zGrid = new BitVolumeGrid(static_cast< BitVolumeGrid* >(grid));
-
-//    } break;
-
-//    case VOLUME_TYPE::UI8:
-//    {
-//        xGrid = new UnsignedVolumeGrid< uint8_t >(
-//                    static_cast< UnsignedVolumeGrid< uint8_t >* >(grid));
-//        yGrid = new UnsignedVolumeGrid< uint8_t >(
-//                    static_cast< UnsignedVolumeGrid< uint8_t >* >(grid));
-//        zGrid = new UnsignedVolumeGrid< uint8_t >(
-//                    static_cast< UnsignedVolumeGrid< uint8_t >* >(grid));
-//    } break;
-
-//    case VOLUME_TYPE::UI16:
-//    {
-//        xGrid = new UnsignedVolumeGrid< uint16_t >(
-//                    static_cast< UnsignedVolumeGrid< uint16_t >* >(grid));
-//        yGrid = new UnsignedVolumeGrid< uint16_t >(
-//                    static_cast< UnsignedVolumeGrid< uint16_t >* >(grid));
-//        zGrid = new UnsignedVolumeGrid< uint16_t >(
-//                    static_cast< UnsignedVolumeGrid< uint16_t >* >(grid));
-//    } break;
-
-//    case VOLUME_TYPE::UI32:
-//    {
-//        xGrid = new UnsignedVolumeGrid< uint32_t >(
-//                    static_cast< UnsignedVolumeGrid< uint32_t >* >(grid));
-//        yGrid = new UnsignedVolumeGrid< uint32_t >(
-//                    static_cast< UnsignedVolumeGrid< uint32_t >* >(grid));
-//        zGrid = new UnsignedVolumeGrid< uint32_t >(
-//                    static_cast< UnsignedVolumeGrid< uint32_t >* >(grid));
-//    } break;
-
-//    case VOLUME_TYPE::UI64:
-//    {
-//        xGrid = new UnsignedVolumeGrid< uint64_t >(
-//                    static_cast< UnsignedVolumeGrid< uint64_t >* >(grid));
-//        yGrid = new UnsignedVolumeGrid< uint64_t >(
-//                    static_cast< UnsignedVolumeGrid< uint64_t >* >(grid));
-//        zGrid = new UnsignedVolumeGrid< uint64_t >(
-//                    static_cast< UnsignedVolumeGrid< uint64_t >* >(grid));
-//    } break;
-
-//    case VOLUME_TYPE::F32:
-//    case VOLUME_TYPE::F64:
-//    {
-//        LOG_ERROR("_floodFillAlongXYZ CANNOT be applied to Float Grids!");
-//    } break;
-//    }
-
-//    // Flood fill along the three axes
-//    _floodFillAlongAxisOptimized(xGrid, AXIS::X, verbose);
-//    _floodFillAlongAxisOptimized(yGrid, AXIS::Y, verbose);
-//    _floodFillAlongAxisOptimized(zGrid, AXIS::Z, verbose);
-
-//    // Blend the three grids using AND operation and store the final result in the xGrid
-//    xGrid->andWithAnotherGrid(yGrid);
-//    xGrid->andWithAnotherGrid(zGrid);
-
-//    // Blend the xGrid with the default _grid
-//    _grid->orWithAnotherGrid(xGrid);
-
-//    // Release the auxiliary grids
-//    delete xGrid;
-//    delete yGrid;
-//    delete zGrid;
-//}
-
 void Volume::_floodFillAlongXYZ(VolumeGrid *grid, const bool &verbose)
+{
+    // Volume grids per axis
+    VolumeGrid *xGrid, *yGrid, *zGrid;
+
+    // Create the grid
+    switch (_gridType)
+    {
+    case VOLUME_TYPE::BIT:
+    {
+        xGrid = new BitVolumeGrid(static_cast< BitVolumeGrid* >(grid));
+        yGrid = new BitVolumeGrid(static_cast< BitVolumeGrid* >(grid));
+        zGrid = new BitVolumeGrid(static_cast< BitVolumeGrid* >(grid));
+
+    } break;
+
+    case VOLUME_TYPE::UI8:
+    {
+        xGrid = new UnsignedVolumeGrid< uint8_t >(
+                    static_cast< UnsignedVolumeGrid< uint8_t >* >(grid));
+        yGrid = new UnsignedVolumeGrid< uint8_t >(
+                    static_cast< UnsignedVolumeGrid< uint8_t >* >(grid));
+        zGrid = new UnsignedVolumeGrid< uint8_t >(
+                    static_cast< UnsignedVolumeGrid< uint8_t >* >(grid));
+    } break;
+
+    case VOLUME_TYPE::UI16:
+    {
+        xGrid = new UnsignedVolumeGrid< uint16_t >(
+                    static_cast< UnsignedVolumeGrid< uint16_t >* >(grid));
+        yGrid = new UnsignedVolumeGrid< uint16_t >(
+                    static_cast< UnsignedVolumeGrid< uint16_t >* >(grid));
+        zGrid = new UnsignedVolumeGrid< uint16_t >(
+                    static_cast< UnsignedVolumeGrid< uint16_t >* >(grid));
+    } break;
+
+    case VOLUME_TYPE::UI32:
+    {
+        xGrid = new UnsignedVolumeGrid< uint32_t >(
+                    static_cast< UnsignedVolumeGrid< uint32_t >* >(grid));
+        yGrid = new UnsignedVolumeGrid< uint32_t >(
+                    static_cast< UnsignedVolumeGrid< uint32_t >* >(grid));
+        zGrid = new UnsignedVolumeGrid< uint32_t >(
+                    static_cast< UnsignedVolumeGrid< uint32_t >* >(grid));
+    } break;
+
+    case VOLUME_TYPE::UI64:
+    {
+        xGrid = new UnsignedVolumeGrid< uint64_t >(
+                    static_cast< UnsignedVolumeGrid< uint64_t >* >(grid));
+        yGrid = new UnsignedVolumeGrid< uint64_t >(
+                    static_cast< UnsignedVolumeGrid< uint64_t >* >(grid));
+        zGrid = new UnsignedVolumeGrid< uint64_t >(
+                    static_cast< UnsignedVolumeGrid< uint64_t >* >(grid));
+    } break;
+
+    case VOLUME_TYPE::F32:
+    case VOLUME_TYPE::F64:
+    {
+        LOG_ERROR("_floodFillAlongXYZ CANNOT be applied to Float Grids!");
+    } break;
+    }
+
+    // Flood fill along the three axes
+    _floodFillAlongAxisOptimized(xGrid, AXIS::X, verbose);
+    _floodFillAlongAxisOptimized(yGrid, AXIS::Y, verbose);
+    _floodFillAlongAxisOptimized(zGrid, AXIS::Z, verbose);
+
+    // Blend the three grids using AND operation and store the final result in the xGrid
+    xGrid->andWithAnotherGrid(yGrid);
+    xGrid->andWithAnotherGrid(zGrid);
+
+    // Blend the xGrid with the default _grid
+    _grid->orWithAnotherGrid(xGrid);
+
+    // Release the auxiliary grids
+    delete xGrid;
+    delete yGrid;
+    delete zGrid;
+}
+
+void Volume::_floodFillAlongXYZW(VolumeGrid *grid, const bool &verbose)
 {
     _floodFillAlongAxisOptimized(_grid, AXIS::X, verbose);
     _floodFillAlongAxisOptimized(_grid, AXIS::Y, verbose);
@@ -3769,11 +3781,15 @@ AXIS Volume::getSolidvoxelizationAxis(const std::string &argumentString)
     {
         return AXIS::XYZ;
     }
+    else if (argumentString == "xyzw")
+    {
+        return AXIS::XYZW;
+    }
     else
     {
         // Error, therefore terminate
         LOG_ERROR("The option [ %s ] is not valid for --solid-voxelization-axis! "
-                  "Please use one of the following [x, y, z, xyz].", argumentString.c_str());
+                  "Please use one of the following [x, y, z, xyz, xyzw].", argumentString.c_str());
 
         // For the sake of compilation only.
         return AXIS::XYZ;
