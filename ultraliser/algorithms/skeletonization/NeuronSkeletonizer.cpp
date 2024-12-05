@@ -1987,6 +1987,18 @@ void NeuronSkeletonizer::writeStatistics(const std::string& prefix) const
     std::stringstream statsString;
     statsStream.open(filePath, std::ios::out);
 
+    if (_mesh != nullptr)
+    {
+        statsString << TAB << "Mesh Stats." << NEW_LINE;
+        Vector3f pMin, pMax;
+        _mesh->computeBoundingBox(pMin, pMax);
+        statsString << DOUBLE_TAB << "Neuron Mesh pMin: "
+                    << pMin.x() << SPACE << pMin.y() << SPACE << pMin.z() << NEW_LINE;
+        statsString << DOUBLE_TAB << "Neuron Mesh pMax: "
+                    << pMax.x() << SPACE << pMax.y() << SPACE << pMax.z() << NEW_LINE;
+        statsString << NEW_LINE;
+    }
+
     statsString << TAB << "Volume Stats." << NEW_LINE;
     statsString << DOUBLE_TAB << "Neuron Volume Width: " << _volumeWidth << NEW_LINE;
     statsString << DOUBLE_TAB << "Neuron Volume Height: " << _volumeHeight << NEW_LINE;
@@ -2012,6 +2024,15 @@ void NeuronSkeletonizer::writeStatistics(const std::string& prefix) const
     statsString << DOUBLE_TAB << "Soma Center: " << _somaNode->point.x() << ", "
                                                  << _somaNode->point.y() << ", "
                                                  << _somaNode->point.z() << NEW_LINE;
+    if (_somaMesh != nullptr)
+    {
+        Vector3f pMin, pMax;
+        _somaMesh->computeBoundingBox(pMin, pMax);
+        statsString << DOUBLE_TAB << "Neuron Mesh pMin: "
+                    << pMin.x() << SPACE << pMin.y() << SPACE << pMin.z() << NEW_LINE;
+        statsString << DOUBLE_TAB << "Neuron Mesh pMax: "
+                    << pMax.x() << SPACE << pMax.y() << SPACE << pMax.z() << NEW_LINE;
+    }
     statsString << NEW_LINE;
 
     statsString << TAB << "Spines Stats." << NEW_LINE;
