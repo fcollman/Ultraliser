@@ -64,6 +64,9 @@ add_subdirectory(ultraMeshQualityChecker)
 # ultraOptimizeMeshAspectRatio
 add_subdirectory(ultraOptimizeMeshAspectRatio)
 
+# ultraOptimizeMultiRegionMesh
+add_subdirectory(ultraOptimizeMultiRegionMesh)
+
 # ultraH5MeshConverter
 if(${ULTRALISER_USE_H5})
 add_subdirectory(ultraH5MeshConverter)

@@ -620,6 +620,11 @@ public:
      */
     void updateData(const Vertices vertices, const Triangles triangles);
 
+    /*
+    Sets a specific vertex marker
+     */
+    void setVertexMarkers(size_t vertexIndex);
+
     /**
      * @brief relaseData
      * Releases data temporarily.

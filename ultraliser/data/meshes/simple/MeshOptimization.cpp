@@ -67,6 +67,16 @@ void Mesh::_resetVertexMarkers()
     for (size_t i = 0; i < _numberVertices; ++i) { _vertexMarkers[i] = 0; }
 }
 
+void Mesh::setVertexMarkers(size_t vertexIndex)
+{
+    if (_vertexMarkers.empty())
+    {
+        _resetVertexMarkers();
+    }
+
+    _vertexMarkers[vertexIndex] = 1;
+}
+
 void Mesh::_destroyNeighborlist()
 {
     if (_neighborList != nullptr)
@@ -1779,6 +1789,9 @@ bool Mesh::smooth(const int64_t &maxMinAngle, const int64_t &minMaxAngle,
         {
             for (size_t index = 0; index < _numberVertices; index++)
             {
+                // TODO: Verify that the vertex is not marked 
+                // if (!_vertexMarkers.empty()) { if (_vertexMarkers[index]) continue; }
+
                 // Move the vertex along the surface and flip the edge
                 moveVertexAlongSurface(index);
                 edgeFlipping(index);
@@ -1788,6 +1801,9 @@ bool Mesh::smooth(const int64_t &maxMinAngle, const int64_t &minMaxAngle,
         {
             for (size_t index = 0; index < _numberVertices; index++)
             {
+                // TODO: Verify that the vertex is not marked 
+                // if (!_vertexMarkers.empty()) { if (_vertexMarkers[index]) continue; }
+
                 // Move only the vertex along the edge
                 moveVertexAlongSurface(index);
             }

@@ -71,15 +71,17 @@ void run(int argc , const char** argv)
     // Write the statistics of the input mesh
     inputMesh->writeDistributions("", &options->statisticsPrefix);
 
+    inputMesh->applyLaplacianSmooth(5);
+
     // Optimize the mesh 
-    for (size_t i = 0; i < 10; ++i)
+    for (size_t i = 0; i < 5; ++i)
     {
         inputMesh->smooth();
         inputMesh->smoothNormals(false);
     }
 
     // Export the output mesh 
-    inputMesh->exportMesh(options->meshPrefix, true);
+    inputMesh->exportMesh(options->meshPrefix, true, true, true, true);
 }
 }
 

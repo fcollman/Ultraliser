@@ -111,6 +111,7 @@ void VasculatureSkeletonizer::exportSkeletonVMV(const std::string& filePrefix)
 
 void VasculatureSkeletonizer::exportSkeletonVMV5(const std::string& filePrefix)
 {
+#ifdef ULTRALISER_USE_H5
     // Construct the file path
     std::string filePath = filePrefix + VMV5_EXTENSION;
     LOG_STATUS("Exporting VMV5 Morphology : [ %s ]", filePath.c_str());
@@ -155,6 +156,8 @@ void VasculatureSkeletonizer::exportSkeletonVMV5(const std::string& filePrefix)
 
     // Close the file
     file.close();
+#else
+#endif 
 }
 
 void VasculatureSkeletonizer::writeStatistics(const std::string& prefix) const

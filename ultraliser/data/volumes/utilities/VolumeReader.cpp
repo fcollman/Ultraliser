@@ -20,6 +20,8 @@ VolumeData* readHeaderFile(const std::string& filePath)
     std::string format;
     hdrFileStream >> format;
 
+    std::cout << format << std::endl;
+
     if (String::subStringFound(format, FORMAT_BIT))
     {
         volumeData-> type = VOLUME_TYPE::BIT;
