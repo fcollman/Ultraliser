@@ -158,16 +158,16 @@ void log(const LOG_LEVEL& logLevel,
  * @param titleLength
  * Title length normally, 80 chars.
  */
-static inline void logTitle(std::string title, const uint64_t& titleLength = 80)
+static inline void logTitle(std::string title, const size_t& titleLength = 80)
 {
     int size = I2I32(std::string(title).size());
     int spaces = titleLength - size;
     std::string bar = "";
     for (size_t i = 0; i < titleLength + 2; i++) bar += "-";
     printf("\n%s\n", bar.c_str()); bar = " ";
-    for (size_t i = 0; i < uint64_t(0.5 * spaces) - 2; i++) bar += "-";
+    for (size_t i = 0; i < size_t(0.5 * spaces) - 2; i++) bar += "-";
     bar += "| " + std::string(title) + " |";
-    for (size_t i = 0; i < uint64_t(0.5 * spaces) - 2; i++) bar += "-";
+    for (size_t i = 0; i < size_t(0.5 * spaces) - 2; i++) bar += "-";
     printf("%s\n", bar.c_str());
     bar = "" ; for (size_t i = 0; i < titleLength + 2; i++) bar += "-";
     printf("%s\n\n", bar.c_str()); bar = "";
