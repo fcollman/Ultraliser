@@ -2,6 +2,9 @@
 
     Marwan Abdellah (BBP / EPFL)
 
+##### Version 1.5
+    Adrien Fluery
+
 ##### Version 1.0
 
     Juan Jose Garcia Cantero (BBP / EPFL) 
