@@ -160,6 +160,14 @@ public:
     void addByte(const size_t &index, const uint8_t byte);
 
     /**
+     * @brief copyFromBuffer
+     * Bulk copies UI8 voxel data into the volume grid.
+     * @param data Pointer to UI8 data laid out as [z][y][x] in C order.
+     * @param count Number of voxels in the input buffer.
+     */
+    void copyFromBuffer(const uint8_t* data, size_t count);
+
+    /**
      * @brief clear
      */
     void clear(void);

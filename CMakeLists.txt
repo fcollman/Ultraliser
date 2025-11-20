@@ -23,8 +23,8 @@
 # You can also find it on the GNU web site < https://www.gnu.org/licenses/gpl-3.0.en.html >
 ####################################################################################################
 
-# CMake 3.5 is required
-cmake_minimum_required(VERSION 3.5)
+# CMake 3.15 is required
+cmake_minimum_required(VERSION 3.15)
 
 # Ultraliser
 project(Ultraliser)
@@ -158,3 +158,9 @@ add_subdirectory(ultraliser)
 
 # Ultraliser applications
 add_subdirectory(apps)
+
+# Optional Python bindings
+option(ULTRALISER_BUILD_PYTHON "Build Ultraliser Python bindings" OFF)
+if(ULTRALISER_BUILD_PYTHON)
+    add_subdirectory(python)
+endif()

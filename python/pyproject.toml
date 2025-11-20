@@ -1,0 +1,54 @@
+[build-system]
+requires = [
+    "scikit-build-core>=0.10",
+    "pybind11>=2.11",
+    "numpy>=1.22",
+    "cmake>=3.26",
+    "ninja>=1.11",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "ultraliser-python"
+version = "0.1.0"
+description = "Python bindings for the Ultraliser volume-to-mesh toolkit"
+readme = { file = "../README.md", content-type = "text/markdown" }
+license = { file = "../LICENSE" }
+authors = [
+    { name = "Blue Brain Project" },
+    { name = "CAVE Connectome" },
+]
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: C++",
+    "Programming Language :: Python",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+]
+dependencies = [
+    "numpy>=1.22",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+
+[project.urls]
+Homepage = "https://github.com/BlueBrain/Ultraliser"
+Source = "https://github.com/BlueBrain/Ultraliser"
+
+[tool.scikit-build]
+minimum-version = "0.10"
+wheel.packages = ["src/ultraliser"]
+cmake.build-type = "Release"
+cmake.args = ["-DULTRALISER_BUILD_PYTHON=ON"]
+cmake.source-dir = ".."
+

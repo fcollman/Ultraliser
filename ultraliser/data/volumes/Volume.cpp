@@ -21,6 +21,8 @@
 
 #include "Volume.h"
 #include <cstddef>
+#include <cstring>
+#include <stdexcept>
 #include <data/volumes/utilities/VolumeType.hh>
 #include <common/Headers.hh>
 #include <common/Common.h>
@@ -2301,6 +2303,28 @@ void Volume::fillVoxel(const int64_t &x,
 void Volume::addByte(const size_t &index, const uint8_t byte)
 {
     _grid->addByte(index, byte);
+}
+
+void Volume::copyFromBuffer(const uint8_t* data, size_t count)
+{
+    if (_gridType != VOLUME_TYPE::UI8)
+    {
+        throw std::runtime_error("Volume::copyFromBuffer requires a UI8 grid type");
+    }
+
+    auto* grid = dynamic_cast<VolumeGridU8*>(_grid);
+    if (grid == nullptr)
+    {
+        throw std::runtime_error("Volume::copyFromBuffer failed to access UI8 grid data");
+    }
+
+    const size_t expected = _grid->getNumberVoxels();
+    if (expected != count)
+    {
+        throw std::runtime_error("Volume::copyFromBuffer buffer size mismatch");
+    }
+
+    std::memcpy(grid->getGridData(), data, expected * sizeof(uint8_t));
 }
 
 void Volume::clear(void)
