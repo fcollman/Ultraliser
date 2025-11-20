@@ -12,6 +12,7 @@
 #include <array>
 #include <cctype>
 #include <cmath>
+#include <cstdlib>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -33,6 +34,81 @@ struct PostprocessConfig {
   float laplacianMu = 0.1f;
   size_t surfaceSmoothIterations = 0;
   bool smoothNormals = false;
+};
+
+struct BoundaryHandlingOptions {
+  bool lockBoundaryVertices = false;
+  bool keepOpenBoundaries = false;
+  float epsilon = 1e-4f;
+  std::array<float, 3> minCoords{0.f, 0.f, 0.f};
+  std::array<float, 3> maxCoords{0.f, 0.f, 0.f};
+  std::vector<Ultraliser::Vector3f> originalVertices;
+  std::vector<uint8_t> isBoundaryVertex;
+
+  bool enabled() const { return lockBoundaryVertices || keepOpenBoundaries; }
+};
+
+class ScopedEnvVar {
+public:
+  ScopedEnvVar(const char *name, const char *value) : name_(name) {
+    const char *current = std::getenv(name);
+    if (current)
+      original_ = std::string(current);
+    set(value);
+  }
+
+  ScopedEnvVar(const ScopedEnvVar &) = delete;
+  ScopedEnvVar &operator=(const ScopedEnvVar &) = delete;
+
+  ScopedEnvVar(ScopedEnvVar &&other) noexcept
+      : name_(std::move(other.name_)), original_(std::move(other.original_)),
+        engaged_(other.engaged_) {
+    other.engaged_ = false;
+  }
+
+  ScopedEnvVar &operator=(ScopedEnvVar &&other) noexcept {
+    if (this != &other) {
+      cleanup();
+      name_ = std::move(other.name_);
+      original_ = std::move(other.original_);
+      engaged_ = other.engaged_;
+      other.engaged_ = false;
+    }
+    return *this;
+  }
+
+  ~ScopedEnvVar() { cleanup(); }
+
+private:
+  void set(const char *value) {
+#if defined(_WIN32)
+    _putenv_s(name_.c_str(), value);
+#else
+    ::setenv(name_.c_str(), value, 1);
+#endif
+    engaged_ = true;
+  }
+
+  void cleanup() {
+    if (!engaged_)
+      return;
+#if defined(_WIN32)
+    if (original_)
+      _putenv_s(name_.c_str(), original_->c_str());
+    else
+      _putenv_s(name_.c_str(), "");
+#else
+    if (original_)
+      ::setenv(name_.c_str(), original_->c_str(), 1);
+    else
+      ::unsetenv(name_.c_str());
+#endif
+    engaged_ = false;
+  }
+
+  std::string name_;
+  std::optional<std::string> original_;
+  bool engaged_ = false;
 };
 
 PostprocessConfig make_postprocess_config(
@@ -184,7 +260,7 @@ py::dict volume_to_mesh(py::array volume, const std::string &algorithm,
                         std::optional<float> dense_factor,
                         uint32_t laplacian_iterations, float laplacian_lambda,
                         float laplacian_mu, size_t smooth_iterations,
-                        bool smooth_normals) {
+                        bool smooth_normals, bool disable_progress) {
   py::array_t<uint8_t, py::array::c_style | py::array::forcecast> volume_bytes(
       volume);
   const auto info = volume_bytes.request();
@@ -212,6 +288,10 @@ py::dict volume_to_mesh(py::array volume, const std::string &algorithm,
 
   const auto spacing = parse_spacing(voxel_size);
 
+  std::optional<ScopedEnvVar> progress_guard;
+  if (disable_progress)
+    progress_guard.emplace("ULTRALISER_NO_PROGRESS", "1");
+
   std::unique_ptr<Ultraliser::Mesh> mesh(
       run_mesher(volume_ptr.get(), algorithm, iso_value));
   volume_ptr.reset();
@@ -226,7 +306,10 @@ py::dict volume_to_mesh(py::array volume, const std::string &algorithm,
     mesh->scale(spacing[0], spacing[1], spacing[2]);
   }
 
-  auto arrays = mesh_to_numpy(*mesh);
+  const BoundaryHandlingOptions *boundary_ptr =
+      boundary_opts.enabled() ? &boundary_opts : nullptr;
+
+  auto arrays = mesh_to_numpy(*mesh, boundary_ptr);
   mesh.reset();
 
   py::dict result;
@@ -250,6 +333,7 @@ PYBIND11_MODULE(_core, m) {
         py::arg("laplacian_iterations") = 0, py::arg("laplacian_lambda") = 0.2f,
         py::arg("laplacian_mu") = 0.1f, py::arg("smooth_iterations") = 0,
         py::arg("smooth_normals") = false,
+        py::arg("disable_progress") = false,
         R"pbdoc(
 Convert a binary volume into a surface mesh using Ultraliser.
 
@@ -290,6 +374,9 @@ smooth_iterations : int, optional
     Number of additional surface smoothing passes.
 smooth_normals : bool, optional
     Smooth vertex normals after all mesh operations.
+disable_progress : bool, optional
+  Temporarily set the ULTRALISER_NO_PROGRESS environment variable so
+  Ultraliser skips progress bar updates (useful for Jupyter notebooks).
 
 Returns
 -------
