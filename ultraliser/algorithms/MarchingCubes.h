@@ -41,8 +41,10 @@ public:
      *
      * @param volume
      * @param isoValue
+     * @param keepOpenBoundaries
+     * If true, skip generating faces that are on the volume boundary.
      */
-    MarchingCubes(Volume* volume, const size_t isoValue = 127);
+    MarchingCubes(Volume* volume, const size_t isoValue = 127, const bool keepOpenBoundaries = false);
 
     /**
      * @brief generateMesh
@@ -95,6 +97,21 @@ private:
      */
     void _buildSharedVertices(Vertices& vertices, Triangles &triangles);
 
+    /**
+     * @brief _isOnBoundary
+     * Check if a cube at position (i, j, k) is on the volume boundary.
+     *
+     * @param i
+     * X coordinate of the cube
+     * @param j
+     * Y coordinate of the cube
+     * @param k
+     * Z coordinate of the cube
+     * @return
+     * True if the cube is on the boundary
+     */
+    bool _isOnBoundary(const int64_t i, const int64_t j, const int64_t k) const;
+
 private:
 
     /**
@@ -106,6 +123,11 @@ private:
      * @brief _isoValue
      */
     const size_t _isoValue;
+
+    /**
+     * @brief _keepOpenBoundaries
+     */
+    const bool _keepOpenBoundaries;
 
     /**
      * @brief _meshExtractionTime

@@ -36,18 +36,6 @@ struct PostprocessConfig {
   bool smoothNormals = false;
 };
 
-struct BoundaryHandlingOptions {
-  bool lockBoundaryVertices = false;
-  bool keepOpenBoundaries = false;
-  float epsilon = 1e-4f;
-  std::array<float, 3> minCoords{0.f, 0.f, 0.f};
-  std::array<float, 3> maxCoords{0.f, 0.f, 0.f};
-  std::vector<Ultraliser::Vector3f> originalVertices;
-  std::vector<uint8_t> isBoundaryVertex;
-
-  bool enabled() const { return lockBoundaryVertices || keepOpenBoundaries; }
-};
-
 class ScopedEnvVar {
 public:
   ScopedEnvVar(const char *name, const char *value) : name_(name) {
@@ -194,7 +182,8 @@ std::array<float, 3> parse_spacing(const py::object &obj) {
 }
 
 Ultraliser::Mesh *run_mesher(Ultraliser::Volume *volume,
-                             const std::string &algorithm, size_t iso_value) {
+                             const std::string &algorithm, size_t iso_value,
+                             bool keep_open_boundaries = false) {
   std::string lower(algorithm.size(), '\0');
   std::transform(
       algorithm.begin(), algorithm.end(), lower.begin(),
@@ -202,13 +191,13 @@ Ultraliser::Mesh *run_mesher(Ultraliser::Volume *volume,
 
   if (lower == "dmc" || lower == "dual_marching_cubes") {
     auto workflow =
-        std::make_unique<Ultraliser::DualMarchingCubes>(volume, iso_value);
+        std::make_unique<Ultraliser::DualMarchingCubes>(volume, iso_value, true, keep_open_boundaries);
     return workflow->generateMesh();
   }
 
   if (lower == "mc" || lower == "marching_cubes") {
     auto workflow =
-        std::make_unique<Ultraliser::MarchingCubes>(volume, iso_value);
+        std::make_unique<Ultraliser::MarchingCubes>(volume, iso_value, keep_open_boundaries);
     return workflow->generateMesh();
   }
 
@@ -260,7 +249,8 @@ py::dict volume_to_mesh(py::array volume, const std::string &algorithm,
                         std::optional<float> dense_factor,
                         uint32_t laplacian_iterations, float laplacian_lambda,
                         float laplacian_mu, size_t smooth_iterations,
-                        bool smooth_normals, bool disable_progress) {
+                        bool smooth_normals, bool disable_progress,
+                        bool keep_open_boundaries = false) {
   py::array_t<uint8_t, py::array::c_style | py::array::forcecast> volume_bytes(
       volume);
   const auto info = volume_bytes.request();
@@ -293,7 +283,7 @@ py::dict volume_to_mesh(py::array volume, const std::string &algorithm,
     progress_guard.emplace("ULTRALISER_NO_PROGRESS", "1");
 
   std::unique_ptr<Ultraliser::Mesh> mesh(
-      run_mesher(volume_ptr.get(), algorithm, iso_value));
+      run_mesher(volume_ptr.get(), algorithm, iso_value, keep_open_boundaries));
   volume_ptr.reset();
 
   const PostprocessConfig postprocess_cfg = make_postprocess_config(
@@ -306,10 +296,7 @@ py::dict volume_to_mesh(py::array volume, const std::string &algorithm,
     mesh->scale(spacing[0], spacing[1], spacing[2]);
   }
 
-  const BoundaryHandlingOptions *boundary_ptr =
-      boundary_opts.enabled() ? &boundary_opts : nullptr;
-
-  auto arrays = mesh_to_numpy(*mesh, boundary_ptr);
+  auto arrays = mesh_to_numpy(*mesh);
   mesh.reset();
 
   py::dict result;
@@ -334,6 +321,7 @@ PYBIND11_MODULE(_core, m) {
         py::arg("laplacian_mu") = 0.1f, py::arg("smooth_iterations") = 0,
         py::arg("smooth_normals") = false,
         py::arg("disable_progress") = false,
+        py::arg("keep_open_boundaries") = false,
         R"pbdoc(
 Convert a binary volume into a surface mesh using Ultraliser.
 
@@ -377,6 +365,11 @@ smooth_normals : bool, optional
 disable_progress : bool, optional
   Temporarily set the ULTRALISER_NO_PROGRESS environment variable so
   Ultraliser skips progress bar updates (useful for Jupyter notebooks).
+keep_open_boundaries : bool, optional
+  If True, skip generating faces that are on the volume boundary, resulting
+  in open meshes at the boundaries. This is similar to zmesh's close=False
+  behavior, but handled during meshing rather than through volume padding.
+  Defaults to False (closed boundaries).
 
 Returns
 -------

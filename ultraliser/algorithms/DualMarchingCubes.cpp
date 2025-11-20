@@ -35,10 +35,12 @@ namespace Ultraliser
 
 DualMarchingCubes::DualMarchingCubes(Volume *volume,
                                      const size_t isoValue,
-                                     const bool& generateManifold)
+                                     const bool& generateManifold,
+                                     const bool keepOpenBoundaries)
     : _volume(volume)
     , _isoValue(isoValue)
     , _generateManifold(generateManifold)
+    , _keepOpenBoundaries(keepOpenBoundaries)
 {
     /// EMPTY CONSTRUCTOR
 }
@@ -465,6 +467,12 @@ void DualMarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &tria
             // X-aligned edge
             if (dmcVoxel->side == DMC_EDGE_SIDE::X)
             {
+                // Skip boundary faces if keepOpenBoundaries is enabled
+                if (_keepOpenBoundaries && _isOnBoundary(dmcVoxel->x, dmcVoxel->y, dmcVoxel->z, DMC_EDGE_SIDE::X))
+                {
+                    continue;
+                }
+
                 // Generate quad
                 i0 = _getSharedDualPointIndex(dmcVoxel->x, dmcVoxel->y, dmcVoxel->z,
                                               EDGE0, vertices);
@@ -496,6 +504,12 @@ void DualMarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &tria
             // Y-aligned edge
             else if (dmcVoxel->side == DMC_EDGE_SIDE::Y)
             {
+                // Skip boundary faces if keepOpenBoundaries is enabled
+                if (_keepOpenBoundaries && _isOnBoundary(dmcVoxel->x, dmcVoxel->y, dmcVoxel->z, DMC_EDGE_SIDE::Y))
+                {
+                    continue;
+                }
+
                 // Generate quad
                 i0 = _getSharedDualPointIndex(dmcVoxel->x, dmcVoxel->y, dmcVoxel->z,
                                               EDGE8, vertices);
@@ -526,6 +540,12 @@ void DualMarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &tria
             // Z-aligned edge
             else if (dmcVoxel->side == DMC_EDGE_SIDE::Z)
             {
+                // Skip boundary faces if keepOpenBoundaries is enabled
+                if (_keepOpenBoundaries && _isOnBoundary(dmcVoxel->x, dmcVoxel->y, dmcVoxel->z, DMC_EDGE_SIDE::Z))
+                {
+                    continue;
+                }
+
                 // Generate quad
                 i0 = _getSharedDualPointIndex(dmcVoxel->x, dmcVoxel->y, dmcVoxel->z,
                                               EDGE3, vertices);
@@ -570,6 +590,35 @@ void DualMarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &tria
     // Clear the DMC voxel list
     volumeDMCVoxels.clear();
     volumeDMCVoxels.shrink_to_fit();
+}
+
+bool DualMarchingCubes::_isOnBoundary(const int64_t x, const int64_t y, const int64_t z, const DMC_EDGE_SIDE side) const
+{
+    const int64_t width = static_cast<int64_t>(_volume->getWidth());
+    const int64_t height = static_cast<int64_t>(_volume->getHeight());
+    const int64_t depth = static_cast<int64_t>(_volume->getDepth());
+
+    // Check if edge is on the volume boundary based on its alignment
+    switch (side)
+    {
+        case DMC_EDGE_SIDE::X:
+            // X-aligned edge: check if on X boundary faces
+            return (x <= 0 || x >= width - 1) ||
+                   (y <= 0 || y >= height) ||
+                   (z <= 0 || z >= depth);
+        case DMC_EDGE_SIDE::Y:
+            // Y-aligned edge: check if on Y boundary faces
+            return (x <= 0 || x >= width) ||
+                   (y <= 0 || y >= height - 1) ||
+                   (z <= 0 || z >= depth);
+        case DMC_EDGE_SIDE::Z:
+            // Z-aligned edge: check if on Z boundary faces
+            return (x <= 0 || x >= width) ||
+                   (y <= 0 || y >= height) ||
+                   (z <= 0 || z >= depth - 1);
+        default:
+            return false;
+    }
 }
 
 Mesh* DualMarchingCubes::generateMeshFromVolume(Volume* volume)

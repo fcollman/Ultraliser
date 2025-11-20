@@ -27,9 +27,11 @@ namespace Ultraliser
 {
 
 MarchingCubes::MarchingCubes(Volume* volume,
-                             const size_t _isoValue)
+                             const size_t _isoValue,
+                             const bool keepOpenBoundaries)
     : _volume(volume)
     , _isoValue(_isoValue)
+    , _keepOpenBoundaries(keepOpenBoundaries)
 {
     /// EMPTY CONSTRUCTOR
 }
@@ -403,6 +405,12 @@ void MarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &triangle
                 }
             }
 
+            // Skip boundary faces if keepOpenBoundaries is enabled
+            if (_keepOpenBoundaries && _isOnBoundary(i, j, k))
+            {
+                continue;
+            }
+
             int64_t vertexIndex;
             int32_t* triangleTablePtr = MC_TRIANGLE_TABLE[mcVoxel->cubeIndex];
             for (size_t tIndex = 0;
@@ -430,6 +438,19 @@ void MarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &triangle
     delete [] sharedIndices;
     polygons.clear();
     polygons.shrink_to_fit();
+}
+
+bool MarchingCubes::_isOnBoundary(const int64_t i, const int64_t j, const int64_t k) const
+{
+    const int64_t width = static_cast<int64_t>(_volume->getWidth());
+    const int64_t height = static_cast<int64_t>(_volume->getHeight());
+    const int64_t depth = static_cast<int64_t>(_volume->getDepth());
+
+    // Check if cube is on any boundary face
+    // A cube at (i, j, k) is on the boundary if any of its corners are at the volume edge
+    return (i <= 0 || i >= width - 1) ||
+           (j <= 0 || j >= height - 1) ||
+           (k <= 0 || k >= depth - 1);
 }
 
 Mesh* MarchingCubes::generateMeshFromVolume(Volume* volume)

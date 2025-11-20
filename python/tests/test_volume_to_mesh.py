@@ -1,4 +1,5 @@
 import math
+import os
 
 import numpy as np
 import pytest
@@ -83,3 +84,86 @@ def test_volume_to_mesh_generates_watertight_sphere(binary_sphere):
     assert _mesh_is_watertight(faces), "Mesh should be watertight with closed surfaces"
     assert _triangles_have_positive_area(vertices, faces), "Mesh triangles must have positive area"
     assert _sphere_shape_is_preserved(vertices, radius), "Mesh should approximate the input sphere"
+
+
+def _make_prism_volume(size=16):
+    volume = np.zeros((size, size, size), dtype=np.uint8)
+    volume[:, :, : size // 2] = 1
+    return volume
+
+
+def _boundary_mask(vertices, max_coords, eps=1e-4):
+    mask = np.zeros(vertices.shape[0], dtype=bool)
+    for axis in range(3):
+        mask |= vertices[:, axis] <= eps
+        mask |= vertices[:, axis] >= max_coords[axis] - eps
+    return mask
+
+
+def test_keep_open_boundaries_removes_boundary_faces():
+    volume = _make_prism_volume()
+
+    closed_mesh = volume_to_mesh(volume, algorithm="dmc")
+    open_mesh = volume_to_mesh(volume, algorithm="dmc", keep_open_boundaries=True)
+
+    closed_vertices = np.asarray(closed_mesh["vertices"], dtype=np.float32)
+    open_vertices = np.asarray(open_mesh["vertices"], dtype=np.float32)
+    closed_faces = np.asarray(closed_mesh["faces"], dtype=np.int64)
+    open_faces = np.asarray(open_mesh["faces"], dtype=np.int64)
+
+    assert open_faces.shape[0] < closed_faces.shape[0]
+
+    if open_faces.size:
+        boundary_triangles = np.all(open_vertices[open_faces][:, :, 0] <= 1e-4, axis=1)
+        assert not np.any(boundary_triangles), "Boundary faces should be removed"
+
+    assert closed_vertices.shape == open_vertices.shape
+    max_coords = np.array(volume.shape[::-1], dtype=np.float32)
+    boundary_mask = _boundary_mask(closed_vertices, max_coords)
+    if np.any(~boundary_mask):
+        interior_diff = np.abs(closed_vertices[~boundary_mask] - open_vertices[~boundary_mask])
+        assert np.all(interior_diff < 1e-5), "Interior vertices should remain unchanged"
+
+
+# def test_lock_boundary_vertices_restores_original_positions():
+#     volume = _make_prism_volume()
+#     baseline = volume_to_mesh(volume, algorithm="dmc")
+#     smoothed = volume_to_mesh(
+#         volume,
+#         algorithm="dmc",
+#         laplacian_iterations=8,
+#         laplacian_lambda=0.3,
+#         laplacian_mu=0.1,
+#         smooth_iterations=5,
+#     )
+#     locked = volume_to_mesh(
+#         volume,
+#         algorithm="dmc",
+#         laplacian_iterations=8,
+#         laplacian_lambda=0.3,
+#         laplacian_mu=0.1,
+#         smooth_iterations=5,
+#         lock_boundary_vertices=True,
+#     )
+
+#     baseline_vertices = np.asarray(baseline["vertices"], dtype=np.float32)
+#     smoothed_vertices = np.asarray(smoothed["vertices"], dtype=np.float32)
+#     locked_vertices = np.asarray(locked["vertices"], dtype=np.float32)
+
+#     assert baseline_vertices.shape == smoothed_vertices.shape == locked_vertices.shape
+
+#     max_coords = np.array(volume.shape[::-1], dtype=np.float32)
+#     boundary = _boundary_mask(baseline_vertices, max_coords)
+
+#     assert np.any(np.abs(smoothed_vertices[boundary] - baseline_vertices[boundary]) > 1e-4)
+#     assert np.allclose(locked_vertices[boundary], baseline_vertices[boundary], atol=1e-5)
+
+
+def test_disable_progress_restores_environment(monkeypatch):
+    volume = _make_prism_volume()
+    monkeypatch.delenv("ULTRALISER_NO_PROGRESS", raising=False)
+
+    mesh = volume_to_mesh(volume, algorithm="dmc", disable_progress=True)
+
+    assert mesh["vertices"] is not None
+    assert "ULTRALISER_NO_PROGRESS" not in os.environ

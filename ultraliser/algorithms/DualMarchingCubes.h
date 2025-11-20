@@ -32,6 +32,7 @@
 #include <data/volumes/Volume.h>
 #include <data/volumes/TaggedVolume.h>
 #include <data/meshes/advanced/AdvancedMesh.h>
+#include <data/volumes/voxels/DMCVoxel.h>
 
 // Default iso surface value
 #define DEFAULT_ISO_VALUE 127
@@ -47,20 +48,27 @@ public:
      * @brief DualMarchingCubes
      * @param volume
      * @param isoValue
+     * @param generateManifold
+     * @param keepOpenBoundaries
+     * If true, skip generating faces that are on the volume boundary.
      */
     DualMarchingCubes(Volume* volume,
                       const size_t isoValue = DEFAULT_ISO_VALUE,
-                      const bool &generateManifold = true);
+                      const bool &generateManifold = true,
+                      const bool keepOpenBoundaries = false);
 
     /**
      * @brief DualMarchingCubes
      * @param volume
      * @param isoValue
      * @param generateManifold
+     * @param keepOpenBoundaries
+     * If true, skip generating faces that are on the volume boundary.
      */
     DualMarchingCubes(TaggedVolume* volume,
                       const uint8_t isoValue = DEFAULT_ISO_VALUE,
-                      const bool &generateManifold = true);
+                      const bool &generateManifold = true,
+                      const bool keepOpenBoundaries = false);
 
     /**
      * @brief generateMesh
@@ -171,6 +179,23 @@ private:
     int64_t _getSharedDualPointIndex(const int64_t &x, const int64_t &y, const int64_t &z,
                                      const DMC_EDGE_CODE &edge, std::vector<Vector3f> &vertices);
 
+    /**
+     * @brief _isOnBoundary
+     * Check if an edge at position (x, y, z) with the given side is on the volume boundary.
+     *
+     * @param x
+     * X coordinate of the edge
+     * @param y
+     * Y coordinate of the edge
+     * @param z
+     * Z coordinate of the edge
+     * @param side
+     * The edge side (X, Y, or Z aligned)
+     * @return
+     * True if the edge is on the boundary
+     */
+    bool _isOnBoundary(const int64_t x, const int64_t y, const int64_t z, const DMC_EDGE_SIDE side) const;
+
 private:
 
     /**
@@ -195,6 +220,11 @@ private:
      * @brief _generateManifold
      */
     const bool _generateManifold;
+
+    /**
+     * @brief _keepOpenBoundaries
+     */
+    const bool _keepOpenBoundaries;
 
     /**
      * @brief _dmcGenerationTime
