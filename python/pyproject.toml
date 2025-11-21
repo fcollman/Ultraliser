@@ -49,6 +49,12 @@ Source = "https://github.com/BlueBrain/Ultraliser"
 minimum-version = "0.10"
 wheel.packages = ["src/ultraliser"]
 cmake.build-type = "Release"
-cmake.args = ["-DULTRALISER_BUILD_PYTHON=ON"]
+cmake.args = [
+    "-DULTRALISER_BUILD_PYTHON=ON",
+    # Enable ccache if available for faster incremental builds
+    # (ccache will be auto-detected by CMakeLists.txt if installed)
+]
 cmake.source-dir = ".."
+# Use a persistent build directory for better caching
+build-dir = "build"
 

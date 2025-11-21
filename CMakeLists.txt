@@ -47,6 +47,14 @@ include(FMT)
 include(ZLIB)
 include(BZip2)
 
+# Enable ccache for faster incremental builds (if available)
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+    set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+    message(STATUS "Using ccache for faster builds: ${CCACHE_PROGRAM}")
+endif()
+
 # By default add the /usr/include into the path
 include_directories("/usr/include")
 
