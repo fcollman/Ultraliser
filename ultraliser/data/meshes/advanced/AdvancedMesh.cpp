@@ -92,6 +92,7 @@ AdvancedMesh::AdvancedMesh()
 
     _nBoundaries = _nHandles = _nShells = 0;
     _dBoundaries = _dHandles = _dShells = 0;
+    _bordersLocked = false;
 }
 
 AdvancedMesh::AdvancedMesh(const std::string filePath)
@@ -103,6 +104,9 @@ AdvancedMesh::AdvancedMesh(Vertices vertices, Triangles triangles)
 {
     LOG_TITLE("Building an Advanced Mesh");
     LOG_STATUS("Cloning");
+
+    info = nullptr;
+    _bordersLocked = false;
 
     Ultraliser::Utilities::Timer statsTimer;
     statsTimer.start();
@@ -174,6 +178,9 @@ AdvancedMesh::AdvancedMesh(const Vertex *vertices,
 {
     LOG_TITLE("Building an Advanced Mesh");
     LOG_STATUS("Cloning");
+
+    info = nullptr;
+    _bordersLocked = false;
 
     Ultraliser::Utilities::Timer statsTimer;
     statsTimer.start();
@@ -248,6 +255,7 @@ AdvancedMesh::AdvancedMesh(const char *inputMeshDefinition)
 void AdvancedMesh::init(const char *inputMeshDefinition)
 {
     info = nullptr;
+    _bordersLocked = false;
 
     if (!strcmp(inputMeshDefinition, "triangle"))
     {
@@ -438,6 +446,7 @@ AdvancedMesh::AdvancedMesh(const AdvancedMesh *input, const bool cloneInfo)
 void AdvancedMesh::init(const AdvancedMesh *input, const bool cloneInfo)
 {
     info = nullptr;
+    _bordersLocked = input != nullptr ? input->_bordersLocked : false;
 
     Node *iNode;
     AdvancedVertex *iVertex, *vertex;
@@ -568,6 +577,7 @@ AdvancedMesh::AdvancedMesh(const AdvancedTriangle* t0, const bool keepReferences
 void AdvancedMesh::init(const AdvancedTriangle* t0, const bool keepReferences)
 {
     info = nullptr;
+    _bordersLocked = false;
 
     // Collecting list
     List collecting(t0);
@@ -772,6 +782,16 @@ void AdvancedMesh::toSimpleMesh(Mesh* mesh)
     delete[] auxVertices;
 
     mesh->updateData(vertices, triangles);
+
+    // Transfer border vertex information if available
+    if (!_borderVertices.empty())
+    {
+        mesh->markBorderVertices(_borderVertices);
+    }
+    if (_bordersLocked)
+    {
+        mesh->setBordersLocked(true);
+    }
 }
 
 Mesh* AdvancedMesh::toSimpleMesh() const
@@ -824,7 +844,19 @@ Mesh* AdvancedMesh::toSimpleMesh() const
     // Free the auxiliary array
     delete[] auxVertices;
 
-    return new Mesh(vertices, triangles);
+    Mesh* simpleMesh = new Mesh(vertices, triangles);
+
+    // Transfer border vertex information if available
+    if (!_borderVertices.empty())
+    {
+        simpleMesh->markBorderVertices(_borderVertices);
+    }
+    if (_bordersLocked)
+    {
+        simpleMesh->setBordersLocked(true);
+    }
+
+    return simpleMesh;
 }
 
 AdvancedMesh *AdvancedMesh::split(const bool& verbose)
@@ -4146,6 +4178,12 @@ void AdvancedMesh::applyLaplacianSmooth(const size_t &numIterations,
         #pragma omp parallel for
         for(std::size_t v = 0; v < mesh._vertices.size(); ++v)
         {
+            // Skip border vertices if borders are locked
+            if (_bordersLocked && isBorderVertex(v))
+            {
+                smoothedVertices[v] = AdvancedVertex(*mesh._vertices[v]);
+                continue;
+            }
             const Vector3f kernel = _computeKernel(mesh, v, vertexN[v], faceN[v]);
             smoothedVertices[v] = _smoothVertex(mesh, v, kernel, smoothLambda, inflateMu);
         }
@@ -4154,6 +4192,11 @@ void AdvancedMesh::applyLaplacianSmooth(const size_t &numIterations,
         #pragma omp parallel for
         for(std::size_t v = 0; v < mesh._vertices.size(); ++v)
         {
+            // Skip border vertices if borders are locked
+            if (_bordersLocked && isBorderVertex(v))
+            {
+                continue;
+            }
             AdvancedVertex* vertex = mesh._vertices[v];
             vertex->setValue(smoothedVertices[v]);
         }
@@ -4291,6 +4334,21 @@ void AdvancedMesh::printStats(const std::string &reference, const std::string *p
              F2D(area));
     LOG_INFO("\t* Volume                | %f³",
              F2D(volume));
+}
+
+void AdvancedMesh::markBorderVertices(const std::set<size_t>& borderVertexIndices)
+{
+    _borderVertices = borderVertexIndices;
+}
+
+bool AdvancedMesh::isBorderVertex(const size_t vertexIndex) const
+{
+    return _borderVertices.find(vertexIndex) != _borderVertices.end();
+}
+
+void AdvancedMesh::_resetBorderVertices()
+{
+    _borderVertices.clear();
 }
 
 }

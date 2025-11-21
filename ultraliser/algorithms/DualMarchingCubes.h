@@ -29,6 +29,7 @@
 #pragma once
 
 #include <algorithms/DualMarchingCubes.hh>
+#include <set>
 #include <data/volumes/Volume.h>
 #include <data/volumes/TaggedVolume.h>
 #include <data/meshes/advanced/AdvancedMesh.h>
@@ -121,9 +122,14 @@ private:
      * @brief _buildSharedVertices
      * Extract quad mesh with shared vertex indices, but in parallel using all
      * the CPUs available.
-     * @param mesh
+     * @param vertices
+     * A list to collect the vertices of the mesh.
+     * @param triangles
+     * A list to collect the triangles of the mesh.
+     * @param borderVertexIndices
+     * A set to collect the indices of vertices that are on the volume boundary.
      */
-    void _buildSharedVertices(Vertices& vertices, Triangles &triangles);
+    void _buildSharedVertices(Vertices& vertices, Triangles &triangles, std::set<size_t>& borderVertexIndices);
 
     /**
      * @brief _getCellCode
@@ -177,7 +183,8 @@ private:
      * @return
      */
     int64_t _getSharedDualPointIndex(const int64_t &x, const int64_t &y, const int64_t &z,
-                                     const DMC_EDGE_CODE &edge, std::vector<Vector3f> &vertices);
+                                     const DMC_EDGE_CODE &edge, std::vector<Vector3f> &vertices,
+                                     std::set<size_t>* borderVertexIndices = nullptr);
 
     /**
      * @brief _isOnBoundary
@@ -195,6 +202,17 @@ private:
      * True if the edge is on the boundary
      */
     bool _isOnBoundary(const int64_t x, const int64_t y, const int64_t z, const DMC_EDGE_SIDE side) const;
+
+    /**
+     * @brief _getEdgeSide
+     * Get the edge side (X, Y, or Z) from an edge code.
+     *
+     * @param edge
+     * The edge code
+     * @return
+     * The edge side (X, Y, or Z aligned)
+     */
+    DMC_EDGE_SIDE _getEdgeSide(const DMC_EDGE_CODE edge) const;
 
 private:
 
@@ -230,6 +248,12 @@ private:
      * @brief _dmcGenerationTime
      */
     double _meshExtractionTime;
+
+    /**
+     * @brief _borderVertexIndices
+     * Set of vertex indices that are on the volume boundary.
+     */
+    std::set<size_t> _borderVertexIndices;
 };
 
 }

@@ -29,6 +29,8 @@
 #include "DualMarchingCubes.h"
 #include <data/volumes/voxels/DMCVoxel.h>
 #include <data/meshes/simple/primitives/Primitives.h>
+#include <data/meshes/simple/Mesh.h>
+#include <set>
 
 namespace Ultraliser
 {
@@ -57,9 +59,15 @@ Mesh* DualMarchingCubes::generateMesh()
     TIMER_SET;
 
     LOG_STATUS("Building Mesh");
-    _buildSharedVertices(vertices, triangles);
+    
+    // Track which vertices are on the volume boundary
+    std::set<size_t> borderVertexIndices;
+    _buildSharedVertices(vertices, triangles, borderVertexIndices);
 
     Mesh* mesh = new Mesh(vertices, triangles);
+    
+    // Mark border vertices in the mesh
+    mesh->markBorderVertices(borderVertexIndices);
 
     // Statistics
     _meshExtractionTime = GET_TIME_SECONDS;
@@ -81,9 +89,18 @@ AdvancedMesh* DualMarchingCubes::generateAdvancedMesh()
     TIMER_SET;
 
     LOG_STATUS("Building Mesh");
-    _buildSharedVertices(vertices, triangles);
+    
+    // Build the mesh with border vertex detection
+    _borderVertexIndices.clear();
+    _buildSharedVertices(vertices, triangles, _borderVertexIndices);
 
     AdvancedMesh* mesh = new AdvancedMesh(vertices, triangles);
+
+    // Mark border vertices if any were detected
+    if (!_borderVertexIndices.empty())
+    {
+        mesh->markBorderVertices(_borderVertexIndices);
+    }
 
     // Statistics
     _meshExtractionTime = GET_TIME_SECONDS;
@@ -321,7 +338,8 @@ void DualMarchingCubes::_calculateDualPoint(const int64_t &x, const int64_t &y, 
 
 int64_t DualMarchingCubes::_getSharedDualPointIndex(
         const int64_t &x, const int64_t &y, const int64_t &z,
-        const DMC_EDGE_CODE& edge, std::vector< Vector3f >& vertices)
+        const DMC_EDGE_CODE& edge, std::vector< Vector3f >& vertices,
+        std::set<size_t>* borderVertexIndices)
 {
     // Create a key for the dual point from its linearized cell ID and
     // point code
@@ -334,7 +352,18 @@ int64_t DualMarchingCubes::_getSharedDualPointIndex(
     if (iterator != pointToIndex.end())
     {
         // Just return the dual point index
-        return iterator->second;
+        int64_t vertexId = iterator->second;
+        // Check if this vertex is on the boundary
+        if (borderVertexIndices != nullptr)
+        {
+            // Determine the edge side from the edge code
+            DMC_EDGE_SIDE edgeSide = _getEdgeSide(edge);
+            if (_isOnBoundary(x, y, z, edgeSide))
+            {
+                borderVertexIndices->insert(static_cast<size_t>(vertexId));
+            }
+        }
+        return vertexId;
     }
     else
     {
@@ -342,6 +371,17 @@ int64_t DualMarchingCubes::_getSharedDualPointIndex(
         int64_t newVertexId = I2I64(vertices.size());
         vertices.emplace_back();
         _calculateDualPoint(x, y, z, key.pointCode, vertices.back());
+
+        // Check if this vertex is on the volume boundary
+        if (borderVertexIndices != nullptr)
+        {
+            // Determine the edge side from the edge code
+            DMC_EDGE_SIDE edgeSide = _getEdgeSide(edge);
+            if (_isOnBoundary(x, y, z, edgeSide))
+            {
+                borderVertexIndices->insert(static_cast<size_t>(newVertexId));
+            }
+        }
 
         // Insert vertex ID into map and also return it
         pointToIndex[key] = newVertexId;
@@ -354,10 +394,13 @@ bool DualPointKey::operator==(DualPointKey const & other) const
     return (linearizedCellID == other.linearizedCellID && pointCode == other.pointCode);
 }
 
-void DualMarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &triangles)
+void DualMarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &triangles, std::set<size_t>& borderVertexIndices)
 {
     // Start timer
     TIMER_SET;
+
+    // Clear border vertex indices
+    borderVertexIndices.clear();
 
     // Adding a little bit of extra voxels
     const int64_t extraVoxels = 5;
@@ -467,21 +510,18 @@ void DualMarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &tria
             // X-aligned edge
             if (dmcVoxel->side == DMC_EDGE_SIDE::X)
             {
-                // Skip boundary faces if keepOpenBoundaries is enabled
-                if (_keepOpenBoundaries && _isOnBoundary(dmcVoxel->x, dmcVoxel->y, dmcVoxel->z, DMC_EDGE_SIDE::X))
-                {
-                    continue;
-                }
+                // Generate all faces (including boundary faces)
+                // Boundary faces will be removed later using border_vertices information
 
                 // Generate quad
                 i0 = _getSharedDualPointIndex(dmcVoxel->x, dmcVoxel->y, dmcVoxel->z,
-                                              EDGE0, vertices);
+                                              EDGE0, vertices, &borderVertexIndices);
                 i1 = _getSharedDualPointIndex(dmcVoxel->x, dmcVoxel->y, dmcVoxel->z - 1,
-                                              EDGE2, vertices);
+                                              EDGE2, vertices, &borderVertexIndices);
                 i2 = _getSharedDualPointIndex(dmcVoxel->x, dmcVoxel->y - 1, dmcVoxel->z - 1,
-                                              EDGE6, vertices);
+                                              EDGE6, vertices, &borderVertexIndices);
                 i3 = _getSharedDualPointIndex(dmcVoxel->x, dmcVoxel->y - 1, dmcVoxel->z,
-                                              EDGE4, vertices);
+                                              EDGE4, vertices, &borderVertexIndices);
 
                 // Append this quad to the list based on the voxel
                 if (dmcVoxel->entering)
@@ -504,21 +544,18 @@ void DualMarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &tria
             // Y-aligned edge
             else if (dmcVoxel->side == DMC_EDGE_SIDE::Y)
             {
-                // Skip boundary faces if keepOpenBoundaries is enabled
-                if (_keepOpenBoundaries && _isOnBoundary(dmcVoxel->x, dmcVoxel->y, dmcVoxel->z, DMC_EDGE_SIDE::Y))
-                {
-                    continue;
-                }
+                // Generate all faces (including boundary faces)
+                // Boundary faces will be removed later using border_vertices information
 
                 // Generate quad
                 i0 = _getSharedDualPointIndex(dmcVoxel->x, dmcVoxel->y, dmcVoxel->z,
-                                              EDGE8, vertices);
+                                              EDGE8, vertices, &borderVertexIndices);
                 i1 = _getSharedDualPointIndex(dmcVoxel->x, dmcVoxel->y, dmcVoxel->z - 1,
-                                              EDGE11, vertices);
+                                              EDGE11, vertices, &borderVertexIndices);
                 i2 = _getSharedDualPointIndex(dmcVoxel->x - 1, dmcVoxel->y, dmcVoxel->z - 1,
-                                              EDGE10, vertices);
+                                              EDGE10, vertices, &borderVertexIndices);
                 i3 = _getSharedDualPointIndex(dmcVoxel->x - 1, dmcVoxel->y, dmcVoxel->z,
-                                              EDGE9, vertices);
+                                              EDGE9, vertices, &borderVertexIndices);
 
                 // Append this quad to the list based on the voxel
                 if (dmcVoxel->exiting)
@@ -540,21 +577,18 @@ void DualMarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &tria
             // Z-aligned edge
             else if (dmcVoxel->side == DMC_EDGE_SIDE::Z)
             {
-                // Skip boundary faces if keepOpenBoundaries is enabled
-                if (_keepOpenBoundaries && _isOnBoundary(dmcVoxel->x, dmcVoxel->y, dmcVoxel->z, DMC_EDGE_SIDE::Z))
-                {
-                    continue;
-                }
+                // Generate all faces (including boundary faces)
+                // Boundary faces will be removed later using border_vertices information
 
                 // Generate quad
                 i0 = _getSharedDualPointIndex(dmcVoxel->x, dmcVoxel->y, dmcVoxel->z,
-                                              EDGE3, vertices);
+                                              EDGE3, vertices, &borderVertexIndices);
                 i1 = _getSharedDualPointIndex(dmcVoxel->x - 1, dmcVoxel->y, dmcVoxel->z,
-                                              EDGE1, vertices);
+                                              EDGE1, vertices, &borderVertexIndices);
                 i2 = _getSharedDualPointIndex(dmcVoxel->x - 1, dmcVoxel->y - 1, dmcVoxel->z,
-                                              EDGE5, vertices);
+                                              EDGE5, vertices, &borderVertexIndices);
                 i3 = _getSharedDualPointIndex(dmcVoxel->x, dmcVoxel->y - 1, dmcVoxel->z,
-                                              EDGE7, vertices);
+                                              EDGE7, vertices, &borderVertexIndices);
 
                 // Append this quad to the list based on the voxel
                 if (dmcVoxel->exiting)
@@ -592,6 +626,34 @@ void DualMarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &tria
     volumeDMCVoxels.shrink_to_fit();
 }
 
+DMC_EDGE_SIDE DualMarchingCubes::_getEdgeSide(const DMC_EDGE_CODE edge) const
+{
+    // Map edge codes to their sides based on the Marching Cubes edge configuration:
+    // EDGE0, EDGE2, EDGE4, EDGE6 are X-aligned (horizontal on bottom/top faces)
+    // EDGE8, EDGE9, EDGE10, EDGE11 are Y-aligned (vertical edges)
+    // EDGE1, EDGE3, EDGE5, EDGE7 are Z-aligned (horizontal on front/back faces)
+    switch (edge)
+    {
+        case EDGE0:
+        case EDGE2:
+        case EDGE4:
+        case EDGE6:
+            return DMC_EDGE_SIDE::X;
+        case EDGE8:
+        case EDGE9:
+        case EDGE10:
+        case EDGE11:
+            return DMC_EDGE_SIDE::Y;
+        case EDGE1:
+        case EDGE3:
+        case EDGE5:
+        case EDGE7:
+            return DMC_EDGE_SIDE::Z;
+        default:
+            return DMC_EDGE_SIDE::UNKNOWN;
+    }
+}
+
 bool DualMarchingCubes::_isOnBoundary(const int64_t x, const int64_t y, const int64_t z, const DMC_EDGE_SIDE side) const
 {
     const int64_t width = static_cast<int64_t>(_volume->getWidth());
@@ -602,20 +664,23 @@ bool DualMarchingCubes::_isOnBoundary(const int64_t x, const int64_t y, const in
     switch (side)
     {
         case DMC_EDGE_SIDE::X:
-            // X-aligned edge: check if on X boundary faces
-            return (x <= 0 || x >= width - 1) ||
-                   (y <= 0 || y >= height) ||
-                   (z <= 0 || z >= depth);
+            // X-aligned edge: check if on volume boundary faces
+            // Volume has voxels at positions 0 to width-1, so edge is on boundary if:
+            // - x < 0 (left boundary) OR x >= width-1 (right boundary)
+            // - y < 0 OR y >= height-1 OR z < 0 OR z >= depth-1 (face boundaries)
+            return (x < 0 || x >= width - 1) ||
+                   (y < 0 || y >= height - 1) ||
+                   (z < 0 || z >= depth - 1);
         case DMC_EDGE_SIDE::Y:
-            // Y-aligned edge: check if on Y boundary faces
-            return (x <= 0 || x >= width) ||
-                   (y <= 0 || y >= height - 1) ||
-                   (z <= 0 || z >= depth);
+            // Y-aligned edge: check if on volume boundary faces
+            return (x < 0 || x >= width - 1) ||
+                   (y < 0 || y >= height - 1) ||
+                   (z < 0 || z >= depth - 1);
         case DMC_EDGE_SIDE::Z:
-            // Z-aligned edge: check if on Z boundary faces
-            return (x <= 0 || x >= width) ||
-                   (y <= 0 || y >= height) ||
-                   (z <= 0 || z >= depth - 1);
+            // Z-aligned edge: check if on volume boundary faces
+            return (x < 0 || x >= width - 1) ||
+                   (y < 0 || y >= height - 1) ||
+                   (z < 0 || z >= depth - 1);
         default:
             return false;
     }

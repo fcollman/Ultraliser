@@ -40,6 +40,7 @@
 #include <data/meshes/simple/primitives/Primitives.h>
 #include <data/structures/Neighbors.h>
 #include <data/meshes/simple/Mesh.h>
+#include <set>
 
 namespace Ultraliser
 {
@@ -142,6 +143,20 @@ protected:
      * Dirty bit for n_shells
      */
     bool _dShells;
+
+    /**
+     * @brief _borderVertices
+     * Set of vertex indices that are on the volume boundary.
+     * Used to mark vertices that should be locked during optimization.
+     */
+    std::set<size_t> _borderVertices;
+
+    /**
+     * @brief _bordersLocked
+     * Flag indicating whether border vertices should be locked during optimization.
+     * When true, border vertices cannot be deleted or moved during smoothing.
+     */
+    bool _bordersLocked;
 
 public:
 
@@ -548,6 +563,41 @@ public:
       * @return
       */
      Mesh* toSimpleMesh() const;
+
+    /**
+     * @brief markBorderVertices
+     * Marks vertices as border vertices based on their indices.
+     * @param borderVertexIndices Set of vertex indices that are on the volume boundary.
+     */
+    void markBorderVertices(const std::set<size_t>& borderVertexIndices);
+
+    /**
+     * @brief setBordersLocked
+     * Sets whether border vertices should be locked during optimization.
+     * @param locked True to lock border vertices, false to allow them to move/be deleted.
+     */
+    void setBordersLocked(const bool locked) { _bordersLocked = locked; }
+
+    /**
+     * @brief areBordersLocked
+     * Returns whether border vertices are currently locked.
+     * @return True if borders are locked, false otherwise.
+     */
+    bool areBordersLocked() const { return _bordersLocked; }
+
+    /**
+     * @brief isBorderVertex
+     * Checks if a vertex is marked as a border vertex by index.
+     * @param vertexIndex The index of the vertex to check.
+     * @return True if the vertex is on the border, false otherwise.
+     */
+    bool isBorderVertex(const size_t vertexIndex) const;
+
+    /**
+     * @brief _resetBorderVertices
+     * Clears the border vertices set.
+     */
+    void _resetBorderVertices();
 
     /**
      * @brief exportMesh

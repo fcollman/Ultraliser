@@ -56,6 +56,7 @@ Mesh::Mesh()
 
     _neighbors = nullptr;
     _neighborList = nullptr;
+    _bordersLocked = false;
 }
 
 Mesh::Mesh(const size_t &numVertices, const size_t &numTriangles)
@@ -70,6 +71,7 @@ Mesh::Mesh(const size_t &numVertices, const size_t &numTriangles)
 
     _neighbors = nullptr;
     _neighborList = nullptr;
+    _bordersLocked = false;
 }
 
 Mesh::Mesh(const Samples& samples, const size_t& bevelSides)
@@ -85,6 +87,7 @@ Mesh::Mesh(const Samples& samples, const size_t& bevelSides)
 
     _neighbors = nullptr;
     _neighborList = nullptr;
+    _bordersLocked = false;
 }
 
 Mesh::Mesh(Vertices vertices, Triangles triangles)
@@ -101,6 +104,7 @@ Mesh::Mesh(const std::string &fileName, const bool& verbose)
 
     _neighbors = nullptr;
     _neighborList = nullptr;
+    _bordersLocked = false;
 }
 
 Mesh::Mesh(const NeuronMorphology* morphology)
@@ -113,6 +117,7 @@ Mesh::Mesh(const NeuronMorphology* morphology)
     _vertices = somaGeometry.vertices;
     _numberTriangles = somaGeometry.numTriangles;
     _triangles = somaGeometry.triangles;
+    _bordersLocked = false;
 }
 
 Mesh::Mesh(const AstrocyteMorphology *morphology)
@@ -125,6 +130,7 @@ Mesh::Mesh(const AstrocyteMorphology *morphology)
     _vertices = somaGeometry.vertices;
     _numberTriangles = somaGeometry.numTriangles;
     _triangles = somaGeometry.triangles;
+    _bordersLocked = false;
 }
 
 const Vertex* Mesh::getVertices() const
@@ -461,6 +467,7 @@ void Mesh::_initFromVertexAndTriangleList(Vertices vertices, Triangles triangles
 
     _neighbors = nullptr;
     _neighborList = nullptr;
+    _bordersLocked = false;
 }
 
 float Mesh::_cotangentAngle(const Vector3f& pivot, const Vector3f& a, const Vector3f& b)
@@ -898,6 +905,20 @@ void Mesh::_releaseData()
 Mesh::~Mesh()
 {
     _releaseData();
+}
+
+bool Mesh::isBorderVertex(const size_t vertexIndex) const
+{
+    if (vertexIndex >= _borderVertices.size())
+    {
+        return false;
+    }
+    return _borderVertices[vertexIndex];
+}
+
+std::vector<bool> Mesh::getBorderVertices() const
+{
+    return _borderVertices;
 }
 
 }

@@ -38,6 +38,7 @@
 #include <utilities/Utilities.h>
 #include <geometry/Intersection.h>
 #include <algorithms/SectionGeometry.h>
+#include <set>
 
 #define ANGLE_ERROR                         0.123456789f
 #define MAXIMUM_FLOAT_VALUE                 99999.0
@@ -55,6 +56,30 @@ void Mesh::_destroyVertexMarkers()
     {
         _vertexMarkers.clear();
         _vertexMarkers.shrink_to_fit();
+    }
+}
+
+void Mesh::_destroyBorderVertices()
+{
+    if (_borderVertices.size() > 0)
+    {
+        _borderVertices.clear();
+        _borderVertices.shrink_to_fit();
+    }
+}
+
+void Mesh::_resetBorderVertices()
+{
+    if (_borderVertices.size() == 0 || _borderVertices.size() < _numberVertices)
+    {
+        _destroyBorderVertices();
+        _borderVertices.resize(_numberVertices);
+    }
+
+    OMP_PARALLEL_FOR
+    for (size_t i = 0; i < _numberVertices; ++i)
+    {
+        _borderVertices[i] = false;
     }
 }
 
@@ -279,6 +304,22 @@ void Mesh::_selectVerticesInROI(const ROIs& regions)
                 numberSelectedVertices, regions.size());
 }
 
+
+void Mesh::markBorderVertices(const std::set<size_t>& borderVertexIndices)
+{
+    // Reset border vertices first
+    _resetBorderVertices();
+    
+    // Mark vertices that are on the volume boundary
+    for (size_t borderIndex : borderVertexIndices)
+    {
+        if (borderIndex < _numberVertices)
+        {
+            _borderVertices[borderIndex] = true;
+        }
+    }
+}
+
 void Mesh::optimizeAdapttivelyWithROI(const size_t &optimizationIterations,
                                       const size_t &smoothingIterations,
                                       const float &flatCoarseFactor,
@@ -483,6 +524,12 @@ bool Mesh::checkFlipAction(const int64_t &a, const int64_t &b, const int64_t &c,
 
 void Mesh::edgeFlipping(int64_t index)
 {
+    // If borders are locked and this is a border vertex, skip edge flipping
+    if (_bordersLocked && isBorderVertex(index))
+    {
+        return;
+    }
+
     int64_t a,b,c;
 
     NeighborTriangle* auxNGR1 = nullptr;
@@ -1433,6 +1480,12 @@ void Mesh::subdividePolygin(NeighborTriangle *starNGR,
 
 void Mesh::moveVertexAlongSurface(int64_t index)
 {
+    // If borders are locked and this is a border vertex, skip moving it
+    if (_bordersLocked && isBorderVertex(index))
+    {
+        return;
+    }
+
     // Get the coordinates of the vertex
     float x = _vertices[index].x();
     float y = _vertices[index].y();
@@ -1541,6 +1594,12 @@ void Mesh::moveVertexAlongSurface(int64_t index)
 
 void Mesh::smoothNormal(const int64_t n)
 {
+    // If borders are locked and this is a border vertex, skip smoothing it
+    if (_bordersLocked && isBorderVertex(n))
+    {
+        return;
+    }
+
     // The updated position of the vertex after smoothing the normal
     Vector3f position;
 
@@ -2350,6 +2409,12 @@ bool Mesh::coarse(const float& coarseRate,
             }
         }
 
+        // If borders are locked and this is a border vertex, skip it
+        if (_bordersLocked && isBorderVertex(n))
+        {
+            continue;
+        }
+
         // Check if the vertex has enough neigborgs to be deleted
         char deleteFlag = 1;
         NeighborTriangle* firstNGR = _neighborList[n];
@@ -2606,6 +2671,13 @@ bool Mesh::coarse(const float& coarseRate,
                 for (int64_t m = 0; m < neighborNumber; m++)
                 {
                     const int64_t someNumber = neighborAuxList[m];
+                    
+                    // If borders are locked and this neighbor is a border vertex, skip smoothing it
+                    if (_bordersLocked && isBorderVertex(someNumber))
+                    {
+                        continue;
+                    }
+                    
                     const float x = _vertices[someNumber].x();
                     const float y = _vertices[someNumber].y();
                     const float z = _vertices[someNumber].z();
@@ -2687,6 +2759,14 @@ bool Mesh::coarse(const float& coarseRate,
     // Statistics
     LOG_STATS(GET_TIME_SECONDS);
 
+    // Save original border vertices flags before compaction
+    // We need to preserve the original flags because in-place compaction can overwrite them
+    std::vector<bool> originalBorderVertices;
+    if (_borderVertices.size() > 0)
+    {
+        originalBorderVertices = _borderVertices;
+    }
+
     // Clean the lists of nodes and faces
     int64_t startIndex = 0;
     for (int64_t n = 0; n < UI2I64(_numberVertices); ++n)
@@ -2719,6 +2799,26 @@ bool Mesh::coarse(const float& coarseRate,
     }
 
     _numberVertices = startIndex;
+
+    // Rebuild border vertices array using vertexIndex mapping
+    // This ensures we correctly map from old indices to new indices
+    if (originalBorderVertices.size() > 0)
+    {
+        std::vector<bool> newBorderVertices(_numberVertices, false);
+        for (size_t i = 0; i < originalBorderVertices.size(); ++i)
+        {
+            if (vertexIndex[i] >= 0 && vertexIndex[i] < static_cast<int64_t>(_numberVertices))
+            {
+                newBorderVertices[vertexIndex[i]] = originalBorderVertices[i];
+            }
+        }
+        _borderVertices = std::move(newBorderVertices);
+    }
+    else if (_borderVertices.size() > 0)
+    {
+        // Resize if it exists but wasn't saved (shouldn't happen, but be safe)
+        _borderVertices.resize(_numberVertices);
+    }
 
     startIndex = 0;
     for (size_t n = 0; n < _numberTriangles; n++)
@@ -2954,6 +3054,60 @@ void Mesh::removeFloatingFaces()
     if (removedFaces > 0)
     {
         LOG_WARNING("Removing [%d] floating faces", removedFaces);
+
+        // Create the new list
+        _triangles = new Triangle[triangles.size()];
+
+        for (size_t i = 0; i < triangles.size(); ++i)
+            _triangles[i] = triangles[i];
+        _numberTriangles = triangles.size();
+    }
+}
+
+void Mesh::removeBorderFaces()
+{
+    // Check if border vertices information is available
+    if (_borderVertices.size() == 0 || _borderVertices.size() < _numberVertices)
+    {
+        // No border information available, nothing to remove
+        return;
+    }
+
+    // For all the triangles, if all three vertices are border vertices, remove them
+    Triangles triangles;
+    for (size_t i = 0; i < _numberTriangles; ++i)
+    {
+        Triangle t = _triangles[i];
+        const int64_t v0 = t[0];
+        const int64_t v1 = t[1];
+        const int64_t v2 = t[2];
+
+        // Check if all three vertices are valid indices and border vertices
+        if (v0 >= 0 && v0 < static_cast<int64_t>(_borderVertices.size()) &&
+            v1 >= 0 && v1 < static_cast<int64_t>(_borderVertices.size()) &&
+            v2 >= 0 && v2 < static_cast<int64_t>(_borderVertices.size()))
+        {
+            const bool allBorder = _borderVertices[v0] && _borderVertices[v1] && _borderVertices[v2];
+            if (!allBorder)
+            {
+                // Keep the triangle if not all vertices are border vertices
+                triangles.push_back(t);
+            }
+        }
+        else
+        {
+            // Keep the triangle if indices are invalid (shouldn't happen, but be safe)
+            triangles.push_back(t);
+        }
+    }
+
+    const size_t removedFaces = _numberTriangles - triangles.size();
+    if (removedFaces > 0)
+    {
+        LOG_WARNING("Removing [%d] border faces (all vertices on boundary)", removedFaces);
+
+        // Delete the old triangles list
+        delete _triangles;
 
         // Create the new list
         _triangles = new Triangle[triangles.size()];

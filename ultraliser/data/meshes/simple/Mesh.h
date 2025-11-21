@@ -495,6 +495,12 @@ public:
     void removeFloatingFaces();
 
     /**
+     * @brief removeBorderFaces
+     * Removes faces where all three vertices are border vertices
+     */
+    void removeBorderFaces();
+
+    /**
      * @brief getNumberVertices
      * @return
      */
@@ -574,6 +580,42 @@ public:
      * the public functions of the Mesh untill the updateData() function is called again.
      */
     void relaseData() { _releaseData(); }
+
+    /**
+     * @brief setBordersLocked
+     * Sets whether border vertices should be locked during optimization.
+     * @param locked True to lock border vertices, false to allow them to move/be deleted.
+     */
+    void setBordersLocked(const bool locked) { _bordersLocked = locked; }
+
+    /**
+     * @brief areBordersLocked
+     * Returns whether border vertices are currently locked.
+     * @return True if borders are locked, false otherwise.
+     */
+    bool areBordersLocked() const { return _bordersLocked; }
+
+    /**
+     * @brief isBorderVertex
+     * Checks if a vertex is marked as a border vertex.
+     * @param vertexIndex The index of the vertex to check.
+     * @return True if the vertex is on the border, false otherwise.
+     */
+    bool isBorderVertex(const size_t vertexIndex) const;
+
+    /**
+     * @brief getBorderVertices
+     * Returns a boolean array indicating which vertices are border vertices.
+     * @return A vector of booleans, where true indicates a border vertex.
+     */
+    std::vector<bool> getBorderVertices() const;
+
+    /**
+     * @brief markBorderVertices
+     * Marks vertices as border vertices based on their indices.
+     * @param borderVertexIndices Set of vertex indices that are on the volume boundary.
+     */
+    void markBorderVertices(const std::set<size_t>& borderVertexIndices);
 
 private:
 
@@ -682,6 +724,16 @@ private:
     void _destroyVertexMarkers();
 
     /**
+     * @brief _destroyBorderVertices
+     */
+    void _destroyBorderVertices();
+
+    /**
+     * @brief _resetBorderVertices
+     */
+    void _resetBorderVertices();
+
+    /**
      * @brief _updateTriangleMarkers
      */
     void _resetTriangleMarkers();
@@ -730,6 +782,20 @@ private:
      * The evrtex markers are used to preserve specific vertices in the mesh.
      */
     std::vector< uint8_t > _vertexMarkers;
+
+    /**
+     * @brief _borderVertices
+     * Marks which vertices are on the border of the mesh.
+     * A vertex is on the border if it has boundary edges (edges shared by only one triangle).
+     */
+    std::vector< bool > _borderVertices;
+
+    /**
+     * @brief _bordersLocked
+     * Flag indicating whether border vertices should be locked during optimization.
+     * When true, border vertices cannot be deleted or moved during smoothing.
+     */
+    bool _bordersLocked;
 
     /**
      * @brief numberVertices

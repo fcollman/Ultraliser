@@ -34,6 +34,7 @@ struct PostprocessConfig {
   float laplacianMu = 0.1f;
   size_t surfaceSmoothIterations = 0;
   bool smoothNormals = false;
+  bool lockBorders = false;
 };
 
 class ScopedEnvVar {
@@ -104,7 +105,7 @@ PostprocessConfig make_postprocess_config(
     std::optional<int64_t> smoothingIterations,
     std::optional<float> denseFactor, uint32_t laplacianIterations,
     float laplacianLambda, float laplacianMu, size_t surfaceSmoothIterations,
-    bool smoothNormals) {
+    bool smoothNormals, bool lockBorders) {
   PostprocessConfig cfg;
   cfg.optimize = optimize;
   cfg.optimizationIterations = optimizationIterations;
@@ -115,6 +116,7 @@ PostprocessConfig make_postprocess_config(
   cfg.laplacianMu = laplacianMu;
   cfg.surfaceSmoothIterations = surfaceSmoothIterations;
   cfg.smoothNormals = smoothNormals;
+  cfg.lockBorders = lockBorders;
 
   const bool hasPartialOptimization = cfg.optimizationIterations.has_value() ||
                                       cfg.smoothingIterations.has_value() ||
@@ -135,6 +137,11 @@ PostprocessConfig make_postprocess_config(
 void apply_postprocess(Ultraliser::Mesh *mesh, const PostprocessConfig &cfg) {
   if (!mesh)
     return;
+
+  // Enable border locking if requested (must be done before optimization)
+  if (cfg.lockBorders) {
+    mesh->setBordersLocked(true);
+  }
 
   if (cfg.optimize) {
     if (cfg.optimizationIterations && cfg.smoothingIterations &&
@@ -250,7 +257,8 @@ py::dict volume_to_mesh(py::array volume, const std::string &algorithm,
                         uint32_t laplacian_iterations, float laplacian_lambda,
                         float laplacian_mu, size_t smooth_iterations,
                         bool smooth_normals, bool disable_progress,
-                        bool keep_open_boundaries = false) {
+                        bool keep_open_boundaries = false,
+                        bool lock_borders = false) {
   py::array_t<uint8_t, py::array::c_style | py::array::forcecast> volume_bytes(
       volume);
   const auto info = volume_bytes.request();
@@ -282,27 +290,46 @@ py::dict volume_to_mesh(py::array volume, const std::string &algorithm,
   if (disable_progress)
     progress_guard.emplace("ULTRALISER_NO_PROGRESS", "1");
 
+  // Always generate all faces (including boundary faces)
+  // If keep_open_boundaries is True, we'll remove boundary faces after postprocessing
   std::unique_ptr<Ultraliser::Mesh> mesh(
-      run_mesher(volume_ptr.get(), algorithm, iso_value, keep_open_boundaries));
+      run_mesher(volume_ptr.get(), algorithm, iso_value, false));
   volume_ptr.reset();
 
   const PostprocessConfig postprocess_cfg = make_postprocess_config(
       optimize, optimization_iterations, smoothing_iterations, dense_factor,
       laplacian_iterations, laplacian_lambda, laplacian_mu, smooth_iterations,
-      smooth_normals);
+      smooth_normals, lock_borders);
   apply_postprocess(mesh.get(), postprocess_cfg);
+
+  // Remove faces where all vertices are border vertices if keep_open_boundaries is True
+  // This is done after postprocessing to ensure border vertices are preserved during optimization
+  if (keep_open_boundaries)
+  {
+    mesh->removeBorderFaces();
+  }
 
   if (needs_scaling(spacing)) {
     mesh->scale(spacing[0], spacing[1], spacing[2]);
   }
 
   auto arrays = mesh_to_numpy(*mesh);
+  
+  // Extract border vertex information
+  const auto border_vertices = mesh->getBorderVertices();
+  py::array_t<bool> border_vertex_array(static_cast<py::ssize_t>(border_vertices.size()));
+  auto border_vertex_mut = border_vertex_array.mutable_unchecked<1>();
+  for (size_t i = 0; i < border_vertices.size(); ++i) {
+    border_vertex_mut(i) = border_vertices[i];
+  }
+  
   mesh.reset();
 
   py::dict result;
   result["vertices"] = arrays[0];
   result["faces"] = arrays[1];
   result["voxel_size"] = py::make_tuple(spacing[0], spacing[1], spacing[2]);
+  result["border_vertices"] = std::move(border_vertex_array);
 
   return result;
 }
@@ -322,6 +349,7 @@ PYBIND11_MODULE(_core, m) {
         py::arg("smooth_normals") = false,
         py::arg("disable_progress") = false,
         py::arg("keep_open_boundaries") = false,
+        py::arg("lock_borders") = false,
         R"pbdoc(
 Convert a binary volume into a surface mesh using Ultraliser.
 
@@ -370,6 +398,13 @@ keep_open_boundaries : bool, optional
   in open meshes at the boundaries. This is similar to zmesh's close=False
   behavior, but handled during meshing rather than through volume padding.
   Defaults to False (closed boundaries).
+lock_borders : bool, optional
+  If True, lock vertices on the volume boundary during mesh optimization.
+  Border vertices will not be moved or deleted during smoothing and decimation
+  operations. This is useful for preserving the exact volume boundaries when
+  optimizing meshes. Defaults to False.
+  Note: Border vertices are automatically detected during mesh generation based
+  on their position at the physical volume boundaries.
 
 Returns
 -------
@@ -377,5 +412,8 @@ Dict with numpy arrays:
     vertices : (N, 3) float32 array of vertex positions.
     faces : (M, 3) uint32 array of triangle indices.
     voxel_size : tuple of the applied scaling factors.
+    border_vertices : (N,) bool array indicating which vertices are on the volume boundary.
+        True indicates a border vertex, False indicates an interior vertex.
+        This array is empty if lock_borders=False or if no border vertices were detected.
 )pbdoc");
 }

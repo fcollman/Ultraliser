@@ -22,6 +22,8 @@
 #include "MarchingCubes.h"
 #include "MarchingCubes.hh"
 #include <data/volumes/voxels/Voxels.h>
+#include <data/meshes/simple/Mesh.h>
+#include <set>
 
 namespace Ultraliser
 {
@@ -90,10 +92,16 @@ Mesh* MarchingCubes::generateMesh()
     TIMER_SET;
 
     LOG_STATUS("Building Mesh");
-    _buildSharedVertices(vertices, triangles);
+    
+    // Track which vertices are on the volume boundary
+    std::set<size_t> borderVertexIndices;
+    _buildSharedVertices(vertices, triangles, borderVertexIndices);
 
     // Reconstruct the mesh
     Mesh* mesh = new Mesh(vertices, triangles);
+    
+    // Mark border vertices in the mesh
+    mesh->markBorderVertices(borderVertexIndices);
 
     // Statistics
     _meshExtractionTime = GET_TIME_SECONDS;
@@ -115,10 +123,19 @@ AdvancedMesh* MarchingCubes::generateAdvancedMesh()
     TIMER_SET;
 
     LOG_STATUS("Building Mesh");
-    _buildSharedVertices(vertices, triangles);
+    
+    // Build the mesh with border vertex detection
+    _borderVertexIndices.clear();
+    _buildSharedVertices(vertices, triangles, _borderVertexIndices);
 
     // Reconstruct the mesh
     AdvancedMesh* mesh = new AdvancedMesh(vertices, triangles);
+
+    // Mark border vertices if any were detected
+    if (!_borderVertexIndices.empty())
+    {
+        mesh->markBorderVertices(_borderVertexIndices);
+    }
 
     // Statistics
     _meshExtractionTime = GET_TIME_SECONDS;
@@ -128,13 +145,24 @@ AdvancedMesh* MarchingCubes::generateAdvancedMesh()
     return mesh;
 }
 
-void MarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &triangles)
+void MarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &triangles, std::set<size_t>& borderVertexIndices)
 {
     // Start the timer
     TIMER_SET;
 
     // Polygons
     std::vector< size_t > polygons;
+    
+    // Clear border vertex indices
+    borderVertexIndices.clear();
+    
+    // Get volume dimensions for boundary checking
+    const int64_t volumeWidth = static_cast<int64_t>(_volume->getWidth());
+    const int64_t volumeHeight = static_cast<int64_t>(_volume->getHeight());
+    const int64_t volumeDepth = static_cast<int64_t>(_volume->getDepth());
+    const int64_t width = volumeWidth;
+    const int64_t height = volumeHeight;
+    const int64_t depth = volumeDepth;
 
     // Adding a little bit of extra voxels
     const int64_t extraVoxels = 2;
@@ -254,13 +282,26 @@ void MarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &triangle
             for (size_t idx = 0; idx < 12; ++idx)
                 uniqueIndices[idx] = 0;
 
+            // Helper lambda to check if a vertex should be marked as border based on edge position
+            // Vertices are marked as border only if the edge they're on is exactly on the volume boundary
+            auto checkAndMarkBorder = [&](size_t vertexIndex, bool isEdgeOnBoundary) {
+                if (isEdgeOnBoundary && vertexIndex < vertices.size())
+                {
+                    borderVertexIndices.insert(vertexIndex);
+                }
+            };
+
             // Generate vertices and avoid DUPLICATE vertices!
+            // Note: For edges shared between cubes, we check the edge position, not just cube position
             if(edges & 0x040)
             {
                 uniqueIndices[6] = vertices.size();
                 int64_t idx = i * yz3 + j * z3 + k * 3 + 0;
                 sharedIndices[idx] = uniqueIndices[6];
                 addSharedVertex(x_dx, y_dy, z_dz, x, 0, v[6], v[7], _isoValue, vertices);
+                // Edge 6 is between voxels at (i+1, j+1, k+1) and (i, j+1, k+1)
+                // Edge is on boundary if it touches a volume face
+                checkAndMarkBorder(uniqueIndices[6], (i < 0 || i >= width - 1 || j < 0 || j >= height - 1 || k < 0 || k >= depth - 1));
             }
 
             if(edges & 0x020)
@@ -269,6 +310,9 @@ void MarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &triangle
                 int64_t idx = i * yz3 + j * z3 + k * 3 + 1;
                 sharedIndices[idx] = uniqueIndices[5];
                 addSharedVertex(x_dx, y, z_dz, y_dy, 1, v[5], v[6], _isoValue, vertices);
+                // Edge 5 is between voxels at (i+1, j, k+1) and (i+1, j+1, k+1)
+                // Edge is on boundary if it touches a volume face
+                checkAndMarkBorder(uniqueIndices[5], (i < 0 || i >= width - 1 || j < 0 || j >= height - 1 || k < 0 || k >= depth - 1));
             }
 
             if(edges & 0x400)
@@ -277,140 +321,199 @@ void MarchingCubes::_buildSharedVertices(Vertices& vertices, Triangles &triangle
                 int64_t idx = i * yz3 + j * z3 + k * 3 + 2;
                 sharedIndices[idx] = uniqueIndices[10];
                 addSharedVertex(x_dx, y_dy, z, z_dz, 2, v[2], v[6], _isoValue, vertices);
+                // Edge 10 is between voxels at (i+1, j+1, k) and (i+1, j+1, k+1)
+                // Edge is on boundary if it touches a volume face
+                checkAndMarkBorder(uniqueIndices[10], (i < 0 || i >= width - 1 || j < 0 || j >= height - 1 || k < 0 || k >= depth - 1));
             }
 
             if(edges & 0x001)
             {
+                // Edge 0 is between voxels at positions (i, j, k) and (i+1, j, k)
+                // Edge is on boundary if the edge touches a volume face:
+                // - i == -1 (left boundary: edge before voxel 0) OR i == width-1 (right boundary: edge after voxel width-1)
+                // - j == -1 (bottom boundary: edge before voxel 0) OR j == height-1 (top boundary: edge after voxel height-1)
+                // - k == -1 (back boundary: edge before voxel 0) OR k == depth-1 (front boundary: edge after voxel depth-1)
+                bool isEdgeOnBoundary = (i < 0 || i >= width - 1 || j < 0 || j >= height - 1 || k < 0 || k >= depth - 1);
                 if(j == 0 || k == 0)
                 {
+                    // This is the first time creating this edge
                     uniqueIndices[0] = vertices.size();
                     addSharedVertex(x, y, z, x_dx, 0, v[0], v[1], _isoValue, vertices);
+                    checkAndMarkBorder(uniqueIndices[0], isEdgeOnBoundary);
                 }
                 else
                 {
+                    // This edge was already created by a previous cube
                     int64_t idx = i * yz3 + (j - 1) * z3 + (k - 1) * 3 + 0;
                     uniqueIndices[0] = sharedIndices[idx];
+                    // For shared edges, check if THIS edge position is on boundary
+                    // Need to check if the edge between voxels at (i, j, k) and (i+1, j, k) is on boundary
+                    checkAndMarkBorder(uniqueIndices[0], (i < 0 || i >= width - 1 || j < 0 || j >= height - 1));
                 }
             }
 
             if(edges & 0x002)
             {
+                // Edge 1 is between voxels at (i+1, j, k) and (i+1, j+1, k)
+                // Edge is on boundary if it touches a volume face
+                bool isEdgeOnBoundary = (i < 0 || i >= width - 1 || j < 0 || j >= height - 1 || k < 0 || k >= depth - 1);
                 if(k == 0)
                 {
                     uniqueIndices[1] = vertices.size();
                     addSharedVertex(x_dx, y, z, y_dy, 1, v[1], v[2], _isoValue, vertices);
+                    checkAndMarkBorder(uniqueIndices[1], isEdgeOnBoundary);
                 }
                 else
                 {
                     int64_t idx = i * yz3 + j * z3 + (k - 1) * 3 + 1;
                     uniqueIndices[1] = sharedIndices[idx];
+                    // For shared edges, check if THIS edge position is on boundary
+                    checkAndMarkBorder(uniqueIndices[1], (i < 0 || i >= width - 1 || j < 0 || j >= height - 1));
                 }
             }
 
             if(edges & 0x004)
             {
+                // Edge 2 is between voxels at (i+1, j+1, k) and (i, j+1, k)
+                // Edge is on boundary if it touches a volume face
+                bool isEdgeOnBoundary = (i < 0 || i >= width - 1 || j < 0 || j >= height - 1 || k < 0 || k >= depth - 1);
                 if(k == 0)
                 {
                     uniqueIndices[2] = vertices.size();
                     addSharedVertex(x_dx, y_dy, z, x, 0, v[2], v[3], _isoValue, vertices);
+                    checkAndMarkBorder(uniqueIndices[2], isEdgeOnBoundary);
                 }
                 else
                 {
                     int64_t idx = i * yz3 + j * z3 + (k - 1) * 3 + 0;
                     uniqueIndices[2] = sharedIndices[idx];
+                    // For shared edges, check if THIS edge position is on boundary
+                    checkAndMarkBorder(uniqueIndices[2], (i < 0 || i >= width - 1 || j < 0 || j >= height - 1));
                 }
             }
 
             if(edges & 0x008)
             {
+                // Edge 3 is between voxels at (i, j+1, k) and (i, j, k)
+                // Edge is on boundary if it touches a volume face
+                bool isEdgeOnBoundary = (i < 0 || i >= width - 1 || j < 0 || j >= height - 1 || k < 0 || k >= depth - 1);
                 if(i == 0 || k == 0)
                 {
                     uniqueIndices[3] = vertices.size();
                     addSharedVertex(x, y_dy, z, y, 1, v[3], v[0], _isoValue, vertices);
+                    checkAndMarkBorder(uniqueIndices[3], isEdgeOnBoundary);
                 }
                 else
                 {
                     int64_t idx = (i - 1) * yz3 + j * z3 + (k - 1) * 3 + 1;
                     uniqueIndices[3] = sharedIndices[idx];
+                    // For shared edges, check if THIS edge position is on boundary
+                    checkAndMarkBorder(uniqueIndices[3], (i < 0 || i >= width - 1 || j < 0 || j >= height - 1));
                 }
             }
 
             if(edges & 0x010)
             {
+                // Edge 4 is between voxels at (i, j, k) and (i, j, k+1)
+                // Edge is on boundary if it touches a volume face
+                bool isEdgeOnBoundary = (i < 0 || i >= width - 1 || j < 0 || j >= height - 1 || k < 0 || k >= depth - 1);
                 if(j == 0)
                 {
                     uniqueIndices[4] = vertices.size();
                     addSharedVertex(x, y, z_dz, x_dx, 0, v[4], v[5], _isoValue, vertices);
+                    checkAndMarkBorder(uniqueIndices[4], isEdgeOnBoundary);
                 }
                 else
                 {
                     int64_t idx = i * yz3 + (j - 1) * z3 + k * 3 + 0;
                     uniqueIndices[4] = sharedIndices[idx];
+                    // For shared edges, check if THIS edge position is on boundary
+                    checkAndMarkBorder(uniqueIndices[4], (i < 0 || i >= width - 1 || k < 0 || k >= depth - 1));
                 }
             }
 
             if(edges & 0x080)
             {
+                // Edge 7 is between voxels at (i, j+1, k+1) and (i, j, k+1)
+                // Edge is on boundary if it touches a volume face
+                bool isEdgeOnBoundary = (i < 0 || i >= width - 1 || j < 0 || j >= height - 1 || k < 0 || k >= depth - 1);
                 if(i == 0)
                 {
                     uniqueIndices[7] = vertices.size();
                     addSharedVertex(x, y_dy, z_dz, y, 1, v[7], v[4], _isoValue, vertices);
+                    checkAndMarkBorder(uniqueIndices[7], isEdgeOnBoundary);
                 }
                 else
                 {
                     int64_t idx = (i - 1) * yz3 + j * z3 + k * 3 + 1;
                     uniqueIndices[7] = sharedIndices[idx];
+                    // For shared edges, check if THIS edge position is on boundary
+                    checkAndMarkBorder(uniqueIndices[7], (j < 0 || j >= height - 1 || k < 0 || k >= depth - 1));
                 }
             }
 
             if(edges & 0x100)
             {
+                // Edge 8 is between voxels at (i, j, k) and (i, j, k+1)
+                // Edge is on boundary if it touches a volume face
+                bool isEdgeOnBoundary = (i < 0 || i >= width - 1 || j < 0 || j >= height - 1 || k < 0 || k >= depth - 1);
                 if(i == 0 || j == 0)
                 {
                     uniqueIndices[8] = vertices.size();
                     addSharedVertex(x, y, z, z_dz, 2, v[0], v[4], _isoValue, vertices);
+                    checkAndMarkBorder(uniqueIndices[8], isEdgeOnBoundary);
                 }
                 else
                 {
                     int64_t idx = (i - 1) * yz3 + (j - 1) * z3 + k * 3 + 2;
                     uniqueIndices[8] = sharedIndices[idx];
+                    // For shared edges, check if THIS edge position is on boundary
+                    checkAndMarkBorder(uniqueIndices[8], (k < 0 || k >= depth - 1));
                 }
             }
 
             if(edges & 0x200)
             {
+                // Edge 9 is between voxels at (i+1, j, k) and (i+1, j, k+1)
+                // Edge is on boundary if it touches a volume face
+                bool isEdgeOnBoundary = (i < 0 || i >= width - 1 || j < 0 || j >= height - 1 || k < 0 || k >= depth - 1);
                 if(j == 0)
                 {
                     uniqueIndices[9] = vertices.size();
                     addSharedVertex(x_dx, y, z, z_dz, 2, v[1], v[5], _isoValue,vertices);
+                    checkAndMarkBorder(uniqueIndices[9], isEdgeOnBoundary);
                 }
                 else
                 {
                     int64_t idx = i * yz3 + (j - 1) * z3 + k * 3 + 2;
                     uniqueIndices[9] = sharedIndices[idx];
+                    // For shared edges, check if THIS edge position is on boundary
+                    checkAndMarkBorder(uniqueIndices[9], (i < 0 || i >= width - 1 || k < 0 || k >= depth - 1));
                 }
             }
 
             if(edges & 0x800)
             {
+                // Edge 11 is between voxels at (i, j+1, k) and (i, j+1, k+1)
+                // Edge is on boundary if it touches a volume face
+                bool isEdgeOnBoundary = (i < 0 || i >= width - 1 || j < 0 || j >= height - 1 || k < 0 || k >= depth - 1);
                 if(i == 0)
                 {
                     uniqueIndices[11] = vertices.size();
                     addSharedVertex(x, y_dy, z, z_dz, 2, v[3], v[7], _isoValue, vertices);
+                    checkAndMarkBorder(uniqueIndices[11], isEdgeOnBoundary);
                 }
                 else
                 {
                     int64_t idx = (i - 1) * yz3 + j * z3 + k * 3 + 2;
                     uniqueIndices[11] = sharedIndices[idx];
+                    // For shared edges, check if THIS edge position is on boundary
+                    checkAndMarkBorder(uniqueIndices[11], (j < 0 || j >= height - 1 || k < 0 || k >= depth - 1));
                 }
             }
 
-            // Skip boundary faces if keepOpenBoundaries is enabled
-            if (_keepOpenBoundaries && _isOnBoundary(i, j, k))
-            {
-                continue;
-            }
-
+            // Generate all faces (including boundary faces)
+            // Boundary faces will be removed later using border_vertices information
             int64_t vertexIndex;
             int32_t* triangleTablePtr = MC_TRIANGLE_TABLE[mcVoxel->cubeIndex];
             for (size_t tIndex = 0;
@@ -446,11 +549,16 @@ bool MarchingCubes::_isOnBoundary(const int64_t i, const int64_t j, const int64_
     const int64_t height = static_cast<int64_t>(_volume->getHeight());
     const int64_t depth = static_cast<int64_t>(_volume->getDepth());
 
-    // Check if cube is on any boundary face
-    // A cube at (i, j, k) is on the boundary if any of its corners are at the volume edge
-    return (i <= 0 || i >= width - 1) ||
-           (j <= 0 || j >= height - 1) ||
-           (k <= 0 || k >= depth - 1);
+    // Check if cube is on or outside the volume boundary
+    // A cube at (i, j, k) samples voxels at (i, j, k) to (i+1, j+1, k+1)
+    // The cube is on the boundary if it touches a volume face
+    // Volume has voxels at positions 0 to width-1, so cube is on boundary if:
+    // - i < 0 (left boundary) OR i >= width-1 (right boundary)
+    // - j < 0 (bottom boundary) OR j >= height-1 (top boundary)
+    // - k < 0 (back boundary) OR k >= depth-1 (front boundary)
+    return (i < 0 || i >= width - 1) ||
+           (j < 0 || j >= height - 1) ||
+           (k < 0 || k >= depth - 1);
 }
 
 Mesh* MarchingCubes::generateMeshFromVolume(Volume* volume)

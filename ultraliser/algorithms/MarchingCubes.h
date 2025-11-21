@@ -25,6 +25,7 @@
 #include <data/volumes/Volume.h>
 #include <data/volumes/TaggedVolume.h>
 #include <data/meshes/advanced/AdvancedMesh.h>
+#include <set>
 
 namespace Ultraliser
 {
@@ -94,8 +95,10 @@ private:
      * A list to collect the vertices of the mesh.
      * @param triangles
      * A list to collect the triangles of the mesh.
+     * @param borderVertexIndices
+     * A set to collect the indices of vertices that are on the volume boundary.
      */
-    void _buildSharedVertices(Vertices& vertices, Triangles &triangles);
+    void _buildSharedVertices(Vertices& vertices, Triangles &triangles, std::set<size_t>& borderVertexIndices);
 
     /**
      * @brief _isOnBoundary
@@ -133,6 +136,12 @@ private:
      * @brief _meshExtractionTime
      */
     double _meshExtractionTime;
+
+    /**
+     * @brief _borderVertexIndices
+     * Set of vertex indices that are on the volume boundary.
+     */
+    std::set<size_t> _borderVertexIndices;
 };
 
 }
