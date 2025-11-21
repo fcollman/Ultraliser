@@ -26,6 +26,56 @@
 # OpenMP
 find_package(OpenMP)
 
+# If OpenMP not found and we're on macOS, try to find Homebrew's libomp
+if(NOT OPENMP_FOUND AND APPLE)
+    # Try to find Homebrew's libomp
+    execute_process(
+        COMMAND brew --prefix libomp
+        OUTPUT_VARIABLE HOMEBREW_LIBOMP_PREFIX
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    
+    if(HOMEBREW_LIBOMP_PREFIX)
+        message(STATUS "OpenMP not found via standard method, trying Homebrew's libomp at ${HOMEBREW_LIBOMP_PREFIX}")
+        
+        # Find the OpenMP library
+        find_library(OpenMP_C_LIBRARY
+            NAMES omp libomp
+            PATHS ${HOMEBREW_LIBOMP_PREFIX}/lib
+            NO_DEFAULT_PATH
+        )
+        find_library(OpenMP_CXX_LIBRARY
+            NAMES omp libomp
+            PATHS ${HOMEBREW_LIBOMP_PREFIX}/lib
+            NO_DEFAULT_PATH
+        )
+        
+        if(OpenMP_C_LIBRARY AND OpenMP_CXX_LIBRARY)
+            set(OpenMP_CXX_LIBRARIES ${OpenMP_CXX_LIBRARY})
+            set(OpenMP_C_LIBRARIES ${OpenMP_C_LIBRARY})
+            
+            # Set OpenMP compiler flags for Homebrew's libomp
+            # -Xpreprocessor -fopenmp is a compiler flag
+            # Note: -lomp is NOT included here (it's a linker flag, not a compiler flag)
+            if(EXISTS "${HOMEBREW_LIBOMP_PREFIX}/include")
+                set(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp -I${HOMEBREW_LIBOMP_PREFIX}/include")
+                set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp -I${HOMEBREW_LIBOMP_PREFIX}/include")
+            else()
+                set(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp")
+                set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp")
+            endif()
+            
+            # Set linker flags separately (these are used during linking, not compilation)
+            # The library path is set here, but actual linking is done via link_libraries() below
+            set(OpenMP_EXE_LINKER_FLAGS "-L${HOMEBREW_LIBOMP_PREFIX}/lib")
+            
+            set(OPENMP_FOUND TRUE)
+            message(STATUS "Found OpenMP via Homebrew: ${OpenMP_CXX_LIBRARY}")
+        endif()
+    endif()
+endif()
+
 if(OPENMP_FOUND)
 
     # OpenMP flags

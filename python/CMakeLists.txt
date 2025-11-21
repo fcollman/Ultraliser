@@ -1,5 +1,17 @@
 # Python bindings for Ultraliser
 
+# Set CMake policy for Python finding (CMP0148)
+if(POLICY CMP0148)
+    cmake_policy(SET CMP0148 NEW)
+endif()
+
+# Enable pybind11's FindPython before finding pybind11
+set(PYBIND11_FINDPYTHON ON)
+
+# Find Python first
+find_package(Python COMPONENTS Interpreter Development REQUIRED)
+
+# Find pybind11
 find_package(pybind11 CONFIG QUIET)
 if(NOT pybind11_FOUND)
     find_package(pybind11 QUIET)
